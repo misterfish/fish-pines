@@ -1,0 +1,5 @@
+#!/bin/bash
+
+. `dirname "$0"`/functions
+
+cmd NO_NES=1 make

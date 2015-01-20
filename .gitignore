@@ -1,0 +1,5 @@
+.gr
+Makefile
+*.o
+util/*.o
+fish-pines

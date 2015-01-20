@@ -1,0 +1,10 @@
+#!/bin/bash
+
+. `dirname "$0"`/functions
+
+find -iname '*.c' > .gr
+find -iname '*.h' >> .gr
+find README Makefile >> .gr
+
+while read r; do grep -HiP --color=always "$@" "$r"; done < .gr
+
