@@ -5,3 +5,5 @@ util/*.o
 fish-pines
 tags
 TAGS
+*.swo
+*.swp
