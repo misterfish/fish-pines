@@ -5,6 +5,8 @@
 #error buttons.h needs constants.h
 #endif
 
+static char *allen = "allen";
+
 /* Std order.
  */
 static short BUTTONS[] = {
@@ -18,31 +20,64 @@ static int NUM_BUTTONS = 8;
 
 /* Std order.
  */
-static bool KILL_MULTIPLE[2][8] = {
-    /* Normal:
+static bool KILL_MULTIPLE[2][2][8] = {
+    {
+    /* MODE = music 
      */
-    { 
-        // prev song, next song
-        true, true,
+        /* Normal (without alt button):
+         */
+        { 
+            // prev song, next song
+            true, true,
 
-        false, false,
+            false, false,
 
-        true,  //select
-        false,   //start
+            true,  //select
+            true,   //start
 
-        true, true,
+            true, true
+        },
+
+        /* Alt: 
+         */
+        { 
+            // seek left, seek right
+            false, false,
+
+            true, true,
+            false, //n.a.
+            true,
+            true, true
+        }
     },
-
-    /* Alt: 
+    {
+    /* MODE = general
      */
-    { 
-        // seek left, seek right
-        false, false,
+        /* Normal (without alt button):
+         */
+        { 
+            // prev song, next song
+            true, true,
 
-        true, true,
-        false, //n.a.
-        true,
-        true, true,
+            false, false,
+
+            true,  //select
+            false,   //start, false so we can do the hold down thing.
+
+            true, true
+        },
+
+        /* Alt: 
+         */
+        { 
+            // seek left, seek right
+            false, false,
+
+            true, true,
+            false, //n.a.
+            true,
+            true, true
+        }
     }
 };
 

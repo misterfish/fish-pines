@@ -3,3 +3,5 @@ Makefile
 *.o
 util/*.o
 fish-pines
+tags
+TAGS

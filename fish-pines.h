@@ -10,3 +10,5 @@ do_button(bool on, bool *state_ptr, bool kill_multiple, bool fn_on(), bool fn_of
 ;
 
 static void cleanup();
+
+void main_set_mode(int mode);

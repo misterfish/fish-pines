@@ -9,8 +9,6 @@
 
 #include <unistd.h> // usleep
 
-#include <pthread.h>
-
 #include <fish-util.h>
 #include <fish-utils.h>
 

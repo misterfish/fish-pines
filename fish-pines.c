@@ -55,10 +55,12 @@ static bool (*FN_OFF[8])() = {
 };
 
 /* Is initted by compiler.
+ * Static is important to avoid silently clobbering other g's.
  */
 
 static struct {
     bool *alt; // linked to b button. also in ctl.c.
+    int mode; // music or general
     /* Std order.
      */
     struct button_name_s button_names;
@@ -107,7 +109,9 @@ int main (int argc, char** argv) {
 
     info("setting up ctl + mpd");
 
+// errp XX
     if (!ctl_init(&g.state, DO_UINPUT)) 
+    //if (!ctl_init(&g.state, DO_UINPUT, g.button_names.left)) 
         errp("Couldn't init ctl.");
 
     int first = 1;
@@ -156,6 +160,7 @@ int main (int argc, char** argv) {
         for (int i = 0; i < 8; i++) {
             state_ptr = g.state_iter[i];
             button_name_ptr = g.button_name_iter[i];
+            //button_name_ptr = &allen;
             fn_on = FN_ON[i];
             fn_off = FN_OFF[i];
             bool on = cur_read & BUTTONS[i];
@@ -168,7 +173,11 @@ int main (int argc, char** argv) {
             else
                 sprintf(button_string, "%s", *button_name_ptr);
 
-            bool kill_multiple = KILL_MULTIPLE[alt][i];
+            if (g.mode == -1) {
+                piep;
+                continue;
+            }
+            bool kill_multiple = KILL_MULTIPLE[g.mode][alt][i];
             if (!do_button(on, state_ptr, kill_multiple, fn_on, fn_off, button_string)) 
                 piep;
             free(button_string);
@@ -187,6 +196,10 @@ int main (int argc, char** argv) {
 }
 
 /* - - - */
+
+void main_set_mode(int mode) {
+    g.mode = mode;
+}
 
 int getRand01() {
     return (int) (1.0 * rand() / RAND_MAX * 2);
@@ -334,5 +347,5 @@ static void init_state() {
     g.button_name_iter[7] = &g.button_names.a;
 
     g.alt = &g.state.b;
-
+    g.mode = -1;
 }

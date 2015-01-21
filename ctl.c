@@ -20,6 +20,8 @@
 
 #include "ctl.h"
 
+#include "fish-pines.h"
+
 //#define SHUTDOWN_HOLD_SECS 2
 #define SHUTDOWN_HOLD_SECS 0
 
@@ -33,7 +35,7 @@ bool shell_cmd_with_cb(int which, bool alt, void*(cb)());
 
 static char *SOCKET_VOLD = "/tmp/.vold-simple-socket";
 
-static char* SHELL_CMDS_MUSIC[8][3] = {
+static char *SHELL_CMDS_MUSIC[8][3] = {
     { "", "", "" },
     { "", "", "" },
     { "", "", "" },
@@ -44,7 +46,7 @@ static char* SHELL_CMDS_MUSIC[8][3] = {
     { "", "", "" }
 };
 
-static char* SHELL_CMDS_MUSIC_ALT[8][3] = {
+static char *SHELL_CMDS_MUSIC_ALT[8][3] = {
     { "", "", "" },
     { "", "", "" },
     { "", "", "" },
@@ -56,18 +58,19 @@ static char* SHELL_CMDS_MUSIC_ALT[8][3] = {
     { "make-playlist-all", "", "" } // A
 };
 
-static char* SHELL_CMDS_GENERAL[8][3] = {
+static char *SHELL_CMDS_GENERAL[8][3] = {
     { "echo >&2 test general left", "", "" },
     { "echo >&2 test general right", "", "" },
     { "", "", "" },
     { "", "", "" },
     { "", "", "" },
     { "poweroff-with-led", "", "" }, // start, needs hold down
+    //{ "echo THATS ENOUGH", "", "" }, // start, needs hold down
     { "switch-to-internet-wired &", "", "" },
     { "switch-to-internet-wireless &", "", "" }
 };
 
-static char* SHELL_CMDS_GENERAL_ALT[8][3] = {
+static char *SHELL_CMDS_GENERAL_ALT[8][3] = {
     { "echo >&2 test general alt left", "", "" },
     { "echo >&2 test general alt right", "", "" },
     { "", "", "" },
@@ -92,20 +95,22 @@ static struct {
 bool mode_music();
 bool mode_general(); 
 
-bool shell_go(char** cmds) {
+bool shell_go(char **cmds) {
     bool err = false;
     for (int i = 0 ;; i++) {
-        char* cmd = *(cmds+i);
+        char *cmd = *(cmds+i);
         if (!strcmp(cmd, "")) 
             break; // empty, ok
 
         myinfo("cmd: %s", cmd);
 
+        /* Fork can fail XX
+         */
         if (fork()) {
         }
         else {
             if (sysx(cmd))
-                err = true; // useless
+                err = true; // useless XX
             exit(0);
         }
     }
@@ -127,7 +132,7 @@ bool ctl_init(struct state_s *statep, bool do_uinput) {
 
     if (g.do_uinput) uinput_init();
 
-    g.mode = MODE_MUSIC;
+    set_mode(MODE_MUSIC);
     if (!update_mode_led()) 
         pieprf;
 
@@ -253,7 +258,7 @@ bool ctl_do_center_y() {
 bool ctl_do_select_down() {
     if (g.do_uinput) uinput_btn_select();
 
-    g.mode = !g.mode;
+    set_mode(!g.mode);
     _();
     BR(g.mode == MODE_MUSIC ? "music" : "general");
     myinfo("set mode to %s", _s);
@@ -275,6 +280,9 @@ bool ctl_do_start_down() {
             g.time_start_down = now;
         }
         else {
+            /* This only works if the button is allowed to repeat. But start
+             * isn't.
+             */
             if (now - g.time_start_down > SHUTDOWN_HOLD_SECS) {
                 if (!shell_cmd(F_START, false))
                     pieprf;
@@ -351,6 +359,11 @@ bool mode_music() {
 
 bool mode_general() {
     return g.mode == MODE_GENERAL;
+}
+
+static void set_mode(int mode) {
+    g.mode = mode;
+    main_set_mode(mode);
 }
 
 static bool update_mode_led() {

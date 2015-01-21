@@ -1,6 +1,3 @@
-#define MODE_MUSIC      0x00
-#define MODE_GENERAL    0x01
-
 #ifndef __INCL_BUTTONS_H
 #error ctl.h needs buttons.h
 #endif
@@ -23,3 +20,4 @@ bool ctl_do_b_up();
 bool ctl_do_b_down();
 
 static bool update_mode_led();
+static void set_mode(int mode);

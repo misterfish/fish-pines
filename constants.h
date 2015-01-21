@@ -41,4 +41,7 @@ static int MPD_UPDATE = 10;
 #define MPD_TIMEOUT_PLAYLIST_MS 30000
 #define MPD_PLAY_ON_LOAD_PLAYLIST true
 
+#define MODE_MUSIC      0x00
+#define MODE_GENERAL    0x01
+
 #endif
