@@ -1,0 +1,42 @@
+ifneq ($(NO_NES), 1)
+    OBJ_NES = nes.o led.o ../wiringPi/wiringPi/wiringPi.o ../wiringPi/devLib/piNes.o ../wiringPi/wiringPi/piHiPri.o
+    FLAGS_C_NES = -I../wiringPi/devLib -I../wiringPi/wiringPi -lfish-pigpio 
+else
+    FLAGS_C_NES = -DNO_NES
+endif
+
+FLAGS_C = -std=c99 -I/usr/local/include -I/usr/local/include/fish-utils -lm -lpthread -lpcre -lfish-util -lfish-utils -lmpdclient -L/usr/local/lib $(FLAGS_C_NES)
+FLAGS_C += `pkg-config --cflags --libs glib-2.0`
+
+ALL_OBJ = $(OBJ_NES) ctl.o uinput.o mpd.o util.o
+ALL_DEPS = buttons.h conf.h constants.h config.h fish-pines.c $(ALL_OBJ)
+
+GCC = gcc $(FLAGS_C) 
+
+all: fish-pines
+
+fish-pines: $(ALL_DEPS)
+	$(GCC) $(ALL_OBJ) fish-pines.c -o fish-pines
+
+ctl.o: ctl.c ctl.h buttons.h constants.h conf.h
+	$(GCC) -c ctl.c -o ctl.o
+
+uinput.o: uinput.c
+	$(GCC) -c uinput.c -o uinput.o
+
+mpd.o: mpd.c mpd.h constants.h conf.h
+	$(GCC) -c mpd.c -o mpd.o
+
+# Only when no NO_NES
+nes.o: nes.c nes.h
+	$(GCC) -c nes.c -o nes.o
+
+led.o: led.c led.h buttons.h constants.h conf.h
+	$(GCC) -c led.c -o led.o
+
+util.o: util.c util.h
+	$(GCC) -c util.c -o util.o
+
+clean: 
+	rm -f *.o
+	rm -f fish-pines
