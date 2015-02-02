@@ -24,9 +24,12 @@ inc		= $(foreach i,$(modules),$(${i}_inc))
 all		= $(foreach i,$(modules),$(${i}_all))
 
 pre		:= $(fishutil_obj) $(fishutils_obj)
-src		:= ctl.c led.c mpd.c nes.c uinput.c util.c
-obj		:= ctl.o led.o mpd.o nes.o uinput.o util.o
 main		:= fish-pines
+src_c		:= ctl.c led.c mpd.c nes.c uinput.c util.c
+src		:= $(src_c) \
+    		    $(main).h \
+		    $(src_c:.c=.h)
+obj		:= $(src_c:.c=.o)
 
 all: $(pre) $(obj) $(main)
 
