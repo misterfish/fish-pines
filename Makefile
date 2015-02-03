@@ -27,7 +27,7 @@ pre		:= $(fishutil_obj) $(fishutils_obj)
 main		:= fish-pines
 src_c		:= ctl.c led.c mpd.c nes.c uinput.c util.c
 src		:= $(src_c) \
-    		    $(main).h \
+    		    $(main).c $(main).h \
 		    $(src_c:.c=.h)
 obj		:= $(src_c:.c=.o)
 

@@ -7,7 +7,7 @@
 
 static char *allen = "allen";
 
-/* Std order.
+/* Mapping from our standard order to their N_ order.
  */
 static short BUTTONS[] = {
     N_LEFT, N_RIGHT,
@@ -56,7 +56,6 @@ static bool KILL_MULTIPLE[2][2][8] = {
         /* Normal (without alt button):
          */
         { 
-            // prev song, next song
             true, true,
 
             false, false,
@@ -80,6 +79,31 @@ static bool KILL_MULTIPLE[2][2][8] = {
         }
     }
 };
+
+#define NUM_KILL_MULTIPLE_RULES_MUSIC 8
+#define NUM_KILL_MULTIPLE_RULES_GENERAL 1
+
+/* Put rules in order with more buttons first.
+ * if the or equals itself.
+ * def true
+ */
+
+static unsigned int KILL_NEW_MUSIC[2 * NUM_KILL_MULTIPLE_RULES_MUSIC] = {
+    (N_B | N_LEFT)  , 0, // seek left
+    (N_B | N_RIGHT) , 0, // seek right
+    (N_B | N_UP)    , 1, // playlist up
+    (N_B | N_DOWN)  , 1, // playlist down
+    (      N_LEFT)  , 1, // prev song
+    (      N_RIGHT) , 1, // next song
+    (      N_UP)    , 1, // vol up
+    (      N_DOWN)  , 1, // vol down
+};
+
+static unsigned int KILL_NEW_GENERAL[2 * NUM_KILL_MULTIPLE_RULES_GENERAL] = {
+    (N_START)       , 0, // so we can hold down start for power off
+};
+
+
 
 /* Std order.
  * Used for state and for verbose btn names.
