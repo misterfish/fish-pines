@@ -66,4 +66,6 @@ struct button_name_s {
     char *a;
 };
 
+bool buttons_init();
+
 #endif

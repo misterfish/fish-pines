@@ -105,6 +105,9 @@ int main (int argc, char** argv) {
 
     init_state();
 
+    if (!buttons_init()) 
+        die();
+
 #ifndef NO_NES
     info("setting up wiringPi");
 

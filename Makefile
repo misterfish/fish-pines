@@ -25,7 +25,7 @@ all		= $(foreach i,$(modules),$(${i}_all))
 
 pre		:= $(fishutil_obj) $(fishutils_obj)
 main		:= fish-pines
-src_c		:= ctl.c led.c mpd.c nes.c uinput.c util.c
+src_c		:= buttons.c ctl.c led.c mpd.c nes.c uinput.c util.c
 src		:= $(src_c) \
     		    $(main).c $(main).h \
 		    $(src_c:.c=.h)
