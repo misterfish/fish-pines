@@ -35,7 +35,7 @@ all		= $(foreach i,$(modules),$(${i}_all))
 
 pre		:= $(fishutil_obj) $(fishutils_obj)
 main		:= fish-pines
-src_c		:= buttons.c ctl.c led.c mpd.c uinput.c util.c
+src_c		:= mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c uinput.c util.c
 ifneq ($(NO_NES), 1)
     src_c	+= nes.c
 endif

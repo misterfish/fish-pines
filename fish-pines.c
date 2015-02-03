@@ -22,8 +22,10 @@
 
 #include "constants.h"
 #include "buttons.h"
-#include "ctl.h"
+#include "ctl-default.h"
+#include "ctl-custom.h"
 #include "mpd.h"
+#include "mode.h"
 #include "util.h"
 
 #ifndef NO_NES
@@ -32,45 +34,44 @@
 
 #include "fish-pines.h"
 
-/* Each button has its own off. 
- * Each full state string has an on.
- */
-
 /* 
  * Std order.
  *
- * On each read, fire the press events for each pressed button, then the
- * event for the combination, then the release events for each button
- * released since the last read.
+ * On each read, look up the first matching rule for the combination. 
+ * If kill_multiple is true in the rule, and the read is the same as the
+ * last one, don't do anything else.
+ * Otherwise, cycle through the buttons and fire the press events for
+ * each currently pressed button (meaning, tap or hold) and the release event for each button released since the last read.
+ *
+ * Then fire the specific event for the combination (from the looked up
+ * rule) if applicable.
  */
 
 static bool (*EVENT_PRESS[8])() = {
-    ctl_do_left,
-    ctl_do_right,
-    ctl_do_up,
-    ctl_do_down,
-    ctl_do_select_down,
-    ctl_do_start_down,
-    ctl_do_b_down,
-    ctl_do_a_down,
+    ctl_default_left,
+    ctl_default_right,
+    ctl_default_up,
+    ctl_default_down,
+    ctl_default_select_down,
+    ctl_default_start_down,
+    ctl_default_b_down,
+    ctl_default_a_down,
 };
 static bool (*EVENT_RELEASE[8])() = {
-    ctl_do_center_x,
-    ctl_do_center_x,
-    ctl_do_center_y,
-    ctl_do_center_y,
-    ctl_do_select_up,
-    ctl_do_start_up,
-    ctl_do_b_up,
-    ctl_do_a_up,
+    ctl_default_center_x,
+    ctl_default_center_x,
+    ctl_default_center_y,
+    ctl_default_center_y,
+    ctl_default_select_up,
+    ctl_default_start_up,
+    ctl_default_b_up,
+    ctl_default_a_up,
 };
 
 /* Static is important to avoid silently clobbering other g's.
  */
 
 static struct {
-    int mode; // music or general
-
     /* Structs have named fields 'a', 'start', 'down', etc.
      */
     struct button_name_s button_names;
@@ -135,9 +136,11 @@ int main (int argc, char** argv) {
     info("setting up ctl + mpd");
 
     // errp -> ierr
-    //if (!ctl_init(&g.state, DO_UINPUT)) 
-    if (!ctl_init(DO_UINPUT)) 
-        errp("Couldn't init ctl.");
+    if (!ctl_default_init(DO_UINPUT)) 
+        errp("Couldn't init ctl-default.");
+
+    if (!ctl_custom_init()) 
+        errp("Couldn't init ctl-custom.");
 
     int first = 1;
     unsigned int cur_read;
@@ -186,10 +189,6 @@ int main (int argc, char** argv) {
 }
 
 /* - - - */
-
-void main_set_mode(int mode) {
-    g.mode = mode;
-}
 
 bool is_button_dir(int i) {
     //return i <= 
@@ -274,7 +273,14 @@ printf("[%s] ", button_print);
 static bool process_read(unsigned int read, char *button_print) {
     static unsigned int prev_read = -1;
 
-    bool kill_multiple = get_kill_multiple(read);
+    struct button_rule *rule = buttons_get_rule(read);
+
+    bool kill_multiple = BUTTONS_KILL_MULTIPLE_DEFAULT;
+    bool (*press_cb)() = NULL;
+    if (rule) {
+        kill_multiple = rule->kill_multiple;
+        press_cb = rule->press_event;
+    }
 
     if ((prev_read == read) && kill_multiple) {
 #ifdef DEBUG
@@ -319,10 +325,10 @@ static bool process_read(unsigned int read, char *button_print) {
         }
     }
 
-    /* 
-     * combi XX
-     */
-
+    if (press_cb) {
+        if (! (*press_cb)())
+            pieprf;
+    }
     prev_read = read;
     return ok;
 }
@@ -387,8 +393,6 @@ static void init_state() {
     g.button_name_iter[5] = &g.button_names.start;
     g.button_name_iter[6] = &g.button_names.b;
     g.button_name_iter[7] = &g.button_names.a;
-
-    g.mode = -1;
 }
 
 static int make_canonical(unsigned int read) {
@@ -428,36 +432,4 @@ static int get_max_button_print_size() {
     return n+1;
 }
 
-static bool get_kill_multiple(unsigned int read) {
-    // music or general
-    if (g.mode == -1) 
-        pieprf;
 
-    unsigned int *ary;
-    int cnt;
-
-    if (g.mode == MODE_MUSIC) {
-        ary = KILL_MULTIPLE_MUSIC;
-        cnt = NUM_KILL_MULTIPLE_RULES_MUSIC;
-    }
-    else if (g.mode == MODE_GENERAL) {
-        ary = KILL_MULTIPLE_GENERAL;
-        cnt = NUM_KILL_MULTIPLE_RULES_GENERAL;
-    }
-
-    /* Stop on first matching rule.
-     */
-    for (int i = 0; i < cnt*2; i += 2) {
-        unsigned int mask = ary[i];
-        bool kill = (bool) ary[i+1];
-        //info("read is %d, mask is %d, read&mask is %d", read, mask, read&mask);
-        if ((read & mask) == mask) {
-#ifdef DEBUG
-            info("kill multiple: %d", kill);
-#endif
-            return kill;
-        }
-    }
-    // XX DEFAULT
-    return false;
-}

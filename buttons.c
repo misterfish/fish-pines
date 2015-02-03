@@ -1,49 +1,102 @@
 #include "buttons.h"
+#include "ctl-custom.h"
+#include "mode.h"
 
-#define new_rule(mask, kill_multiple, func) { \
-    struct button_rule rule = {
-        .mask = mask,
-        .kill_multiple = kill_multiple,
-        .press_event kj
-}
+#define new_rule(vec, buttons, kill_multiple, cb) { \
+    bool rc = rule(vec, buttons, kill_multiple, cb); \
+    if (!rc) \
+        pieprf; \
+};
 
-bool buttons_init() {
-    // vector XX
-    int i = -1;
-    rules_music[++i] = new_rule(
-        (N_B | N_LEFT), false, do_b_left    // seek left
-    );
-    rules_music[++i] = new_rule(
-        (N_B | N_RIGHT), false, do_b_right  // seek right
-    );
-    rules_music[++i] = new_rule(
-        (N_B | N_UP), true, do_b_up         // playlist up
-    );
-    rules_music[++i] = new_rule(
-        (N_B | N_DOWN), true, do_b_down     // playlist down
-    );
-    rules_music[++i] = new_rule(
-        (      N_LEFT), true, do_left       // prev song
-    );
-    rules_music[++i] = new_rule(
-        (      N_RIGHT), true, do_right     // next song
-    );
-    rules_music[++i] = new_rule(
-        (      N_UP), true, do_up           // vol up
-    );
-    rules_music[++i] = new_rule(
-        (      N_DOWN), true, do_down       // vol down
-    );
-    rules_music[++i] = new_rule(
-        (      N_A), true, do_a             // random
-    );
+static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)()) {
+    struct button_rule *rule = malloc(sizeof(struct button_rule));
 
-    i = -1;
-    rules_general[++i] = new_rule(
-        (      N_START), false, do_general_start // so we can hold down start for power off
-    );
+    rule->buttons = buttons;
+    rule->kill_multiple = kill_multiple;
+    rule->press_event = cb;
+
+    if (!vec_add(vec, rule))
+        pieprf;
 
     return true;
 }
 
+bool buttons_init() {
+    /* Put rules in order -- first matching rule wins.
+ */
+
+    rules_music = vec_new();
+    rules_general = vec_new();
+    new_rule(rules_music, 
+        (N_B | N_LEFT), false, ctl_custom_b_left    // seek left
+    )
+    new_rule(rules_music,
+        (N_B | N_RIGHT), false, ctl_custom_b_right  // seek right
+    )
+    new_rule(rules_music,
+        (N_B | N_UP), true, ctl_custom_b_up         // playlist up
+    )
+    new_rule(rules_music,
+        (N_B | N_DOWN), true, ctl_custom_b_down     // playlist down
+    )
+    new_rule(rules_music,
+        (      N_LEFT), true, ctl_custom_left       // prev song
+    )
+    new_rule(rules_music,
+        (      N_RIGHT), true, ctl_custom_right     // next song
+    )
+    new_rule(rules_music,
+        (      N_UP), true, ctl_custom_up           // vol up
+    )
+    new_rule(rules_music,
+        (      N_DOWN), true, ctl_custom_down       // vol down
+    )
+    new_rule(rules_music,
+        (      N_A), true, ctl_custom_a             // random
+    )
+
+    new_rule(rules_general,
+        (      N_START), false, NULL                // power off with hold
+    )
+
+    return true;
+}
+
+struct button_rule *buttons_get_rule(unsigned int read) {
+    vec *vec;
+    int cnt;
+
+    if (mode_music()) {
+        vec = rules_music;
+    }
+    else if (mode_general()) {
+        vec = rules_general;
+    }
+    else 
+        pieprf;
+
+    cnt = vec_size(vec);
+
+    /* Stop on first matching rule.
+     */
+    for (int i = 0; i < cnt; i++) {
+        // ok to cast NULL
+        struct button_rule *rule = (struct button_rule *) vec_get(vec, i);
+        if (rule == NULL) {
+            piep;
+            continue;
+        }
+
+        unsigned int mask = rule->buttons;
+        //info("read is %d, mask is %d, read&mask is %d, kill is %d", read, mask, read&mask, kill_multiple);
+        if ((read & mask) == mask) {
+#ifdef DEBUG
+            info("kill multiple: %d", rule->kill_multiple);
+#endif
+            return rule;
+        }
+    }
+
+    return NULL;
+}
 

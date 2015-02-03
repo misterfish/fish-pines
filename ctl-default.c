@@ -1,5 +1,15 @@
 #define _GNU_SOURCE
 
+/* This is for hooking callbacks when a button is pressed or released (e.g.
+ * start), regardless of the combination. Note that this is not the same as
+ * defining the combination N_START in ctl-custom.
+ * You probably want to put your callbacks in ctl-custom.
+ *
+ * This is also where the release of start is watched for shutdown, since we
+ * don't currently have a general way of defining callbacks for combination
+ * release.
+ */
+
 #include <unistd.h>
 #include <string.h>
 
@@ -10,12 +20,13 @@
 #include "buttons.h"
 #include "mpd.h"
 #include "uinput.h"
+#include "mode.h"
 
 #ifndef NO_NES
 #include "led.h"
 #endif
 
-#include "ctl.h"
+#include "ctl-default.h"
 
 #include "fish-pines.h"
 
@@ -27,14 +38,12 @@
     info(x, ##__VA_ARGS__); \
 } while (0) ;
 
-bool _ctl_do_a_and_b_down();
+/*
 bool shell_cmd_with_cb(int which, bool alt, void*(cb)());
-
-// XX
 bool alt = false;
+*/
 
-static char *SOCKET_VOLD = "/tmp/.vold-simple-socket";
-
+/*
 static char *SHELL_CMDS_MUSIC[8][3] = {
     { "", "", "" },
     { "", "", "" },
@@ -80,21 +89,14 @@ static char *SHELL_CMDS_GENERAL_ALT[8][3] = {
     { "", "", "" },
     { "", "", "" }
 };
+*/
 
 static struct {
     bool do_uinput;
-
     double time_start_down;
-
-    int mode;
-
-    // passed from fish-pines.c during init
-    //struct state_s *statep;
 } g;
 
-bool mode_music();
-bool mode_general(); 
-
+/*
 bool shell_go(char **cmds) {
     bool err = false;
     for (int i = 0 ;; i++) {
@@ -104,8 +106,7 @@ bool shell_go(char **cmds) {
 
         myinfo("cmd: %s", cmd);
 
-        /* Fork can fail XX
-         */
+        // Fork can fail XX
         if (fork()) {
         }
         else {
@@ -116,10 +117,10 @@ bool shell_go(char **cmds) {
     }
     return ! err;
 }
+*/
 
-//bool ctl_init(struct state_s *statep, bool do_uinput) {
-bool ctl_init(bool do_uinput) {
-    verbose_cmds(false);
+bool ctl_default_init(bool do_uinput) {
+    //verbose_cmds(false);
 
 #ifndef NO_NES
     if (!led_init()) 
@@ -129,13 +130,11 @@ bool ctl_init(bool do_uinput) {
     g.do_uinput = do_uinput;
     g.time_start_down = -1;
 
-    sys_die(false);
+    //sys_die(false);
 
     if (g.do_uinput) uinput_init();
 
-    set_mode(MODE_MUSIC);
-    if (!update_mode_led()) 
-        pieprf;
+    mode_set_music();
 
     if (!f_mpd_init()) 
         pieprf;
@@ -143,6 +142,7 @@ bool ctl_init(bool do_uinput) {
     return true;
 }
 
+/*
 bool shell_cmd(int which, bool alt) {
     return shell_cmd_with_cb(which, alt, NULL);
 }
@@ -172,108 +172,72 @@ bool shell_cmd_with_cb(int which, bool alt, void*(cb)()) {
 
     return ok;
 }
+*/
 
 bool ctl_do_down() {
-    //bool alt = g.statep->b;
-    if (alt) {
-        if (!f_mpd_next_playlist())
-            pieprf;
-    }
-    else {
-        if (mode_music()) 
-            if (!socket_unix_message(SOCKET_VOLD, "up")) 
-                pieprf;
-    }
 
+    /*
     if (!shell_cmd(F_UP, alt)) 
         pieprf;
+        */
     if (g.do_uinput) uinput_up();
     return true;
 }
 
-bool ctl_do_up() {
-    //bool alt = g.statep->b;
-    if (alt) {
-        if (!f_mpd_prev_playlist())
-            pieprf;
-    }
-    else {
-        if (mode_music()) 
-            if (!socket_unix_message(SOCKET_VOLD, "down")) 
-                pieprf;
-    } 
+bool ctl_default_up() {
+    /*
     if (!shell_cmd(F_DOWN, alt)) 
         pieprf;
+        */
     if (g.do_uinput) uinput_down();
     return true;
 }
 
-bool ctl_do_left() {
-    //bool alt = g.statep->b;
-    if (mode_music()) {
-        if (alt) {
-            if (!f_mpd_seek(-5)) 
-                pieprf;
-        }
-        else {
-            if (!f_mpd_prev()) 
-                pieprf;
-        }
-    }
-
+bool ctl_default_left() {
+    /*
     if (!shell_cmd(F_LEFT, alt)) 
         pieprf;
+        */
     if (g.do_uinput) uinput_left();
     return true;
 }
 
-bool ctl_do_right() {
-    //bool alt = g.statep->b;
-    if (mode_music()) {
-        if (alt) {
-            if (!f_mpd_seek(5))
-                pieprf;
-        }
-        else {
-            if (!f_mpd_next()) 
-                pieprf;
-        }
-    }
-
+bool ctl_default_right() {
+    /*
     if (!shell_cmd(F_RIGHT, alt)) 
         pieprf;
+        */
     if (g.do_uinput) uinput_right();
     return true;
 }
 
-bool ctl_do_center_x() {
+bool ctl_default_down() {
+    if (g.do_uinput) uinput_right();
+    return true;
+}
+
+bool ctl_default_center_x() {
     if (g.do_uinput) uinput_center_x();
     return true;
 }
 
-bool ctl_do_center_y() {
+bool ctl_default_center_y() {
     if (g.do_uinput) uinput_center_y();
     return true;
 }
 
-bool ctl_do_select_down() {
+bool ctl_default_select_down() {
     if (g.do_uinput) uinput_btn_select();
 
-    set_mode(!g.mode);
-    _();
-    BR(g.mode == MODE_MUSIC ? "music" : "general");
-    myinfo("set mode to %s", _s);
-    if (!update_mode_led())
-        pieprf;
     return true;
 }
 
-bool ctl_do_select_up() {
+bool ctl_default_select_up() {
     return true;
 }
 
 // require a few seconds -- shutdown
-bool ctl_do_start_down() {
+bool ctl_default_start_down() {
     if (mode_general()) {
         double now = time_hires();
 
@@ -281,12 +245,14 @@ bool ctl_do_start_down() {
             g.time_start_down = now;
         }
         else {
-            /* This only works if the button is allowed to repeat. But start
-             * isn't.
+            /* This only works if the button is allowed to repeat (kill
+             * multiple has to be configured right).
              */
             if (now - g.time_start_down > SHUTDOWN_HOLD_SECS) {
+                /*
                 if (!shell_cmd(F_START, false))
                     pieprf;
+                    */
                 g.time_start_down = -1;
             }
         }
@@ -297,32 +263,18 @@ bool ctl_do_start_down() {
     return true;
 }
 
-bool ctl_do_start_up() {
-
-    if (mode_music()) {
-        if (!f_mpd_toggle_play()) 
-            pieprf;
-    }
-    else 
+bool ctl_default_start_up() {
+    if (mode_general()) 
         g.time_start_down = -1;
 
     return true;
 }
 
-bool ctl_do_a_down() {
-    /*
-    if (g.statep->b) {
-        if (!_ctl_do_a_and_b_down()) 
-            pieprf;
-    }
-    else {
-    */
-        if (mode_music()) {
-            if (!f_mpd_toggle_random()) 
-                pieprf;
-        }
+bool ctl_default_a_down() {
+        /*
         if (!shell_cmd(F_A, false)) 
             pieprf;
+            */
         /*
     }
     */
@@ -331,20 +283,15 @@ bool ctl_do_a_down() {
     return true;
 }
 
-bool ctl_do_a_up() {
+bool ctl_default_a_up() {
     return true;
 }
 
-bool ctl_do_b_down() {
+bool ctl_default_b_down() {
     /*
-    if (g.statep->a) {
-        if (!_ctl_do_a_and_b_down()) 
-            pieprf;
-    }
-    else {
-    */
         if (!shell_cmd(F_B, false)) 
             pieprf;
+            */
         /*
     }
     */
@@ -352,35 +299,15 @@ bool ctl_do_b_down() {
     return true;
 }
 
-bool ctl_do_b_up() {
+bool ctl_default_b_up() {
     if (g.do_uinput) uinput_btn_b_up();
     return true;
 }
 
-bool _ctl_do_a_and_b_down() {
+/*
+bool _ctl_default_a_and_b_down() {
     shell_cmd_with_cb(F_A, true, NULL);
     return true;
 }
+*/
 
-bool mode_music() {
-    return g.mode == MODE_MUSIC;
-}
-
-bool mode_general() {
-    return g.mode == MODE_GENERAL;
-}
-
-static void set_mode(int mode) {
-    g.mode = mode;
-    main_set_mode(mode);
-}
-
-static bool update_mode_led() {
-#ifndef NO_NES
-    if (!led_update_mode(g.mode)) {
-        warn("Couldn't update led for mode");
-        return false;
-    }
-#endif
-    return true;
-}

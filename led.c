@@ -8,7 +8,7 @@
 #include "constants.h"
 #include "conf.h"
 #include "buttons.h"
-#include "ctl.h"
+#include "mode.h"
 
 bool led_init() {
     return true;
@@ -49,10 +49,10 @@ bool _led_off(int pin) {
 }
 
 bool led_update_mode(int mode) {
-    if (mode == MODE_MUSIC) {
+    if (mode_music()) {
         return _led_off(LED_MODE);
     }
-    else if (mode == MODE_GENERAL) {
+    else if (mode_general()) {
         return _led_on(LED_MODE);
     }
     else {
