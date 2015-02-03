@@ -8,9 +8,14 @@
 #define LED_RANDOM LED_BLUE
 #define LED_REMAKE_PLAYLIST LED_BLUE
 
+/* Switch down and up keys for volume control.
+ * Useful for bugging the bartender.
+ */
+#define ANTON_MODE true
 
 static const char *PL_PATH = "mpd-playlists";
 static const char *MPD_PLAYLIST_DIR = "mpd-playlists";
 static const char *LEDD_SOCK = "/tmp/.ledd-socket";
+static const char *VOLD_SOCK = "/tmp/.vold-simple-socket";
 
 #endif

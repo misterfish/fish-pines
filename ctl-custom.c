@@ -5,11 +5,10 @@
 #include <fish-util.h>
 #include "mode.h"
 #include "mpd.h"
+#include "conf.h"
+#include "vol.h"
 
 #include "ctl-custom.h"
-
-// XX
-static char *SOCKET_VOLD = "/tmp/.vold-simple-socket";
 
 bool ctl_custom_init() {
     return true;
@@ -58,16 +57,31 @@ bool ctl_custom_right() {
 }
 
 bool ctl_custom_up() {
-    if (mode_music()) 
-        if (!socket_unix_message(SOCKET_VOLD, "up")) 
-            pieprf;
+    if (mode_music()) {
+        if (ANTON_MODE) {
+            if (! vol_down()) 
+                pieprf;
+        }
+        else {
+            if (! vol_up()) 
+                pieprf;
+        }
+    }
     return true;
 }
 
+
 bool ctl_custom_down() {
-    if (mode_music()) 
-        if (!socket_unix_message(SOCKET_VOLD, "down")) 
-            pieprf;
+    if (mode_music()) {
+        if (ANTON_MODE) {
+            if (! vol_up()) 
+                pieprf;
+        }
+        else {
+            if (! vol_down()) 
+                pieprf;
+        }
+    }
     return true;
 }
 

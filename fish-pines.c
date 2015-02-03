@@ -175,8 +175,9 @@ int main (int argc, char** argv) {
         cur_read = nes_read(joystick);
 #endif
 
-        if (cur_read) 
-            do_read(cur_read);
+        /* Do it also if cur_read is 0.
+         */
+        do_read(cur_read);
 
         /* Check for mpd events.
          */
@@ -226,11 +227,13 @@ static unsigned int read_buttons_testing() {
 
 static bool do_read(unsigned int cur_read) {
 #ifdef DEBUG
-    /* our bit order
-     */
-    unsigned int cur_read_canonical = make_canonical(cur_read);
-    debug_read(cur_read_canonical, g.debug_read_s);
-    info(g.debug_read_s);
+    if (cur_read) {
+        /* our bit order
+         */
+        unsigned int cur_read_canonical = make_canonical(cur_read);
+        debug_read(cur_read_canonical, g.debug_read_s);
+        info(g.debug_read_s);
+    }
 #endif
 
     //bool *state_ptr;
@@ -262,7 +265,7 @@ static bool do_read(unsigned int cur_read) {
         }
 
     }
-printf("[%s] ", button_print);
+//printf("[%s] ", button_print);
 
     if (!process_read(cur_read, button_print)) 
         pieprf;
@@ -285,8 +288,8 @@ static bool process_read(unsigned int read, char *button_print) {
     if ((prev_read == read) && kill_multiple) {
 #ifdef DEBUG
         info("Ignoring read %d (kill multiple is true)", read);
-        return true;
 #endif
+        return true;
     }
 
     /* Do the press and release events for each individual button. 

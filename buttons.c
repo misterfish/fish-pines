@@ -46,13 +46,16 @@ bool buttons_init() {
         (      N_RIGHT), true, ctl_custom_right     // next song
     )
     new_rule(rules_music,
-        (      N_UP), true, ctl_custom_up           // vol up
+        (      N_UP), false, ctl_custom_up           // vol up
     )
     new_rule(rules_music,
-        (      N_DOWN), true, ctl_custom_down       // vol down
+        (      N_DOWN), false, ctl_custom_down       // vol down
     )
     new_rule(rules_music,
         (      N_A), true, ctl_custom_a             // random
+    )
+    new_rule(rules_music,
+        (      N_START), true, ctl_custom_start     // play/pause
     )
 
     new_rule(rules_general,

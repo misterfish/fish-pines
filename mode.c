@@ -1,5 +1,6 @@
 #include <fish-util.h>
 
+#include "led.h"
 #include "mode.h"
 
 #define MODE_MUSIC      0x00
@@ -31,7 +32,7 @@ bool mode_set_general() {
 
 static bool update_mode_led() {
 #ifndef NO_NES
-    if (!led_update_mode(g.mode)) {
+    if (!led_update_mode(Mode)) {
         warn("Couldn't update led for mode");
         return false;
     }

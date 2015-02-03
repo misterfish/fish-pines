@@ -8,8 +8,9 @@ ifeq ($(NO_NES), 1)
     cc 	+= -DNO_NES
 endif
 
-# XX
-cc += -DDEBUG
+ifeq ($(DEBUG), 1)
+    cc += -DDEBUG
+endif
 
 modules = mpdclient wiringPi fishutil fishutils
 
@@ -35,7 +36,7 @@ all		= $(foreach i,$(modules),$(${i}_all))
 
 pre		:= $(fishutil_obj) $(fishutils_obj)
 main		:= fish-pines
-src_c		:= mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c uinput.c util.c
+src_c		:= vol.c mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c uinput.c util.c
 ifneq ($(NO_NES), 1)
     src_c	+= nes.c
 endif

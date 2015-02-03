@@ -11,3 +11,4 @@ bool ctl_custom_right();
 bool ctl_custom_up();
 bool ctl_custom_down();
 bool ctl_custom_a();
+bool ctl_custom_start();
