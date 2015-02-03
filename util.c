@@ -2,10 +2,20 @@
 
 #include "util.h"
 
+struct termios save_attr_cooked;
+bool saved;
+
 bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
     struct termios term = {0};
     int fd = 0;
-    tcgetattr(fd, &term);
+    if (tcgetattr(fd, &term)) {
+        warn_perr_msg("Couldn't get terminal attributes.");
+        return false;
+    }
+
+    memcpy(&save_attr_cooked, &term, sizeof(term));
+    saved = true;
+
     cfmakeraw(&term);
     term.c_lflag |= ISIG; // so Ctl-c works
 
@@ -51,31 +61,35 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
 
 }
 
-// Reverse raw. Some guesswork, seems to work.
+/* Reverse raw.
+ */
 bool f_terminal_normal() {
-/*
-    termios_p->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-    termios_p->c_oflag &= ~OPOST;
-    termios_p->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    termios_p->c_cflag &= ~(CSIZE | PARENB);
-    termios_p->c_cflag |= CS8;
-*/
+    /* Was never made raw.
+     */
+    if (!saved)
+        return true;
 
-    int failure = 0;
-    for (int fd = 0; fd < 1; fd++) { // only stdin actually
-        struct termios term = {0};
-        tcgetattr(fd, &term);
-        term.c_iflag |= (IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | ICRNL | IXON); // dump IGNCR
-        // OPOST was left untouched.
-        term.c_lflag |= (ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-        term.c_cflag |= (CSIZE | PARENB);
-        //term.c_cflag &= ~CS8;
-        // no failure also means partial success
-        int _failure = tcsetattr(fd, TCSANOW, &term);
-        if (_failure) {
-            warn_perr_msg("Failure setting fd %d to normal", fd);
-            failure = 1;
-        }
+    /*
+     * man tcsetattr:
+     *
+     * raw means 
+     * termios_p->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON); 
+     * termios_p->c_oflag &= ~OPOST; 
+     * termios_p->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN); 
+     * termios_p->c_cflag &= ~(CSIZE | PARENB); 
+     * termios_p->c_cflag |= CS8;
+     *
+     * But it's easier to just restore the saved state.
+     */
+
+    int fd = 0;
+
+    /* Returns success if ANY of the changes could be carried out. Not
+     * really ideal.
+     */
+    int failure = tcsetattr(fd, TCSANOW, &save_attr_cooked);
+    if (failure) {
+        warn_perr_msg("Failure setting fd %d to normal", fd);
     }
     return !(bool)failure;
 }

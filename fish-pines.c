@@ -336,9 +336,11 @@ static bool process_read(unsigned int read, char *button_print) {
 }
 
 static void cleanup() {
+#ifdef NO_NES
     info("setting terminal normal.");
     if (!f_terminal_normal()) 
         piep;
+#endif
     fish_util_cleanup();
     fish_utils_cleanup();
 
