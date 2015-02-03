@@ -5,8 +5,6 @@
 #error buttons.h needs constants.h
 #endif
 
-static char *allen = "allen";
-
 /* Mapping from our standard order to their N_ order.
  */
 static short BUTTONS[] = {
@@ -18,77 +16,14 @@ static short BUTTONS[] = {
 
 static int NUM_BUTTONS = 8;
 
-/* Std order.
- */
-static bool KILL_MULTIPLE[2][2][8] = {
-    {
-    /* MODE = music 
-     */
-        /* Normal (without alt button):
-         */
-        { 
-            // prev song, next song
-            true, true,
-
-            false, false,
-
-            true,  //select
-            true,   //start
-
-            true, true
-        },
-
-        /* Alt: 
-         */
-        { 
-            // seek left, seek right
-            false, false,
-
-            true, true,
-            false, //n.a.
-            true,
-            true, true
-        }
-    },
-    {
-    /* MODE = general
-     */
-        /* Normal (without alt button):
-         */
-        { 
-            true, true,
-
-            false, false,
-
-            true,  //select
-            false,   //start, false so we can do the hold down thing.
-
-            true, true
-        },
-
-        /* Alt: 
-         */
-        { 
-            // seek left, seek right
-            false, false,
-
-            true, true,
-            false, //n.a.
-            true,
-            true, true
-        }
-    }
-};
-
+#define KILL_MULTIPLE_DEFAULT false
 #define NUM_KILL_MULTIPLE_RULES_MUSIC 8
 #define NUM_KILL_MULTIPLE_RULES_GENERAL 1
 
 /* Put rules in order with more buttons first.
- * if the or equals itself.
- * def true
  */
 
-static unsigned int KILL_NEW_MUSIC[2 * NUM_KILL_MULTIPLE_RULES_MUSIC] = {
+static unsigned int KILL_MULTIPLE_MUSIC[2 * NUM_KILL_MULTIPLE_RULES_MUSIC] = {
     (N_B | N_LEFT)  , 0, // seek left
     (N_B | N_RIGHT) , 0, // seek right
     (N_B | N_UP)    , 1, // playlist up
@@ -99,7 +34,7 @@ static unsigned int KILL_NEW_MUSIC[2 * NUM_KILL_MULTIPLE_RULES_MUSIC] = {
     (      N_DOWN)  , 1, // vol down
 };
 
-static unsigned int KILL_NEW_GENERAL[2 * NUM_KILL_MULTIPLE_RULES_GENERAL] = {
+static unsigned int KILL_MULTIPLE_GENERAL[2 * NUM_KILL_MULTIPLE_RULES_GENERAL] = {
     (N_START)       , 0, // so we can hold down start for power off
 };
 

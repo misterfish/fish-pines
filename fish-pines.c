@@ -60,18 +60,23 @@ static bool (*FN_OFF[8])() = {
     ctl_do_a_up,
 };
 
-/* Is initted by compiler.
- * Static is important to avoid silently clobbering other g's.
+/* Static is important to avoid silently clobbering other g's.
  */
 
 static struct {
-    bool *alt; // linked to b button. also in ctl.c.
     int mode; // music or general
-    /* Std order.
+
+    /* Structs have named fields 'a', 'start', 'down', etc.
      */
     struct button_name_s button_names;
+
+    /* Tracks the state of each button. 
+     * The binary number representing a read is not stored globally.
+     */
     struct state_s state;
 
+    /* Std order.
+     */
     bool *state_iter[8];
     char **button_name_iter[8];
 
@@ -175,10 +180,6 @@ void main_set_mode(int mode) {
     g.mode = mode;
 }
 
-int getRand01() {
-    return (int) (1.0 * rand() / RAND_MAX * 2);
-}
-
 bool is_button_dir(int i) {
     //return i <= 
 }
@@ -211,18 +212,6 @@ static unsigned int read_buttons_testing() {
     }
     free(buf);
     return ret;
-}
-
-static int getRandomButtons() {
-    return 
-        (N_LEFT * getRand01()) | 
-        (N_RIGHT * getRand01()) |
-        (N_UP * getRand01()) |
-        (N_DOWN * getRand01()) |
-        (N_SELECT * getRand01()) |
-        (N_START * getRand01()) |
-        (N_B * getRand01()) |
-        (N_A * getRand01());
 }
 
 static bool do_read(unsigned int cur_read, char *button_print) {
@@ -272,8 +261,6 @@ printf("[%s] ", button_print);
     return true;
 }
 
-/* If any one button is a kill multiple, consider the whole thing killed.
- */
 static bool process_read(unsigned int read, char *button_print) {
     bool kill_multiple = get_kill_multiple(read);
 
@@ -344,6 +331,12 @@ static void cleanup() {
 }
 
 static void init_state() {
+    ghash_table ht = new;
+    ht_add(ht, 
+        (N_B | N_LEFT), 
+        button_spec_new(
+            false, 
+
     /* malloc
      */
     g.button_names.left = G_("left");
@@ -373,7 +366,6 @@ static void init_state() {
     g.button_name_iter[6] = &g.button_names.b;
     g.button_name_iter[7] = &g.button_names.a;
 
-    g.alt = &g.state.b;
     g.mode = -1;
 }
 
@@ -423,11 +415,11 @@ static bool get_kill_multiple(unsigned int read) {
     int cnt;
 
     if (g.mode == MODE_MUSIC) {
-        ary = KILL_NEW_MUSIC;
+        ary = KILL_MULTIPLE_MUSIC;
         cnt = NUM_KILL_MULTIPLE_RULES_MUSIC;
     }
     else if (g.mode == MODE_GENERAL) {
-        ary = KILL_NEW_GENERAL;
+        ary = KILL_MULTIPLE_GENERAL;
         cnt = NUM_KILL_MULTIPLE_RULES_GENERAL;
     }
 
