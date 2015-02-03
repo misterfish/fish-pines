@@ -34,26 +34,26 @@ void uinput_init() {
     }
 
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_ABS)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_ABSBIT, ABS_X)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_ABSBIT, ABS_Y)) 
-        die_perr();
+        ierr_perr();
 
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_KEY)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_0)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_1)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_2)) 
-        die_perr();
+        ierr_perr();
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_3)) 
-        die_perr();
+        ierr_perr();
 
     // 'synchronization events', necessary?
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_SYN))
-        die_perr();
+        ierr_perr();
 
     struct uinput_user_dev uidev;
 
@@ -71,10 +71,10 @@ void uinput_init() {
     uidev.absmax[ABS_Y] = 255;
 
     if( write(g.uinput, &uidev, sizeof(uidev)) <= 0)
-        die_perr();
+        ierr_perr();
 
     if( ioctl(g.uinput, UI_DEV_CREATE) )
-        die_perr();
+        ierr_perr();
 }
 
 
@@ -89,7 +89,7 @@ void uinput_inject_dir(int axis, int val) {
 
     int i;
     if( (i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
-        die_perr();
+        ierr_perr();
 
     //infof ("Wrote %d bytes", i);
 
@@ -107,7 +107,7 @@ void uinput_inject_key(int code, int val) {
 
     int i;
     if( (i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
-        die_perr();
+        ierr_perr();
 
     usleep(USLEEP);
 }

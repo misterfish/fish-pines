@@ -172,7 +172,7 @@ f_mpd_init();
             f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" )
             break;
         case MPD_STATE_UNKNOWN: 
-            warnp("unknown status, skipping.");
+            iwarn_msg("unknown status, skipping.");
             return false;
             break;
     }
@@ -431,7 +431,7 @@ static bool reload_playlists() {
 
     char **matches = calloc(2, sizeof(char*));
     if (!matches) 
-        die_perr();
+        ierr_perr();
 
     while (1) {
         bool _break = false;
@@ -457,8 +457,7 @@ static bool reload_playlists() {
             sprintf(regex, regex_spr, MPD_PLAYLIST_DIR);
 
             if (!match_matches(path, regex, matches)) {
-                warnp("Got unexpected path: %s", path);
-                piep;
+                iwarn_msg("Got unexpected path: %s", path);
                 _break = true;
             }
             free(regex);
@@ -469,7 +468,7 @@ static bool reload_playlists() {
 
             struct pl *_pl = malloc(sizeof(struct pl));
             if (! _pl)
-                die_perr();
+                ierr_perr();
 
             char *name = str(strlen(matches[1]) + 1);
             f_track_heap(name);

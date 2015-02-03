@@ -112,19 +112,19 @@ int main (int argc, char** argv) {
     init_state();
 
     if (!buttons_init()) 
-        die();
+        ierr;
 
 #ifndef NO_NES
     info("setting up wiringPi");
 
     if (!nes_init_wiring()) 
-        die();
+        ierr;
 
     info("setting up nes");
 
     int joystick = nes_setup();
     if (joystick == -1) 
-        die();
+        ierr;
 #else
     info("setting terminal raw");
     // not interbyte timeout, because 'nothing' should also be a valid
@@ -135,12 +135,11 @@ int main (int argc, char** argv) {
 
     info("setting up ctl + mpd");
 
-    // errp -> ierr
     if (!ctl_default_init(DO_UINPUT)) 
-        errp("Couldn't init ctl-default.");
+        ierr_msg("Couldn't init ctl-default.");
 
     if (!ctl_custom_init()) 
-        errp("Couldn't init ctl-custom.");
+        ierr_msg("Couldn't init ctl-custom.");
 
     int first = 1;
     unsigned int cur_read;

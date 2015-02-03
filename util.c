@@ -73,7 +73,7 @@ bool f_terminal_normal() {
         // no failure also means partial success
         int _failure = tcsetattr(fd, TCSANOW, &term);
         if (_failure) {
-            warnp("Failure setting fd %d to normal", fd);
+            warn_perr_msg("Failure setting fd %d to normal", fd);
             failure = 1;
         }
     }

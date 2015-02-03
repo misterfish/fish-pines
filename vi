@@ -2,4 +2,4 @@
 
 . `dirname "$0"`/functions
 
-vi *.c *.h Makefile*
+find \( -iname '*.c' -o -iname '*'.h -o -iname Makefile'*' \) -exec vi {} +  
