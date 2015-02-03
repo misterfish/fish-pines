@@ -1,8 +1,8 @@
 #define _GNU_SOURCE
 
 #include <stdlib.h>
-#include <unistd.h> //usleep
 #include <assert.h>
+
 #include <fish-util.h>
 
 #include "constants.h"
