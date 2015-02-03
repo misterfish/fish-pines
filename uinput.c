@@ -1,16 +1,14 @@
 #define _GNU_SOURCE 
 
-/* This was for turning nes events into mouse/keyboard events for xmms; not
- * necessary for mpd.
+/* This can be used for turning NES controller events into mouse/keyboard events, for example for a GUI.
+ * Not currently being used.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <unistd.h>
-// memset
-#include <string.h>
 #include <time.h>
 
 #include <linux/input.h>
@@ -19,45 +17,51 @@
 #include <fish-util.h>
 #include "uinput.h"
 
-static const char* DEV = "/dev/uinput";
+static const char *DEV = "/dev/uinput";
 static const int USLEEP = 15000;
 
 static struct {
     int uinput;
 } g;
 
-void uinput_init() {
+#define wprf do { \
+    warn_perr; \
+    return false; \
+} while (0); 
+
+bool uinput_init() {
     g.uinput = open(DEV, O_WRONLY | O_NONBLOCK);
 
-    if(g.uinput < 0) {
-        err("Couldn't open %s: %s", Y_(DEV), R_(perr()));
+    if (g.uinput < 0) {
+        _();
+        Y(DEV);
+        warn_perr_msg("Couldn't open %s", _s);
+        return false;
     }
 
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_ABS)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_ABSBIT, ABS_X)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_ABSBIT, ABS_Y)) 
-        ierr_perr();
+        wprf;
 
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_KEY)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_0)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_1)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_2)) 
-        ierr_perr();
+        wprf;
     if (ioctl(g.uinput, UI_SET_KEYBIT, BTN_3)) 
-        ierr_perr();
+        wprf;
 
     // 'synchronization events', necessary?
     if (ioctl(g.uinput, UI_SET_EVBIT, EV_SYN))
-        ierr_perr();
+        wprf;
 
-    struct uinput_user_dev uidev;
-
-    memset(&uidev, 0, sizeof(uidev));
+    struct uinput_user_dev uidev = {0};
 
     snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "uinput-sample");
     uidev.id.bustype = BUS_USB;
@@ -70,89 +74,84 @@ void uinput_init() {
     uidev.absmin[ABS_Y] = 0;
     uidev.absmax[ABS_Y] = 255;
 
-    if( write(g.uinput, &uidev, sizeof(uidev)) <= 0)
-        ierr_perr();
+    if (write(g.uinput, &uidev, sizeof(uidev)) <= 0)
+        wprf;
 
-    if( ioctl(g.uinput, UI_DEV_CREATE) )
-        ierr_perr();
+    if (ioctl(g.uinput, UI_DEV_CREATE) )
+        wprf;
 }
 
-
-void uinput_inject_dir(int axis, int val) {
-    struct input_event ev;
-
-    memset(&ev, 0, sizeof(ev));
+static bool uinput_inject_dir(int axis, int val) {
+    struct input_event ev = {0};
 
     ev.type = EV_ABS;
     ev.code = axis;
     ev.value = val;
 
     int i;
-    if( (i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
-        ierr_perr();
-
-    //infof ("Wrote %d bytes", i);
+    if ((i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
+        wprf;
 
     usleep(USLEEP);
 }
 
-void uinput_inject_key(int code, int val) {
-    struct input_event ev;
-
-    memset(&ev, 0, sizeof(ev));
+static bool uinput_inject_key(int code, int val) {
+    struct input_event ev = {0};
 
     ev.type = EV_KEY;
     ev.code = code;
     ev.value = val;
 
     int i;
-    if( (i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
-        ierr_perr();
+    if ((i = write(g.uinput, &ev, sizeof(ev))) <= 0) 
+        wprf;
 
     usleep(USLEEP);
 }
 
-void _delay() {
+static void _delay() {
     usleep(USLEEP);
 }
 
-void uinput_center_x() {
-    uinput_inject_dir(ABS_X, 128);
+bool uinput_center_x() {
+    return uinput_inject_dir(ABS_X, 128);
 }
-void uinput_center_y() {
-    uinput_inject_dir(ABS_Y, 128);
+bool uinput_center_y() {
+    return uinput_inject_dir(ABS_Y, 128);
 }
-
-void uinput_left() {
-    uinput_inject_dir(ABS_X, 12);
+bool uinput_left() {
+    return uinput_inject_dir(ABS_X, 12);
 }
-void uinput_right() {
-    uinput_inject_dir(ABS_X, 255);
+bool uinput_right() {
+    return uinput_inject_dir(ABS_X, 255);
 }
-void uinput_up() {
-    uinput_inject_dir(ABS_Y, 12);
+bool uinput_up() {
+    return uinput_inject_dir(ABS_Y, 12);
 }
-void uinput_down() {
-    uinput_inject_dir(ABS_Y, 255);
+bool uinput_down() {
+    return uinput_inject_dir(ABS_Y, 255);
 }
-void uinput_btn_select() {
-    uinput_inject_key(BTN_0, 1);
+bool uinput_btn_select() {
+    if (!uinput_inject_key(BTN_0, 1))
+        return false;
     _delay();
-    uinput_inject_key(BTN_0, 0);
+    return uinput_inject_key(BTN_0, 0);
 }
-void uinput_btn_start() {
-    uinput_inject_key(BTN_1, 1);
+bool uinput_btn_start() {
+    if (!uinput_inject_key(BTN_1, 1)) 
+        return false;
     _delay();
-    uinput_inject_key(BTN_1, 0);
+    return uinput_inject_key(BTN_1, 0);
 }
-void uinput_btn_b_down() {
-    uinput_inject_key(BTN_2, 1);
+bool uinput_btn_b_down() {
+    return uinput_inject_key(BTN_2, 1);
 }
-void uinput_btn_b_up() {
-    uinput_inject_key(BTN_2, 0);
+bool uinput_btn_b_up() {
+    return uinput_inject_key(BTN_2, 0);
 }
-void uinput_btn_a() {
-    uinput_inject_key(BTN_3, 1);
+bool uinput_btn_a() {
+    if (!uinput_inject_key(BTN_3, 1)) 
+        return false;
     _delay();
-    uinput_inject_key(BTN_3, 0);
+    return uinput_inject_key(BTN_3, 0);
 }

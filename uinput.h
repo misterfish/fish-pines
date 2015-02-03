@@ -1,17 +1,17 @@
-void uinput_init();
+bool uinput_init();
 
-void uinput_btn_a();
-void uinput_btn_b_up();
-void uinput_btn_b_down();
-void uinput_btn_start();
-void uinput_btn_select();
-void uinput_down();
-void uinput_up();
-void uinput_right();
-void uinput_left();
+bool uinput_btn_a();
+bool uinput_btn_b_up();
+bool uinput_btn_b_down();
+bool uinput_btn_start();
+bool uinput_btn_select();
+bool uinput_down();
+bool uinput_up();
+bool uinput_right();
+bool uinput_left();
+bool uinput_center_x();
+bool uinput_center_y();
 
-//void uinput_inject_key(int val, int val2);
-//void uinput_inject_dir(int axis, int val);
-
-void uinput_center_x();
-void uinput_center_y();
+static void _delay();
+static bool uinput_inject_key(int code, int val);
+static bool uinput_inject_dir(int axis, int val);

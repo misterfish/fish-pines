@@ -1,8 +1,14 @@
+#define _GNU_SOURCE
+
 /* This is where callbacks for combinations are defined. Most custom stuff
  * should go here.
  */
 
+#include <unistd.h>
+#include <string.h>
+
 #include <fish-util.h>
+
 #include "mode.h"
 #include "mpd.h"
 #include "conf.h"
@@ -10,7 +16,18 @@
 
 #include "ctl-custom.h"
 
+static struct {
+    double time_start_down;
+    bool general_start_disabled;
+    struct {
+        char *shutdown;
+    } shell;
+} g;
+
 bool ctl_custom_init() {
+    g.time_start_down = -1;
+    //g.shell.shutdown = "poweroff-with-led";
+    g.shell.shutdown = "echo SHUTDOWN, tee-hee";
     return true;
 }
 
@@ -93,9 +110,35 @@ bool ctl_custom_a() {
 }
 
 bool ctl_custom_start() {
-    if (mode_music()) 
+    if (mode_music()) {
         if (!f_mpd_toggle_play())
             pieprf;
+    }
+
+    /* Require a few seconds -- shutdown
+     * Won't work unless kill_multiple is false.
+     */
+    else {
+        if (g.general_start_disabled)
+            return true;
+
+        double now = time_hires();
+
+        if (g.time_start_down == -1) {
+            g.time_start_down = now;
+        }
+        else {
+            if (now - g.time_start_down > SHUTDOWN_HOLD_SECS) {
+                if (!shell_cmd(g.shell.shutdown))
+                    pieprf;
+
+                g.general_start_disabled = true;
+            }
+        }
+
+
+    }
+
     return true;
 }
 
@@ -103,4 +146,45 @@ bool ctl_custom_select() {
     if (!mode_toggle()) 
         pieprf;
     return true;
+}
+
+void ctl_custom_start_released() {
+    g.time_start_down = -1;
+}
+
+static bool shell_go(char *cmd) {
+    bool err = false;
+    if (!cmd || !strcmp(cmd, "")) 
+        pieprf;
+
+    info("\ncmd: %s", cmd);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        warn_perr_msg("Can't fork");
+        return false;
+    }
+    if (pid) {
+    }
+    else {
+        /* Ignore errors, not our problem.
+         */
+        sysx(cmd);
+        exit(0);
+    }
+    return true;
+}
+
+static bool shell_cmd(char *cmd) {
+    return shell_cmd_with_cb(cmd, NULL);
+}
+
+static bool shell_cmd_with_cb(char *cmd, void*(cb)()) {
+    if (!shell_go(cmd)) 
+        pieprf;
+
+    bool ok = true;
+    if (cb) ok = (*cb)();
+
+    return ok;
 }

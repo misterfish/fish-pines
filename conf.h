@@ -8,6 +8,9 @@
 #define LED_RANDOM LED_BLUE
 #define LED_REMAKE_PLAYLIST LED_BLUE
 
+#define SHUTDOWN_HOLD_SECS 2
+//#define SHUTDOWN_HOLD_SECS 0
+
 /* Switch down and up keys for volume control.
  * Useful for bugging the bartender.
  */

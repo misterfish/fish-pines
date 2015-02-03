@@ -55,7 +55,8 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
     term.c_cc[VMIN] = bytes;
     term.c_cc[VTIME] = poll_tenths_of_a_second;
 
-    // also means partial success
+    /* Also means partial success, not really ideal.
+     */
     int failure = tcsetattr(fd, 0, &term);
     return !(bool)failure;
 

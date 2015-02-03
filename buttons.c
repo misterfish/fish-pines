@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "buttons.h"
 #include "ctl-custom.h"
 #include "mode.h"
@@ -63,11 +65,15 @@ bool buttons_init() {
     )
 
     new_rule(rules_general,
-        (      N_START), false, NULL                // power off with hold
+        (      N_START), false, ctl_custom_start                // power off with hold
     )
 
     new_rule(rules_general,
         (      N_SELECT), true, ctl_custom_select                // mode toggle
+    )
+
+    new_rule(rules_general,
+        (      N_START), false, ctl_custom_start                // poweroff, with hold down
     )
 
     return true;

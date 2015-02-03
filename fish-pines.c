@@ -76,11 +76,6 @@ static struct {
      */
     struct button_name_s button_names;
 
-    /* Tracks the state of each button. 
-     * The binary number representing a read is not stored globally.
-     */
-    //struct state_s state;
-
     /* Std order.
      */
     //bool *state_iter[8];
@@ -127,8 +122,10 @@ int main (int argc, char** argv) {
         ierr;
 #else
     info("setting terminal raw");
-    // not interbyte timeout, because 'nothing' should also be a valid
-    // response.
+
+    /* Not interbyte timeout, because 'nothing' should also be a valid
+     * response.
+     */
     if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND)) 
         err("Couldn't set terminal raw.");
 #endif
@@ -188,12 +185,6 @@ int main (int argc, char** argv) {
     exit(0);
 }
 
-/* - - - */
-
-bool is_button_dir(int i) {
-    //return i <= 
-}
-
 static unsigned int read_buttons_testing() {
     ssize_t s;
     char *buf = calloc(2, sizeof(char));
@@ -235,24 +226,14 @@ static bool do_read(unsigned int cur_read) {
     }
 #endif
 
-    //bool *state_ptr;
     char **button_name_ptr;
 
     char *button_print = g.button_print;
 
-    /* In testing mode, polling doesn't happen fast enough to get b
-     * (alt) before the others. So do an explicit check for b first.
-     * But means [B] will never be printed. XX
-     */
-#ifdef NO_NES
-    if (cur_read & N_B)  {
-    }
-        //g.state.b = true;
-#endif
     bool first = true;
+    bool found_one = false;
     *button_print = '\0';
     for (int i = 0; i < 8; i++) {
-        //state_ptr = g.state_iter[i];
         button_name_ptr = g.button_name_iter[i];
         bool on = cur_read & BUTTONS[i];
         if (on) {
@@ -260,13 +241,13 @@ static bool do_read(unsigned int cur_read) {
                 first = false;
             else 
                 strcat(button_print, " + ");
+            found_one = true;
             strcat(button_print, *button_name_ptr);
         }
-
     }
-//printf("[%s] ", button_print);
 
-    if (!process_read(cur_read, button_print)) 
+    if (!process_read(cur_read, 
+        found_one ? button_print : NULL )) 
         pieprf;
 
     return true;
@@ -290,6 +271,9 @@ static bool process_read(unsigned int read, char *button_print) {
 #endif
         return true;
     }
+
+    if (button_print) 
+        printf("[ %s ] ", button_print);
 
     /* Do the press and release events for each individual button. 
      * Then do the event matching the combination.
@@ -363,16 +347,6 @@ static void cleanup() {
 }
 
 static void init_state() {
-    /*
-    ghash_table ht = new;
-    ht_add(ht, 
-        (N_B | N_LEFT), 
-        button_spec_new(
-            false, 
-            */
-
-    /* malloc
-     */
     g.button_names.left = G_("left");
     g.button_names.right = G_("right");
     g.button_names.up = G_("up");
@@ -381,17 +355,6 @@ static void init_state() {
     g.button_names.start = Y_("start");
     g.button_names.b = CY_("B");
     g.button_names.a = CY_("A");
-
-    /*
-    g.state_iter[0] = &g.state.left;
-    g.state_iter[1] = &g.state.right;
-    g.state_iter[2] = &g.state.up;
-    g.state_iter[3] = &g.state.down;
-    g.state_iter[4] = &g.state.select;
-    g.state_iter[5] = &g.state.start;
-    g.state_iter[6] = &g.state.b;
-    g.state_iter[7] = &g.state.a;
-    */
 
     g.button_name_iter[0] = &g.button_names.left;
     g.button_name_iter[1] = &g.button_names.right;

@@ -181,11 +181,16 @@ f_mpd_init();
 
 /* no extra paranoid init? XX */
 bool f_mpd_seek(int secs) {
-    if (!g.init) return false;
+    if (!g.init) 
+        return false;
 
     int pos = get_queue_pos();
+
+    /* Not playing.
+     */
     if (pos == -1) 
-        pieprf;
+        return true;
+
     int time = get_elapsed_time();
     if (pos == -1) 
         pieprf;
