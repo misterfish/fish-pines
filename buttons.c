@@ -29,6 +29,10 @@ bool buttons_init() {
 
     rules_music = vec_new();
     rules_general = vec_new();
+
+    new_rule(rules_music, 
+        (N_A | N_B   ), true, ctl_custom_b_a       // make playlist all
+    )
     new_rule(rules_music, 
         (N_B | N_LEFT), false, ctl_custom_b_left    // seek left
     )
@@ -65,7 +69,11 @@ bool buttons_init() {
     )
 
     new_rule(rules_general,
-        (      N_START), false, ctl_custom_start                // power off with hold
+        (N_B         ), true, ctl_custom_b            // internet wired
+    )
+
+    new_rule(rules_general,
+        (N_A         ), true, ctl_custom_a            // internet wireless
     )
 
     new_rule(rules_general,
@@ -105,7 +113,6 @@ struct button_rule *buttons_get_rule(unsigned int read) {
         }
 
         unsigned int mask = rule->buttons;
-        //info("read is %d, mask is %d, read&mask is %d, kill is %d", read, mask, read&mask, kill_multiple);
         if ((read & mask) == mask) {
 #ifdef DEBUG
             info("kill multiple: %d", rule->kill_multiple);

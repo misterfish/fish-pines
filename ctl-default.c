@@ -18,29 +18,13 @@
 #include "mode.h"
 
 #ifndef NO_NES
-#include "led.h"
+# include "led.h"
 #endif
 
 #include "ctl-custom.h"
 #include "ctl-default.h"
 
 #include "fish-pines.h"
-
-/*
-    // playlist will be owned by root but world-readable.
-    { "make-playlist-all", "", "" } // A
-
-    { "echo >&2 test general left", "", "" },
-    { "echo >&2 test general right", "", "" },
-    { "poweroff-with-led", "", "" }, // start, needs hold down
-    //{ "echo THATS ENOUGH", "", "" }, // start, needs hold down
-    { "switch-to-internet-wired &", "", "" },
-    { "switch-to-internet-wireless &", "", "" }
-};
-
-    { "echo >&2 test general alt left", "", "" },
-    { "echo >&2 test general alt right", "", "" },
-*/
 
 static struct {
     bool do_uinput;

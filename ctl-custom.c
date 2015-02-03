@@ -2,6 +2,7 @@
 
 /* This is where callbacks for combinations are defined. Most custom stuff
  * should go here.
+ * Should move to lua or something extensible.
  */
 
 #include <unistd.h>
@@ -21,13 +22,24 @@ static struct {
     bool general_start_disabled;
     struct {
         char *shutdown;
+        char *playlist_all;
+        char *test;
+        char *iwired;
+        char *iwireless;
     } shell;
 } g;
 
 bool ctl_custom_init() {
     g.time_start_down = -1;
-    //g.shell.shutdown = "poweroff-with-led";
-    g.shell.shutdown = "echo SHUTDOWN, tee-hee";
+    g.shell.shutdown = "poweroff-with-led";
+    //g.shell.shutdown = "echo SHUTDOWN, tee-hee";
+
+    /* Playlist will be owned by root but world-readable.
+     */
+    g.shell.playlist_all = "make-playlist-all";
+    g.shell.test = "echo >&2 shell test";
+    g.shell.iwired = "switch-to-internet-wired";
+    g.shell.iwireless = "switch-to-internet-wireless";
     return true;
 }
 
@@ -35,6 +47,10 @@ bool ctl_custom_b_left() {
     if (mode_music()) 
         if (!f_mpd_seek(-5)) 
             pieprf;
+
+    if (!shell_cmd(g.shell.test))
+        pieprf;
+
     return true;
 }
 
@@ -59,6 +75,22 @@ bool ctl_custom_b_down() {
     return true;
 }
 
+bool ctl_custom_b() {
+    if (mode_general()) {
+        if (!shell_cmd(g.shell.iwired))
+            pieprf;
+    }
+    return true;
+}
+
+bool ctl_custom_b_a() {
+    if (mode_music()) {
+        if (!shell_cmd(g.shell.playlist_all))
+            pieprf;
+    }
+    return true;
+}
+
 bool ctl_custom_left() {
     if (mode_music()) 
         if (!f_mpd_prev()) 
@@ -67,9 +99,10 @@ bool ctl_custom_left() {
 }
 
 bool ctl_custom_right() {
-    if (mode_music()) 
+    if (mode_music()) {
         if (!f_mpd_next()) 
             pieprf;
+    }
     return true;
 }
 
@@ -103,9 +136,15 @@ bool ctl_custom_down() {
 }
 
 bool ctl_custom_a() {
-    if (mode_music()) 
+    if (mode_music()) {
         if (!f_mpd_toggle_random()) 
             pieprf;
+    }
+    else if (mode_general()) {
+        if (!shell_cmd(g.shell.iwireless))
+            pieprf;
+    }
+    else { pieprf }
     return true;
 }
 
@@ -157,7 +196,8 @@ static bool shell_go(char *cmd) {
     if (!cmd || !strcmp(cmd, "")) 
         pieprf;
 
-    info("\ncmd: %s", cmd);
+    verbose_cmds(true);
+    sys_die(false);
 
     pid_t pid = fork();
     if (pid == -1) {
