@@ -1,8 +1,3 @@
-
-
-
-
-
 static unsigned int read_buttons_testing();
 
 static void init_state();
@@ -18,7 +13,7 @@ static char *debug_read_init();
 static void debug_read(unsigned int read_canonical, char *ret);
 //static char *debug_read(unsigned int read_canonical);
 
-static bool do_read(unsigned int cur_read, char *button_print);
+static bool do_read(unsigned int cur_read);
 static bool process_read(unsigned int read, char *button_print);
 static int get_max_button_print_size();
 

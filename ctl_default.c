@@ -1,6 +1,3 @@
-//#include <linux/input.h>
-//#include <linux/uinput.h>
-
 #define _GNU_SOURCE
 
 #include <unistd.h>
@@ -32,6 +29,9 @@
 
 bool _ctl_do_a_and_b_down();
 bool shell_cmd_with_cb(int which, bool alt, void*(cb)());
+
+// XX
+bool alt = false;
 
 static char *SOCKET_VOLD = "/tmp/.vold-simple-socket";
 
@@ -89,7 +89,7 @@ static struct {
     int mode;
 
     // passed from fish-pines.c during init
-    struct state_s *statep;
+    //struct state_s *statep;
 } g;
 
 bool mode_music();
@@ -117,14 +117,15 @@ bool shell_go(char **cmds) {
     return ! err;
 }
 
-bool ctl_init(struct state_s *statep, bool do_uinput) {
+//bool ctl_init(struct state_s *statep, bool do_uinput) {
+bool ctl_init(bool do_uinput) {
     verbose_cmds(false);
 
 #ifndef NO_NES
     if (!led_init()) 
         pieprf;
 #endif
-    g.statep = statep;
+    //g.statep = statep;
     g.do_uinput = do_uinput;
     g.time_start_down = -1;
 
@@ -173,7 +174,7 @@ bool shell_cmd_with_cb(int which, bool alt, void*(cb)()) {
 }
 
 bool ctl_do_down() {
-    bool alt = g.statep->b;
+    //bool alt = g.statep->b;
     if (alt) {
         if (!f_mpd_next_playlist())
             pieprf;
@@ -191,7 +192,7 @@ bool ctl_do_down() {
 }
 
 bool ctl_do_up() {
-    bool alt = g.statep->b;
+    //bool alt = g.statep->b;
     if (alt) {
         if (!f_mpd_prev_playlist())
             pieprf;
@@ -208,7 +209,7 @@ bool ctl_do_up() {
 }
 
 bool ctl_do_left() {
-    bool alt = g.statep->b;
+    //bool alt = g.statep->b;
     if (mode_music()) {
         if (alt) {
             if (!f_mpd_seek(-5)) 
@@ -227,7 +228,7 @@ bool ctl_do_left() {
 }
 
 bool ctl_do_right() {
-    bool alt = g.statep->b;
+    //bool alt = g.statep->b;
     if (mode_music()) {
         if (alt) {
             if (!f_mpd_seek(5))
@@ -309,18 +310,22 @@ bool ctl_do_start_up() {
 }
 
 bool ctl_do_a_down() {
+    /*
     if (g.statep->b) {
         if (!_ctl_do_a_and_b_down()) 
             pieprf;
     }
     else {
+    */
         if (mode_music()) {
             if (!f_mpd_toggle_random()) 
                 pieprf;
         }
         if (!shell_cmd(F_A, false)) 
             pieprf;
+        /*
     }
+    */
 
     if (g.do_uinput) uinput_btn_a();
     return true;
@@ -331,14 +336,18 @@ bool ctl_do_a_up() {
 }
 
 bool ctl_do_b_down() {
+    /*
     if (g.statep->a) {
         if (!_ctl_do_a_and_b_down()) 
             pieprf;
     }
     else {
+    */
         if (!shell_cmd(F_B, false)) 
             pieprf;
+        /*
     }
+    */
     if (g.do_uinput) uinput_btn_b_down();
     return true;
 }

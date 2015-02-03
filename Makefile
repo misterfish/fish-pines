@@ -4,6 +4,13 @@ fishutils_dir = $(fishutilx_topdir)/fish-utils
 
 cc = gcc -std=c99
 
+ifeq ($(NO_NES), 1)
+    cc 	+= -DNO_NES
+endif
+
+# XX
+cc += -DDEBUG
+
 modules = mpdclient wiringPi fishutil fishutils
 
 # shared, system-wide install
@@ -11,7 +18,10 @@ mpdclient_all	:= -lmpdclient
 
 # shared, submodule.
 wiringPi_inc	:= -IwiringPi/devLib -IwiringPi/wiringPi 
-wiringPi_all	:= $(wiringPi_inc) -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
+wiringPi_all	:= $(wiringPi_inc)
+ifneq ($(NO_NES), 1)
+    wiringPi_all	+= -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
+endif
 
 # static, submodule.
 
@@ -25,7 +35,10 @@ all		= $(foreach i,$(modules),$(${i}_all))
 
 pre		:= $(fishutil_obj) $(fishutils_obj)
 main		:= fish-pines
-src_c		:= buttons.c ctl.c led.c mpd.c nes.c uinput.c util.c
+src_c		:= buttons.c ctl.c led.c mpd.c uinput.c util.c
+ifneq ($(NO_NES), 1)
+    src_c	+= nes.c
+endif
 src		:= $(src_c) \
     		    $(main).c $(main).h \
 		    $(src_c:.c=.h)

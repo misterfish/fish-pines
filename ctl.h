@@ -1,8 +1,8 @@
 #ifndef __INCL_BUTTONS_H
-#error ctl.h needs buttons.h
+# error ctl.h needs buttons.h
 #endif
 
-bool ctl_init(struct state_s *cur, bool do_uinput);
+bool ctl_init(bool do_uinput);
 
 bool ctl_do_up();
 bool ctl_do_down();

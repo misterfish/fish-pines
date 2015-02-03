@@ -1,6 +1,5 @@
 #define _GNU_SOURCE
 
-#define DEBUG
 #define VERBOSE
 
 #define DO_UINPUT false
@@ -37,9 +36,15 @@
  * Each full state string has an on.
  */
 
-/* Std order.
+/* 
+ * Std order.
+ *
+ * On each read, fire the press events for each pressed button, then the
+ * event for the combination, then the release events for each button
+ * released since the last read.
  */
-static bool (*FN_ON[8])() = {
+
+static bool (*EVENT_PRESS[8])() = {
     ctl_do_left,
     ctl_do_right,
     ctl_do_up,
@@ -49,7 +54,7 @@ static bool (*FN_ON[8])() = {
     ctl_do_b_down,
     ctl_do_a_down,
 };
-static bool (*FN_OFF[8])() = {
+static bool (*EVENT_RELEASE[8])() = {
     ctl_do_center_x,
     ctl_do_center_x,
     ctl_do_center_y,
@@ -73,14 +78,14 @@ static struct {
     /* Tracks the state of each button. 
      * The binary number representing a read is not stored globally.
      */
-    struct state_s state;
+    //struct state_s state;
 
     /* Std order.
      */
-    bool *state_iter[8];
+    //bool *state_iter[8];
     char **button_name_iter[8];
 
-    //int max_button_print_size;
+    char *button_print;
 
 #ifdef DEBUG
     char *debug_read_s;
@@ -129,7 +134,9 @@ int main (int argc, char** argv) {
 
     info("setting up ctl + mpd");
 
-    if (!ctl_init(&g.state, DO_UINPUT)) 
+    // errp -> ierr
+    //if (!ctl_init(&g.state, DO_UINPUT)) 
+    if (!ctl_init(DO_UINPUT)) 
         errp("Couldn't init ctl.");
 
     int first = 1;
@@ -141,7 +148,8 @@ int main (int argc, char** argv) {
     g.debug_read_s = debug_read_init();
 #endif
 
-    char *button_print = malloc(get_max_button_print_size() * sizeof(char));
+    g.button_print = malloc(get_max_button_print_size() * sizeof(char));
+
     /* Main loop.
      */
     while (1) {
@@ -165,7 +173,7 @@ int main (int argc, char** argv) {
 #endif
 
         if (cur_read) 
-            do_read(cur_read, button_print);
+            do_read(cur_read);
 
         /* Check for mpd events.
          */
@@ -217,7 +225,7 @@ static unsigned int read_buttons_testing() {
     return ret;
 }
 
-static bool do_read(unsigned int cur_read, char *button_print) {
+static bool do_read(unsigned int cur_read) {
 #ifdef DEBUG
     /* our bit order
      */
@@ -226,27 +234,25 @@ static bool do_read(unsigned int cur_read, char *button_print) {
     info(g.debug_read_s);
 #endif
 
-    bool (*fn_on)();
-    bool (*fn_off)();
-
-    bool *state_ptr;
+    //bool *state_ptr;
     char **button_name_ptr;
+
+    char *button_print = g.button_print;
 
     /* In testing mode, polling doesn't happen fast enough to get b
      * (alt) before the others. So do an explicit check for b first.
      * But means [B] will never be printed. XX
      */
 #ifdef NO_NES
-    if (cur_read & N_B) 
-        g.state.b = true;
+    if (cur_read & N_B)  {
+    }
+        //g.state.b = true;
 #endif
     bool first = true;
     *button_print = '\0';
     for (int i = 0; i < 8; i++) {
-        state_ptr = g.state_iter[i];
+        //state_ptr = g.state_iter[i];
         button_name_ptr = g.button_name_iter[i];
-        fn_on = FN_ON[i];
-        fn_off = FN_OFF[i];
         bool on = cur_read & BUTTONS[i];
         if (on) {
             if (first) 
@@ -258,6 +264,7 @@ static bool do_read(unsigned int cur_read, char *button_print) {
 
     }
 printf("[%s] ", button_print);
+
     if (!process_read(cur_read, button_print)) 
         pieprf;
 
@@ -265,52 +272,58 @@ printf("[%s] ", button_print);
 }
 
 static bool process_read(unsigned int read, char *button_print) {
+    static unsigned int prev_read = -1;
+
     bool kill_multiple = get_kill_multiple(read);
 
-    bool ok = true;
-    bool do_it = false;
+    if ((prev_read == read) && kill_multiple) {
+#ifdef DEBUG
+        info("Ignoring read %d (kill multiple is true)", read);
+        return true;
+#endif
+    }
 
-    /* Button on.
+    /* Do the press and release events for each individual button. 
+     * Then do the event matching the combination.
      */
-    if (on) {
-        /* Button was not already on.
+    bool ok = true;
+    for (int i = 0; i < 8; i++) {
+        int button_flag = BUTTONS[i]; // wiringPi system
+        bool (*event_press)() = EVENT_PRESS[i];
+        bool (*event_release)() = EVENT_RELEASE[i];
+
+        bool this_ok;
+        /* Button down (press or hold).
          */
-        if (! *state_ptr) {
-            do_it = true;
-            *state_ptr = true;
+        if (read & button_flag) {
+            this_ok = (*event_press)();
+            if (!this_ok) 
+                ok = false;
         }
 
-        /* Button was already on -- kill multiples if applicable.
+        /* Button not down.
          */
         else {
-            do_it = ! kill_multiple;
-        }
+            /* Released.
+             */
+            if (prev_read & button_flag) {
+                this_ok = (*event_release)();
+                if (!this_ok) 
+                    ok = false;
+            }
 
-        /* Go.
-         */
-        if (do_it) {
-            ok = (*fn_on)();
-#ifdef VERBOSE
-            printf("[%s] ", button_print);
-#endif
+            /* Was up and stayed up, do nothing.
+             */
+            else {
+            }
         }
     }
 
-    /* Button off.
+    /* 
+     * combi XX
      */
-    else {
-        /* Button was already on.
-         */
-        if (*state_ptr) {
-            ok = (*fn_off)();
-            *state_ptr = false;
-        }
 
-        /* Button was not already on.
-         */
-        else {}
-
-    }
+    prev_read = read;
     return ok;
 }
 
@@ -328,17 +341,21 @@ static void cleanup() {
         button_name_ptr++;
     }
 
+    free(g.button_print);
+
 #ifdef DEBUG
     free(g.debug_read_s);
 #endif
 }
 
 static void init_state() {
+    /*
     ghash_table ht = new;
     ht_add(ht, 
         (N_B | N_LEFT), 
         button_spec_new(
             false, 
+            */
 
     /* malloc
      */
@@ -351,6 +368,7 @@ static void init_state() {
     g.button_names.b = CY_("B");
     g.button_names.a = CY_("A");
 
+    /*
     g.state_iter[0] = &g.state.left;
     g.state_iter[1] = &g.state.right;
     g.state_iter[2] = &g.state.up;
@@ -359,6 +377,7 @@ static void init_state() {
     g.state_iter[5] = &g.state.start;
     g.state_iter[6] = &g.state.b;
     g.state_iter[7] = &g.state.a;
+    */
 
     g.button_name_iter[0] = &g.button_names.left;
     g.button_name_iter[1] = &g.button_names.right;
