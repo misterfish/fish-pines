@@ -12,7 +12,7 @@ struct pl {
 bool f_mpd_init();
 bool f_mpd_toggle_play();
 bool f_mpd_seek(int);
-void f_mpd_cleanup();
+bool f_mpd_cleanup();
 bool f_mpd_prev();
 bool f_mpd_next();
 bool f_mpd_update();

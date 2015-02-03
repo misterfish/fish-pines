@@ -58,8 +58,16 @@ bool buttons_init() {
         (      N_START), true, ctl_custom_start     // play/pause
     )
 
+    new_rule(rules_music,
+        (      N_SELECT), true, ctl_custom_select     // mode toggle
+    )
+
     new_rule(rules_general,
         (      N_START), false, NULL                // power off with hold
+    )
+
+    new_rule(rules_general,
+        (      N_SELECT), true, ctl_custom_select                // mode toggle
     )
 
     return true;
@@ -103,3 +111,15 @@ struct button_rule *buttons_get_rule(unsigned int read) {
     return NULL;
 }
 
+bool buttons_cleanup() {
+    bool ok = true;
+    if (!vec_destroy_flags(rules_music, VEC_DESTROY_DEEP)) {
+        piep;
+        ok = false;
+    }
+    if (!vec_destroy_flags(rules_general, VEC_DESTROY_DEEP)) {
+        piep;
+        ok = false;
+    }
+    return ok;
+}

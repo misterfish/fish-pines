@@ -342,7 +342,11 @@ static void cleanup() {
         piep;
     fish_util_cleanup();
     fish_utils_cleanup();
-    f_mpd_cleanup();
+
+    if (!f_mpd_cleanup())
+        piep;
+    if (!buttons_cleanup()) 
+        piep;
 
     char **button_name_ptr = (char**) (&g.button_names);
     for (int i = 0; i < 8; i++) {

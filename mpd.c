@@ -214,11 +214,18 @@ f_mpd_init();
     return true;
 }
 
-void f_mpd_cleanup() {
-    if (!g.init) return;
+bool f_mpd_cleanup() {
+    if (!g.init) 
+        return false;
 
+    /* void.
+     */
     mpd_connection_free(g.connection);
-    vec_destroy_flags(g.playlist_vec, VEC_DESTROY_DEEP);
+
+    if (!vec_destroy_flags(g.playlist_vec, VEC_DESTROY_DEEP))
+        pieprf;
+
+    return true;
 }
 
 /* - - - */

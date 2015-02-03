@@ -98,3 +98,9 @@ bool ctl_custom_start() {
             pieprf;
     return true;
 }
+
+bool ctl_custom_select() {
+    if (!mode_toggle()) 
+        pieprf;
+    return true;
+}

@@ -30,6 +30,15 @@ bool mode_set_general() {
     return true;
 }
 
+bool mode_toggle() {
+    if (mode_music()) 
+        return mode_set_general();
+    else if (mode_general()) 
+        return mode_set_music();
+    else  
+        pieprf;
+}
+
 static bool update_mode_led() {
 #ifndef NO_NES
     if (!led_update_mode(Mode)) {

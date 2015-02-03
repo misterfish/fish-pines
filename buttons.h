@@ -54,6 +54,7 @@ struct button_name_s {
 };
 
 bool buttons_init();
+bool buttons_cleanup();
 
 struct button_rule *buttons_get_rule(unsigned int read);
 
