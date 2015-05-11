@@ -144,7 +144,8 @@ bool ctl_custom_a() {
         if (!shell_cmd(g.shell.iwireless))
             pieprf;
     }
-    else { pieprf }
+    else 
+        pieprf;
     return true;
 }
 
@@ -161,7 +162,7 @@ bool ctl_custom_start() {
         if (g.general_start_disabled)
             return true;
 
-        double now = time_hires();
+        double now = f_time_hires();
 
         if (g.time_start_down == -1) {
             g.time_start_down = now;
@@ -196,21 +197,20 @@ static bool shell_go(char *cmd) {
     if (!cmd || !strcmp(cmd, "")) 
         pieprf;
 
-    verbose_cmds(true);
-    sys_die(false);
+    f_verbose_cmds(true);
+    f_sys_die(false);
 
     pid_t pid = fork();
     if (pid == -1) {
-        warn_perr_msg("Can't fork");
+        warn_perr("Can't fork");
         return false;
     }
-    if (pid) {
-    }
-    else {
-        /* Ignore errors, not our problem.
-         */
-        sysx(cmd);
-        exit(0);
+    if (!pid) {
+        if (sys(cmd)) {
+            warn("Error running shell cmd.");
+            _exit(1);
+        }
+        _exit(0);
     }
     return true;
 }

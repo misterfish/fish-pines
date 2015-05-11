@@ -20,7 +20,7 @@ bool _led_on(int pin) {
     char *msg = str(5);
     sprintf(msg, "%d 1", pin);
     bool err = false;
-    if (!socket_unix_message(LEDD_SOCK, msg)) {
+    if (!f_socket_unix_message(LEDD_SOCK, msg)) {
         _();
         spr("%d", pin);
         Y(_s);
@@ -37,7 +37,7 @@ bool _led_off(int pin) {
     char *msg = str(5);
     sprintf(msg, "%d 0", pin);
     bool err = false;
-    if (!socket_unix_message(LEDD_SOCK, msg)) {
+    if (!f_socket_unix_message(LEDD_SOCK, msg)) {
         _();
         spr("%d", pin);
         Y(_s);

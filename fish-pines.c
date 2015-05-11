@@ -25,6 +25,7 @@
 #include "ctl-default.h"
 #include "ctl-custom.h"
 #include "mpd.h"
+#include "vol.h"
 #include "mode.h"
 #include "util.h"
 
@@ -99,7 +100,7 @@ int main (int argc, char** argv) {
 
     fish_utils_init();
 
-    autoflush();
+    f_autoflush();
 
     f_sig(SIGTERM, sighandler_term);
     f_sig(SIGINT, sighandler_term);
@@ -107,19 +108,22 @@ int main (int argc, char** argv) {
     init_state();
 
     if (!buttons_init()) 
-        ierr;
+        ierr("Couldn't init buttons");
+
+    if (!vol_init()) 
+        ierr("Couldn't init vol");
 
 #ifndef NO_NES
     info("setting up wiringPi");
 
     if (!nes_init_wiring()) 
-        ierr;
+        ierr("Couldn't init wiring.");
 
     info("setting up nes");
 
     int joystick = nes_setup();
     if (joystick == -1) 
-        ierr;
+        ierr("Couldn't init joystick");
 #else
     info("setting terminal raw");
 
@@ -133,10 +137,10 @@ int main (int argc, char** argv) {
     info("setting up ctl + mpd");
 
     if (!ctl_default_init(DO_UINPUT)) 
-        ierr_msg("Couldn't init ctl-default.");
+        ierr("Couldn't init ctl-default.");
 
     if (!ctl_custom_init()) 
-        ierr_msg("Couldn't init ctl-custom.");
+        ierr("Couldn't init ctl-custom.");
 
     int first = 1;
     unsigned int cur_read;

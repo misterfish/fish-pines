@@ -25,7 +25,7 @@ static struct {
 } g;
 
 #define wprf do { \
-    warn_perr; \
+    warn_perr(""); \
     return false; \
 } while (0); 
 
@@ -35,7 +35,7 @@ bool uinput_init() {
     if (g.uinput < 0) {
         _();
         Y(DEV);
-        warn_perr_msg("Couldn't open %s", _s);
+        warn_perr("Couldn't open %s", _s);
         return false;
     }
 

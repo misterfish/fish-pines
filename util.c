@@ -9,7 +9,7 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
     struct termios term = {0};
     int fd = 0;
     if (tcgetattr(fd, &term)) {
-        warn_perr_msg("Couldn't get terminal attributes.");
+        warn_perr("Couldn't get terminal attributes.");
         return false;
     }
 
@@ -90,7 +90,7 @@ bool f_terminal_normal() {
      */
     int failure = tcsetattr(fd, TCSANOW, &save_attr_cooked);
     if (failure) {
-        warn_perr_msg("Failure setting fd %d to normal", fd);
+        warn_perr("Failure setting fd %d to normal", fd);
     }
     return !(bool)failure;
 }

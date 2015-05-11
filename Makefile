@@ -40,6 +40,7 @@ src_c		:= vol.c mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c uinput.c
 ifneq ($(NO_NES), 1)
     src_c	+= nes.c
 endif
+extra_headers	:= conf.h
 src		:= $(src_c) \
     		    $(main).c $(main).h \
 		    $(src_c:.c=.h)
@@ -47,10 +48,10 @@ obj		:= $(src_c:.c=.o)
 
 all: $(pre) $(obj) $(main)
 
-$(obj): %.o: %.c
-	$(cc) $(inc) -c $^ -o $@
+$(obj): %.o: %.c $(extra_headers)
+	$(cc) $(inc) -c $< -o $@
 
-$(main): $(fishutil_obj) $(fishutils_obj) $(src)
+$(main): $(fishutil_obj) $(fishutils_obj) $(obj) $(src)
 	$(cc) $(all) $(main).c $(obj) -o $(main)
 
 $(fishutil_obj): $(fishutil_src_dep)
