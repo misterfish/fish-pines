@@ -1,5 +1,6 @@
 #include <fish-util.h>
 
+#include "global.h"
 #include "nes.h"
 
 bool nes_init_wiring() {

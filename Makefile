@@ -1,72 +1,88 @@
-fishutilx_topdir = fish-lib-util
-fishutil_dir = $(fishutilx_topdir)/fish-util
-fishutils_dir = $(fishutilx_topdir)/fish-utils
+# Use caps for vars which users are allowed to initialise from outside (and
+# CC, which is special).
 
-cc = gcc -std=c99
+cc 		= gcc 
+CC 		= $(cc) 
+
+CFLAGS		+= -std=c99 
+LDFLAGS		?= 
+
+main		= fish-pines
+
+# Will be looped over to build <module>_cflags, <module>_ldflags, etc.
+modules 	= fishutil fishutils
+submodules	= fish-lib-util
+
+fishutil_dir		= fish-lib-util
+fishutil_cflags		= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-util)
+fishutil_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-util)
+fishutils_cflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-utils)
+fishutils_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-utils)
 
 ifeq ($(NO_NES), 1)
-    cc 	+= -DNO_NES
+    CC 	+= -DNO_NES
 endif
 
 ifeq ($(DEBUG), 1)
-    cc += -DDEBUG
+    CC += -DDEBUG
 endif
 
-modules = mpdclient wiringPi fishutil fishutils
+modules 		= mpdclient wiringPi fishutil fishutils
+submodules		= fish-lib-util
+pkg_names		=
 
-# shared, system-wide install
-mpdclient_all	:= -lmpdclient 
+mpdclient_cflags	= # system-wide
+mpdclient_ldflags	= -lmpdclient 
 
-# shared, submodule.
-wiringPi_inc	:= -IwiringPi/devLib -IwiringPi/wiringPi 
-wiringPi_all	:= $(wiringPi_inc)
+wiringPi_cflags		= -IwiringPi/devLib -IwiringPi/wiringPi 
+wiringPi_ldflags	=
+
 ifneq ($(NO_NES), 1)
-    wiringPi_all	+= -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
+    wiringPi_ldflags	+= -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
 endif
 
-# static, submodule.
+CFLAGS		+= -W -Wall -Wextra -I./
+CFLAGS		+= $(foreach i,$(modules),$(${i}_cflags))
 
-# sets <module>_inc, <module>_obj, <module>_src_dep, <module>_ld, and <module>_all.
-include $(fishutil_dir)/fishutil.mk
-include $(fishutils_dir)/fishutils.mk
-VPATH=$(fishutil_dir) $(fishutils_dir)
+LDFLAGS		+= -Wl,--export-dynamic
+LDFLAGS		+= $(foreach i,$(modules),$(${i}_ldflags))
 
-inc		= $(foreach i,$(modules),$(${i}_inc))
-all		= $(foreach i,$(modules),$(${i}_all))
+src		= $(main).c vol.c mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c util.c global.c
 
-pre		:= $(fishutil_obj) $(fishutils_obj)
-main		:= fish-pines
-src_c		:= vol.c mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c uinput.c util.c
+hdr		= vol.h mode.h buttons.h ctl-default.h ctl-custom.h led.h mpd.h util.h
+
+obj		= $(main).o vol.o mode.o buttons.o ctl-default.o ctl-custom.o led.o mpd.o util.o global.o
+
 ifneq ($(NO_NES), 1)
-    src_c	+= nes.c
+    src  	+= nes.c
+    obj		+= nes.o
 endif
-extra_headers	:= conf.h
-src		:= $(src_c) \
-    		    $(main).c $(main).h \
-		    $(src_c:.c=.h)
-obj		:= $(src_c:.c=.o)
 
-all: $(pre) $(obj) $(main)
+all: submodules $(main)
 
-$(obj): %.o: %.c $(extra_headers)
-	$(cc) $(inc) -c $< -o $@
+submodules: 
+	for i in "$(submodules)"; do \
+	    cd "$$i"; \
+	    make; \
+	    cd ..; \
+	done;
 
-$(main): $(fishutil_obj) $(fishutils_obj) $(obj) $(src)
-	$(cc) $(all) $(main).c $(obj) -o $(main)
+$(main): $(src) $(hdr) $(obj)
+	@#echo $(CC) $(CFLAGS) $(LDFLAGS) $(obj) -o $(main)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(obj) -o $(main)
 
-$(fishutil_obj): $(fishutil_src_dep)
-	make -C $(fishutilx_topdir)
+# Note that all objs get rebuilt if any header changes. 
 
-$(fishutils_obj): $(fishutils_src_dep)
-	make -C $(fishutilx_topdir)
+$(obj): %.o: %.c $(hdr)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean: 
 	rm -f *.o
 	rm -f *.so
-	cd $(fishutilx_topdir) && make clean
 	rm -f $(main)
+	cd $(fishutil_dir) && make clean
 
 mrproper: clean
-	cd $(fishutilx_topdir) && make mrproper
+	cd $(fishutil_dir) && make mrproper
 
 .PHONY: all clean mrproper

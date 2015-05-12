@@ -10,6 +10,12 @@
         pieprf; \
 };
 
+/* Mapping from our standard order to their N_ order.
+ */
+
+static vec *rules_music; // members: struct button_rule *
+static vec *rules_general; // members: struct button_rule *
+
 static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)()) {
     struct button_rule *rule = malloc(sizeof(struct button_rule));
 

@@ -2,8 +2,6 @@
 
 #define VERBOSE
 
-#define DO_UINPUT false
-
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -20,7 +18,7 @@
 #include <fish-util.h>
 #include <fish-utils.h>
 
-#include "constants.h"
+#include "global.h"
 #include "buttons.h"
 #include "ctl-default.h"
 #include "ctl-custom.h"
@@ -34,6 +32,14 @@
 #endif
 
 #include "fish-pines.h"
+
+static void init_state();
+static int get_max_button_print_size();
+#ifdef DEBUG
+static int make_canonical(unsigned int read);
+static char *debug_read_init();
+static void debug_read(unsigned int read_canonical, char *ret);
+#endif
 
 /* 
  * Std order.
@@ -91,13 +97,12 @@ static struct {
 
 bool _break;
 
-bool sighandler_term() {
+void sighandler_term() {
     info("Ctl c");
     _break = true;
 }
 
-int main (int argc, char** argv) {
-
+int main() {
     fish_utils_init();
 
     f_autoflush();
@@ -136,7 +141,7 @@ int main (int argc, char** argv) {
 
     info("setting up ctl + mpd");
 
-    if (!ctl_default_init(DO_UINPUT)) 
+    if (!ctl_default_init()) 
         ierr("Couldn't init ctl-default.");
 
     if (!ctl_custom_init()) 
@@ -189,6 +194,7 @@ int main (int argc, char** argv) {
     exit(0);
 }
 
+#ifdef NO_NES
 static unsigned int read_buttons_testing() {
     ssize_t s;
     char *buf = calloc(2, sizeof(char));
@@ -218,6 +224,7 @@ static unsigned int read_buttons_testing() {
     free(buf);
     return ret;
 }
+#endif
 
 static bool do_read(unsigned int cur_read) {
 #ifdef DEBUG
@@ -370,6 +377,7 @@ static void init_state() {
     g.button_name_iter[7] = &g.button_names.a;
 }
 
+#ifdef DEBUG
 static int make_canonical(unsigned int read) {
     return 
         ((read & N_LEFT)    ? 1<<7 : 0) |
@@ -397,6 +405,7 @@ static void debug_read(unsigned int read_canonical, char *ret) {
         *ptr++ = (read_canonical & (1<<shift)) ? '1' : '0';
     }
 }
+#endif
 
 static int get_max_button_print_size() {
     int n=0;

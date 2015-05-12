@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <fish-util.h>
 
-#include "conf.h"
+#include "global.h"
 #include "vol.h"
 
 static struct {

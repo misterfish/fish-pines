@@ -14,15 +14,18 @@
 
 //#include <fish-pigpio.h> // works also on no_nes but why XX
 
-#include "constants.h"
-#include "conf.h"
+#include "global.h"
 #include "led.h"
 
 #include "mpd.h"
 
-bool f_error = false;
+static int get_state();
+static int get_queue_pos();
+static int get_elapsed_time();
+static bool load_playlist(int idx);
+static bool reload_playlists();
 
-        //mpd_connection_clear_error(g.connection); \
+bool f_error = false;
 
 #define f_mpd_error(s) do { \
     if (g.connection) { \
@@ -49,9 +52,9 @@ bool f_error = false;
     } \
 } while (0); 
 
-#define f_try(s, msg) do { \
+#define f_try(expr, msg) do { \
     f_error = false; \
-    bool rc = s; \
+    bool rc = (expr); \
     info("got rc %d", rc); \
     if (!rc || !f_mpd_ok()) { \
         info("ok, caught"); \
@@ -60,16 +63,16 @@ bool f_error = false;
     } \
 } while (0); 
  
-#define f_try_rf(s, msg) do { \
-    bool rc = s; \
+#define f_try_rf(expr, msg) do { \
+    bool rc = (expr); \
     if (!rc || !f_mpd_ok()) { \
         f_mpd_error(msg); \
         return false; \
     } \
 } while (0); 
 
-#define f_try_rv(s, msg) do { \
-    bool rc = s; \
+#define f_try_rv(expr, msg) do { \
+    bool rc = expr; \
     if (!rc || !f_mpd_ok()) { \
         f_mpd_error(msg); \
         return; \
@@ -362,6 +365,7 @@ bool f_mpd_update() {
             info("Mpd event: [%s] (ignoring)", _s);
         }
     }
+    return true;
 }
 
 bool f_mpd_next_playlist() {
@@ -382,10 +386,7 @@ bool f_mpd_prev_playlist() {
     return load_playlist(g.playlist_idx);
 }
 
-
-static bool 
-load_playlist(int idx) 
-{
+static bool load_playlist(int idx) {
     struct pl *pl = (struct pl *) vec_get(g.playlist_vec, idx);
     if (!pl)
         pieprf;

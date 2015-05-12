@@ -10,12 +10,16 @@
 
 #include <fish-util.h>
 
+#include "global.h"
 #include "mode.h"
 #include "mpd.h"
-#include "conf.h"
 #include "vol.h"
 
 #include "ctl-custom.h"
+
+static bool shell_go(char *cmd);
+static bool shell_cmd_with_cb(char *cmd, void*(cb)());
+static bool shell_cmd(char *cmd);
 
 static struct {
     double time_start_down;
@@ -193,7 +197,6 @@ void ctl_custom_start_released() {
 }
 
 static bool shell_go(char *cmd) {
-    bool err = false;
     if (!cmd || !strcmp(cmd, "")) 
         pieprf;
 

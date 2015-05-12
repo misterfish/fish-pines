@@ -10,11 +10,9 @@
 
 #include <fish-util.h>
 
-#include "constants.h"
-#include "conf.h"
+#include "global.h"
 #include "buttons.h"
 #include "mpd.h"
-#include "uinput.h"
 #include "mode.h"
 
 #ifndef NO_NES
@@ -24,23 +22,13 @@
 #include "ctl-custom.h"
 #include "ctl-default.h"
 
-#include "fish-pines.h"
+//#include "fish-pines.h"
 
-static struct {
-    bool do_uinput;
-} g;
-
-bool ctl_default_init(bool do_uinput) {
+bool ctl_default_init() {
 #ifndef NO_NES
     if (!led_init()) 
         pieprf;
 #endif
-    g.do_uinput = do_uinput;
-
-    if (g.do_uinput) 
-        if (!uinput_init())
-            pieprf;
-
     mode_set_music();
 
     if (!f_mpd_init()) 
@@ -50,51 +38,34 @@ bool ctl_default_init(bool do_uinput) {
 }
 
 bool ctl_do_down() {
-    if (g.do_uinput) 
-        return uinput_up();
     return true;
 }
 
 bool ctl_default_up() {
-    if (g.do_uinput) 
-        return uinput_down();
     return true;
 }
 
 bool ctl_default_left() {
-    if (g.do_uinput) 
-        return uinput_left();
     return true;
 }
 
 bool ctl_default_right() {
-    if (g.do_uinput) 
-        return uinput_right();
     return true;
 }
 
 bool ctl_default_down() {
-    if (g.do_uinput) 
-        return uinput_right();
     return true;
 }
 
 bool ctl_default_center_x() {
-    if (g.do_uinput) 
-        return uinput_center_x();
     return true;
 }
 
 bool ctl_default_center_y() {
-    if (g.do_uinput) 
-        return uinput_center_y();
     return true;
 }
 
 bool ctl_default_select_down() {
-    if (g.do_uinput) 
-        return uinput_btn_select();
-
     return true;
 }
 
@@ -103,9 +74,6 @@ bool ctl_default_select_up() {
 }
 
 bool ctl_default_start_down() {
-    if (g.do_uinput) 
-        return uinput_btn_start();
-
     return true;
 }
 
@@ -117,8 +85,6 @@ bool ctl_default_start_up() {
 }
 
 bool ctl_default_a_down() {
-    if (g.do_uinput) 
-        return uinput_btn_a();
     return true;
 }
 
@@ -127,15 +93,10 @@ bool ctl_default_a_up() {
 }
 
 bool ctl_default_b_down() {
-    if (g.do_uinput) 
-        return uinput_btn_b_down();
-
     return true;
 }
 
 bool ctl_default_b_up() {
-    if (g.do_uinput) 
-        return uinput_btn_b_up();
     return true;
 }
 

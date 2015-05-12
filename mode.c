@@ -6,6 +6,8 @@
 #define MODE_MUSIC      0x00
 #define MODE_GENERAL    0x01
 
+static bool update_mode_led();
+
 int Mode = -1;
 
 bool mode_music() {
@@ -41,7 +43,7 @@ bool mode_toggle() {
 
 static bool update_mode_led() {
 #ifndef NO_NES
-    if (!led_update_mode(Mode)) {
+    if (!led_update_mode()) {
         warn("Couldn't update led for mode");
         return false;
     }

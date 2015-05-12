@@ -22,14 +22,3 @@ bool f_mpd_random_on();
 
 bool f_mpd_prev_playlist();
 bool f_mpd_next_playlist();
-
-static bool reload_playlists();
-static int get_state();
-static int get_queue_pos();
-static int get_elapsed_time();
-static int get_random();
-//static bool playlist();
-
-static bool
-load_playlist(int idx);
-

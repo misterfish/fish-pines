@@ -18,6 +18,3 @@ bool ctl_custom_start();
 
 void ctl_custom_start_released();
 
-static bool shell_go(char *cmd);
-static bool shell_cmd_with_cb(char *cmd, void*(cb)());
-static bool shell_cmd(char *cmd);

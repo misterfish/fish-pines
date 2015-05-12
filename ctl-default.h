@@ -1,6 +1,6 @@
 #include "buttons.h"
 
-bool ctl_default_init(bool do_uinput);
+bool ctl_default_init();
 
 bool ctl_default_up();
 bool ctl_default_down();

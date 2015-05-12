@@ -5,8 +5,7 @@
 
 #include <fish-util.h>
 
-#include "constants.h"
-#include "conf.h"
+#include "global.h"
 #include "buttons.h"
 #include "mode.h"
 
@@ -48,7 +47,7 @@ bool _led_off(int pin) {
     return !err;
 }
 
-bool led_update_mode(int mode) {
+bool led_update_mode() {
     if (mode_music()) {
         return _led_off(LED_MODE);
     }
