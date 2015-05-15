@@ -10,11 +10,13 @@
 // default is don't kill
 #define BUTTONS_KILL_MULTIPLE_DEFAULT false
 
+/*
 #define NUM_KILL_MULTIPLE_RULES_MUSIC 9
 #define NUM_KILL_MULTIPLE_RULES_GENERAL 1
 
 #define NUM_RULES_MUSIC 9
 #define NUM_RULES_GENERAL 1
+*/
 
 /* Rules for button combinations.
  * Note, there is no release event for a combination. 

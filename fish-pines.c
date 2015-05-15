@@ -15,16 +15,20 @@
 
 #include <signal.h>
 
+#include <lua.h>
+#include <lauxlib.h> // luaL_ functions.
+#include <lualib.h> // luaL_ functions.
+#include <luaconf.h> // luai_writestringerror
+
 #include <fish-util.h>
 #include <fish-utils.h>
 
+#include "const.h"
 #include "global.h"
 #include "buttons.h"
-#include "ctl-default.h"
-#include "ctl-custom.h"
 #include "mpd.h"
 #include "vol.h"
-#include "mode.h"
+//#include "mode.h"
 #include "util.h"
 
 #ifndef NO_NES
@@ -33,50 +37,18 @@
 
 #include "fish-pines.h"
 
+/* inlined in const.h */
+extern short BUTTONS(short);
+
+static bool init_globals();
 static void init_state();
+static bool init_lua();
 static int get_max_button_print_size();
 #ifdef DEBUG
 static int make_canonical(unsigned int read);
 static char *debug_read_init();
 static void debug_read(unsigned int read_canonical, char *ret);
 #endif
-
-/* 
- * Std order.
- *
- * On each read, look up the first matching rule for the combination. 
- * If kill_multiple is true in the rule, and the read is the same as the
- * last one, don't do anything else.
- * Otherwise, cycle through the buttons and fire the press events for
- * each currently pressed button (meaning, tap or hold) and the release event for each button released since the last read.
- *
- * Then fire the specific event for the combination (from the looked up
- * rule) if applicable.
- */
-
-static bool (*EVENT_PRESS[8])() = {
-    ctl_default_left,
-    ctl_default_right,
-    ctl_default_up,
-    ctl_default_down,
-    ctl_default_select_down,
-    ctl_default_start_down,
-    ctl_default_b_down,
-    ctl_default_a_down,
-};
-static bool (*EVENT_RELEASE[8])() = {
-    ctl_default_center_x,
-    ctl_default_center_x,
-    ctl_default_center_y,
-    ctl_default_center_y,
-    ctl_default_select_up,
-    ctl_default_start_up,
-    ctl_default_b_up,
-    ctl_default_a_up,
-};
-
-/* Static is important to avoid silently clobbering other g's.
- */
 
 static struct {
     /* Structs have named fields 'a', 'start', 'down', etc.
@@ -85,7 +57,6 @@ static struct {
 
     /* Std order.
      */
-    //bool *state_iter[8];
     char **button_name_iter[8];
 
     char *button_print;
@@ -95,7 +66,7 @@ static struct {
 #endif
 } g;
 
-bool _break;
+static bool _break = false;
 
 void sighandler_term() {
     info("Ctl c");
@@ -110,18 +81,21 @@ int main() {
     f_sig(SIGTERM, sighandler_term);
     f_sig(SIGINT, sighandler_term);
 
+    if (! init_globals()) 
+        ierr("Can't init globals.");
+
     init_state();
 
-    if (!buttons_init()) 
+    if (! buttons_init()) 
         ierr("Couldn't init buttons");
 
-    if (!vol_init()) 
+    if (! vol_init()) 
         ierr("Couldn't init vol");
 
 #ifndef NO_NES
     info("setting up wiringPi");
 
-    if (!nes_init_wiring()) 
+    if (! nes_init_wiring()) 
         ierr("Couldn't init wiring.");
 
     info("setting up nes");
@@ -140,12 +114,11 @@ int main() {
 #endif
 
     info("setting up ctl + mpd");
+    if (! f_mpd_init()) 
+        err("Couldn't init mpd.");
 
-    if (!ctl_default_init()) 
-        ierr("Couldn't init ctl-default.");
-
-    if (!ctl_custom_init()) 
-        ierr("Couldn't init ctl-custom.");
+    if (! init_lua()) 
+        ierr("Can't init lua.");
 
     int first = 1;
     unsigned int cur_read;
@@ -156,12 +129,13 @@ int main() {
     g.debug_read_s = debug_read_init();
 #endif
 
-    g.button_print = malloc(get_max_button_print_size() * sizeof(char));
+    g.button_print = f_malloc(get_max_button_print_size() * sizeof(char));
 
     /* Main loop.
      */
     while (1) {
-        if (_break) break; // ctl c
+        if (_break) 
+            break; // ctl c
         bool do_mpd_update = false;
 
         if (++i_mpd_update % MPD_UPDATE == 0) {
@@ -246,14 +220,14 @@ static bool do_read(unsigned int cur_read) {
     *button_print = '\0';
     for (int i = 0; i < 8; i++) {
         button_name_ptr = g.button_name_iter[i];
-        bool on = cur_read & BUTTONS[i];
+        bool on = cur_read & BUTTONS(i);
         if (on) {
             if (first) 
                 first = false;
             else 
                 strcat(button_print, " + ");
             found_one = true;
-            strcat(button_print, *button_name_ptr);
+            strcat(button_print, *button_name_ptr); // -O- only 8
         }
     }
 
@@ -291,17 +265,13 @@ static bool process_read(unsigned int read, char *button_print) {
      */
     bool ok = true;
     for (int i = 0; i < 8; i++) {
-        int button_flag = BUTTONS[i]; // wiringPi system
-        bool (*event_press)() = EVENT_PRESS[i];
-        bool (*event_release)() = EVENT_RELEASE[i];
+        int button_flag = BUTTONS(i); // wiringPi system
 
         bool this_ok;
         /* Button down (press or hold).
          */
         if (read & button_flag) {
-            this_ok = (*event_press)();
-            if (!this_ok) 
-                ok = false;
+            // XX
         }
 
         /* Button not down.
@@ -310,9 +280,11 @@ static bool process_read(unsigned int read, char *button_print) {
             /* Released.
              */
             if (prev_read & button_flag) {
+                /*
                 this_ok = (*event_release)();
                 if (!this_ok) 
                     ok = false;
+                    */
             }
 
             /* Was up and stayed up, do nothing.
@@ -355,6 +327,93 @@ static void cleanup() {
 #ifdef DEBUG
     free(g.debug_read_s);
 #endif
+}
+
+static int panic(lua_State *L) {
+    // Taken from panic function in lua source.
+    (void)L;  /* to avoid warnings */
+    fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n", lua_tostring(L, -1));
+    return 0;  /* return to Lua to abort */
+}
+
+static bool init_globals() {
+    lua_State *L = luaL_newstate();
+    if (!L) {
+        warn("Can't init lua.");
+        return false;
+    }
+    global.L = L;
+    return true;
+}
+
+void creak() {
+    fprintf(stderr, "CREAK!\n");
+}
+
+static bool init_lua() {
+    lua_State *L = global.L;
+    /* Was set in luaL but overwrite it. 
+     * Returns old panic function.
+     */
+    lua_atpanic(L, panic);
+    luaL_openlibs(L); // void
+
+    lua_newtable(L); // capi
+
+    /*
+    lua_pushstring(L, "creak");
+    lua_pushcfunction(L, (lua_CFunction) creak);
+    lua_rawset(L, -3);
+    */
+
+    lua_pushstring(L, "buttons"); 
+
+    // capi.buttons = {
+    lua_newtable(L); 
+
+    //                  left = F_LEFT,
+    lua_pushstring(L, "left");
+    lua_pushnumber(L, F_LEFT);
+    lua_rawset(L, -3);
+    //                  ...
+    lua_pushstring(L, "right");
+    lua_pushnumber(L, F_RIGHT);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "up");
+    lua_pushnumber(L, F_UP);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "down");
+    lua_pushnumber(L, F_DOWN);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "select");
+    lua_pushnumber(L, F_SELECT);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "start");
+    lua_pushnumber(L, F_START);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "b");
+    lua_pushnumber(L, F_B);
+    lua_rawset(L, -3);
+    lua_pushstring(L, "a");
+    lua_pushnumber(L, F_A);
+    lua_rawset(L, -3);
+
+    lua_rawset(L, -3); 
+
+    // } 
+    lua_setglobal(L, "capi");
+
+    if (luaL_loadfile(L, "init.lua")) {
+        warn("Couldn't load lua init script: %s", lua_tostring(L, -1));
+        return false;
+    }
+
+    if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
+        warn("Failed to run script: %s\n", lua_tostring(L, -1));
+        return false;
+    }
+
+    return true;
 }
 
 static void init_state() {

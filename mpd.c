@@ -13,9 +13,8 @@
 #include <fish-utils.h>
 
 //#include <fish-pigpio.h> // works also on no_nes but why XX
-
+#include "const.h"
 #include "global.h"
-#include "led.h"
 
 #include "mpd.h"
 
@@ -102,6 +101,7 @@ struct {
     int playlist_n;
 } g;
 
+#if 0
 #ifdef NO_NES
 bool _led_random_on() { 
     info("random led on, teehee"); 
@@ -125,6 +125,7 @@ bool _led_random_off() {
 bool _led_update_random(bool random) { 
     return led_update_random(random);
 }
+#endif
 #endif
 
 bool f_mpd_ok() {
@@ -296,12 +297,14 @@ bool f_mpd_toggle_random() {
  */
 bool f_mpd_random_off() {
     f_try_rf(mpd_run_random(g.connection, false), "random off");
-    return _led_random_off();
+    //return _led_random_off();
+    return true;
 }
 
 bool f_mpd_random_on() {
     f_try_rf(mpd_run_random(g.connection, true), "random on");
-    return _led_random_on();
+    //return _led_random_on();
+    return true;
 }
 
 bool f_mpd_update() {
@@ -322,7 +325,7 @@ bool f_mpd_update() {
         if (res & MPD_IDLE_OPTIONS) {
             bool random = (bool) get_random();
             info("Random changed to %s", random ? "on" : "off");
-            _led_update_random(random);
+            //_led_update_random(random);
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
             info("Stored playlists have been altered / created, reloading.");

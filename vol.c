@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <fish-util.h>
 
+#include "const.h"
 #include "global.h"
 #include "vol.h"
 

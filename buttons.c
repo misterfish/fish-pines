@@ -1,8 +1,7 @@
 #define _GNU_SOURCE
 
 #include "buttons.h"
-#include "ctl-custom.h"
-#include "mode.h"
+//#include "mode.h"
 
 #define new_rule(vec, buttons, kill_multiple, cb) { \
     bool rc = rule(vec, buttons, kill_multiple, cb); \
@@ -17,7 +16,7 @@ static vec *rules_music; // members: struct button_rule *
 static vec *rules_general; // members: struct button_rule *
 
 static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)()) {
-    struct button_rule *rule = malloc(sizeof(struct button_rule));
+    struct button_rule *rule = f_malloc(sizeof(struct button_rule));
 
     rule->buttons = buttons;
     rule->kill_multiple = kill_multiple;
@@ -29,7 +28,9 @@ static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)(
     return true;
 }
 
+
 bool buttons_init() {
+#if 0
     /* Put rules in order -- first matching rule wins.
  */
 
@@ -90,13 +91,16 @@ bool buttons_init() {
         (      N_START), false, ctl_custom_start                // poweroff, with hold down
     )
 
+#endif
     return true;
 }
 
 struct button_rule *buttons_get_rule(unsigned int read) {
+return NULL;
     vec *vec;
     int cnt;
 
+    /*
     if (mode_music()) {
         vec = rules_music;
     }
@@ -105,6 +109,9 @@ struct button_rule *buttons_get_rule(unsigned int read) {
     }
     else 
         pieprf;
+        */
+
+    vec = rules_music;
 
     cnt = vec_size(vec);
 

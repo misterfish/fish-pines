@@ -11,11 +11,15 @@
 #include <fish-util.h>
 
 #include "global.h"
-#include "mode.h"
+//#include "mode.h"
 #include "mpd.h"
 #include "vol.h"
 
 #include "ctl-custom.h"
+
+//XX
+bool mode_music() { return true; }
+bool mode_general() { return false ; }
 
 static bool shell_go(char *cmd);
 static bool shell_cmd_with_cb(char *cmd, void*(cb)());
