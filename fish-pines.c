@@ -78,9 +78,6 @@ int main() {
 
     f_autoflush();
 
-    f_sig(SIGTERM, sighandler_term);
-    f_sig(SIGINT, sighandler_term);
-
     if (! init_globals()) 
         ierr("Can't init globals.");
 
@@ -130,6 +127,9 @@ int main() {
 #endif
 
     g.button_print = f_malloc(get_max_button_print_size() * sizeof(char));
+
+    f_sig(SIGTERM, sighandler_term);
+    f_sig(SIGINT, sighandler_term);
 
     /* Main loop.
      */
@@ -366,9 +366,8 @@ static bool init_lua() {
     lua_rawset(L, -3);
     */
 
-    lua_pushstring(L, "buttons"); 
-
     // capi.buttons = {
+    lua_pushstring(L, "buttons"); 
     lua_newtable(L); 
 
     //                  left = F_LEFT,
@@ -398,7 +397,17 @@ static bool init_lua() {
     lua_pushnumber(L, F_A);
     lua_rawset(L, -3);
 
-    lua_rawset(L, -3); 
+    lua_rawset(L, -3);  // buttons
+
+    // capi.mpd = {
+    lua_pushstring(L, "mpd");
+    lua_newtable(L);
+
+    lua_pushstring(L, "config_func");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_configl);
+    lua_rawset(L, -3);  
+
+    lua_rawset(L, -3);  // } capi.mpd
 
     // } 
     lua_setglobal(L, "capi");

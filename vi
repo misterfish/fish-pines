@@ -2,4 +2,5 @@
 
 . `dirname "$0"`/functions
 
-find \( -iname '*.c' -o -iname '*'.h -o -iname Makefile'*' \) ! -wholename '*save*' ! -wholename '*wiringPi*' -exec vi {} +  
+#find \( -iname '*.c' -o -iname '*'.h -o -iname Makefile'*' \) ! -wholename '*save*' ! -wholename '*wiringPi*' -exec vi {} +  
+vido -t c -t lua -c -x save -x wiringPi

@@ -1,10 +1,22 @@
 local capi = capi
+local cbuttons = capi.buttons
+local cmpd = capi.mpd
 
-io.write("Starting script, Frank.\n")
+require 'config'
+
+function say (format, ...) 
+    format = format .. '\n'
+    io.write(string.format(format, ...))
+end
+
+say("Starting script, Frank.\n")
+say("config sez allen = %d", config.mpd.port)
+
+capi.mpd.config_func()
 
 --capi.creak()
-io.write(string.format("%d", capi.buttons.up))
-io.write(string.format("%d", capi.buttons.left))
+say("%d", cbuttons.up)
+say("%d", cbuttons.left)
 
 function creak()
     io.write("CREAK!")
@@ -20,16 +32,16 @@ function map (map_fn, itable)
     return result
 end
 
-function rule(buttons, options, cb) 
+function rule (buttons, options, cb) 
     local buttons_as_numbers = map(
         function (i,v)
-            return capi.buttons[v]
+            return cbuttons[v]
         end, 
     buttons)
 
-    for i,v in ipairs(buttons_as_numbers) do
-        io.write(string.format("%d: %d", i, v))
-    end
+--    for i,v in ipairs(buttons_as_numbers) do
+--        io.write(string.format("%d: %d", i, v))
+--    end
 
 end
 

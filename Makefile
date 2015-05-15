@@ -1,7 +1,7 @@
 # Use caps for vars which users are allowed to initialise from outside (and
 # CC, which is special).
 
-cc 		= gcc 
+cc 		= gcc -ggdb
 CC 		= $(cc) 
 
 ifeq ($(NO_NES), 1)

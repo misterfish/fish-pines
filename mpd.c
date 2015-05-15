@@ -24,7 +24,17 @@ static int get_elapsed_time();
 static bool load_playlist(int idx);
 static bool reload_playlists();
 
+bool f_mpd_configl() {
+    warn("mpd_configl called.");
+    return true;
+}
+
 bool f_error = false;
+
+/* this was in f_mpd_error, and causing an infinite loop. 
+        if (!f_mpd_init()) \
+            piep; \
+            */
 
 #define f_mpd_error(s) do { \
     if (g.connection) { \
@@ -37,8 +47,6 @@ bool f_error = false;
             BR(mpd_connection_get_error_message(g.connection));   \
             warn("Error on %s: %s.", s, _s);      \
         } \
-        if (!f_mpd_init()) \
-            piep; \
     } \
 } while (0); 
 
@@ -56,7 +64,6 @@ bool f_error = false;
     bool rc = (expr); \
     info("got rc %d", rc); \
     if (!rc || !f_mpd_ok()) { \
-        info("ok, caught"); \
         f_error = true; \
         f_mpd_error(msg); \
     } \
@@ -94,12 +101,20 @@ bool f_error = false;
  */
 
 struct {
-    struct mpd_connection* connection;
+    struct mpd_connection *connection;
     bool init;
     vec *playlist_vec;
     int playlist_idx;
     int playlist_n;
 } g;
+
+struct {
+    char *hostname;
+    short port;
+    short timeout_ms;
+    short timeout_playlist_ms;
+    bool play_on_load_playlist;
+} conf;
 
 #if 0
 #ifdef NO_NES
@@ -143,12 +158,23 @@ bool f_mpd_ok() {
 } 
 
 bool f_mpd_init() {
+    conf.port = 6601;
+    conf.hostname = "localhost";
+    conf.timeout_ms = 3000;
 if (g.init) 
     mpd_connection_free(g.connection);
+
     f_try_rf(
-        g.connection = mpd_connection_new (MPD_HOST, MPD_PORT, MPD_TIMEOUT_MS),
-        "Error opening connection"
+        g.connection = mpd_connection_new (conf.hostname, conf.port, conf.timeout_ms),
+        "opening connection"
     )
+
+    g.connection = mpd_connection_new (conf.hostname, conf.port, conf.timeout_ms);
+    fprintf(stderr, "connection = %p\n", g.connection);
+    return false;
+
+        warn("GOT HERE");
+
 if (!g.init) {
     info("MPD connection opened successfully.");
 
@@ -406,11 +432,11 @@ static bool load_playlist(int idx) {
     info("Loading playlist [%s -> %s]", _s, _t);
 
     // void
-    mpd_connection_set_timeout(g.connection, MPD_TIMEOUT_PLAYLIST_MS);
+    mpd_connection_set_timeout(g.connection, conf.timeout_playlist_ms);
     f_try_rf(mpd_run_load(g.connection, path), "load playlist");
-    mpd_connection_set_timeout(g.connection, MPD_TIMEOUT_MS);
+    mpd_connection_set_timeout(g.connection, conf.timeout_ms);
 
-    if (MPD_PLAY_ON_LOAD_PLAYLIST) 
+    if (conf.play_on_load_playlist) 
         f_try_rf(mpd_run_play(g.connection), "play");
 
 

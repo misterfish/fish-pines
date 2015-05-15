@@ -73,11 +73,11 @@
  */
 #define MPD_UPDATE 10
 
-#define MPD_HOST "localhost"
-#define MPD_PORT 6600 // 0 also ok
-#define MPD_TIMEOUT_MS 3000
-#define MPD_TIMEOUT_PLAYLIST_MS 30000
-#define MPD_PLAY_ON_LOAD_PLAYLIST true
+//#define MPD_HOST "localhost"
+//#define MPD_PORT 6600 // 0 also ok
+//#define MPD_TIMEOUT_MS 3000
+//#define MPD_TIMEOUT_PLAYLIST_MS 30000
+//#define MPD_PLAY_ON_LOAD_PLAYLIST true
 
 #define LED_ORANGE 12
 #define LED_BLUE 10
