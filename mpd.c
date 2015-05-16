@@ -9,6 +9,9 @@
 
 #include <unistd.h> // usleep
 
+#include <lua.h>
+#include <lauxlib.h>
+
 #include <fish-util.h>
 #include <fish-utils.h>
 
@@ -26,6 +29,18 @@ static bool reload_playlists();
 
 bool f_mpd_configl() {
     warn("mpd_configl called.");
+
+    lua_State *L = global.L;
+    char *str;
+    str = luaL_checkstring(L, 2);
+    warn("top is %d", lua_gettop(L));
+    warn("and i got %s", str);
+    lua_pop(L, 1);
+    if (! lua_isnil(L, 2)) {
+        str = luaL_checkstring(L, 2);
+        warn("and i got %s", str);
+    }
+
     return true;
 }
 
@@ -48,7 +63,7 @@ bool f_error = false;
             warn("Error on %s: %s.", s, _s);      \
         } \
     } \
-} while (0); 
+} while (0)
 
 #define f_check_exit f_check_msg_exit()
 
@@ -57,7 +72,7 @@ bool f_error = false;
         f_mpd_error(s); \
         exit(1); \
     } \
-} while (0); 
+} while (0)
 
 #define f_try(expr, msg) do { \
     f_error = false; \
@@ -67,7 +82,7 @@ bool f_error = false;
         f_error = true; \
         f_mpd_error(msg); \
     } \
-} while (0); 
+} while (0)
  
 #define f_try_rf(expr, msg) do { \
     bool rc = (expr); \
@@ -75,7 +90,7 @@ bool f_error = false;
         f_mpd_error(msg); \
         return false; \
     } \
-} while (0); 
+} while (0)
 
 #define f_try_rv(expr, msg) do { \
     bool rc = expr; \
@@ -83,7 +98,7 @@ bool f_error = false;
         f_mpd_error(msg); \
         return; \
     } \
-} while (0); 
+} while (0)
 
 /* No while wrapper, because it's meant to be in a while. Not sure if it
  * works.
@@ -109,7 +124,7 @@ struct {
 } g;
 
 struct {
-    char *hostname;
+    char *host;
     short port;
     short timeout_ms;
     short timeout_playlist_ms;
@@ -157,32 +172,54 @@ bool f_mpd_ok() {
     }
 } 
 
+#define CONF_DEFAULT_HOST "localhost"
+#define CONF_DEFAULT_PORT 6601
+#define CONF_DEFAULT_TIMEOUT_MS 3000
+#define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
+
+/* Everything has a default value.
+ */
+static bool check_conf() {
+    if (! conf.host) 
+        conf.host = CONF_DEFAULT_HOST;
+    if (! conf.port) 
+        conf.port = CONF_DEFAULT_PORT;
+    if (! conf.timeout_ms) 
+        conf.timeout_ms = CONF_DEFAULT_TIMEOUT_MS;
+    if (! conf.timeout_playlist_ms) 
+        conf.timeout_playlist_ms = CONF_DEFAULT_TIMEOUT_PLAYLIST_MS;
+
+    return true;
+}
+
 bool f_mpd_init() {
-    conf.port = 6601;
-    conf.hostname = "localhost";
-    conf.timeout_ms = 3000;
 if (g.init) 
     mpd_connection_free(g.connection);
 
     f_try_rf(
-        g.connection = mpd_connection_new (conf.hostname, conf.port, conf.timeout_ms),
+        g.connection = mpd_connection_new (conf.host, conf.port, conf.timeout_ms),
         "opening connection"
-    )
+    );
 
-    g.connection = mpd_connection_new (conf.hostname, conf.port, conf.timeout_ms);
+    g.connection = mpd_connection_new (conf.host, conf.port, conf.timeout_ms);
     fprintf(stderr, "connection = %p\n", g.connection);
     return false;
 
         warn("GOT HERE");
 
 if (!g.init) {
-    info("MPD connection opened successfully.");
+    if (! check_conf()) 
+        return false;
 
     g.playlist_vec = vec_new();
     g.playlist_idx = -1;
     g.playlist_n = 0;
+
+    info("MPD connection opened successfully.");
+
     if (!reload_playlists()) 
         pieprf;
+
 }
     g.init = true;
     return true;
@@ -195,11 +232,11 @@ f_mpd_init();
     int status = get_state();
     switch(status) {
         case MPD_STATE_STOP:
-            f_try_rf( mpd_run_play(g.connection), "play" )
+            f_try_rf( mpd_run_play(g.connection), "play" );
             break;
         case MPD_STATE_PLAY:
         case MPD_STATE_PAUSE:
-            f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" )
+            f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" );
             break;
         case MPD_STATE_UNKNOWN: 
             iwarn("unknown status, skipping.");
@@ -228,7 +265,7 @@ bool f_mpd_seek(int secs) {
 
     if (seek_to < 0) 
         return true;
-    f_try_rf( mpd_run_seek_pos(g.connection, pos, seek_to), "seek position" ) // ok if overshoot
+    f_try_rf( mpd_run_seek_pos(g.connection, pos, seek_to), "seek position" ); // ok if overshoot
 
     return true;
 }
@@ -237,7 +274,7 @@ bool f_mpd_prev() {
     if (!g.init) return false;
 f_mpd_init();
 
-    f_try_rf( mpd_run_previous(g.connection), "run previous song" )
+    f_try_rf( mpd_run_previous(g.connection), "run previous song" );
     return true;
 }
 
@@ -245,7 +282,7 @@ bool f_mpd_next() {
     if (!g.init) return false;
 f_mpd_init();
 
-    f_try_rf( mpd_run_next(g.connection), "run next song" )
+    f_try_rf( mpd_run_next(g.connection), "run next song" );
     return true;
 }
 

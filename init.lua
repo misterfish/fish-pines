@@ -12,7 +12,8 @@ end
 say("Starting script, Frank.\n")
 say("config sez allen = %d", config.mpd.port)
 
-capi.mpd.config_func()
+capi.mpd.config_func('allen', 'haim')
+--capi.mpd.config_func('port', 6600)
 
 --capi.creak()
 say("%d", cbuttons.up)

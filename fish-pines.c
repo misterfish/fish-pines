@@ -110,12 +110,12 @@ int main() {
         err("Couldn't set terminal raw.");
 #endif
 
+    if (! init_lua()) 
+        err("Can't init lua.");
+
     info("setting up ctl + mpd");
     if (! f_mpd_init()) 
         err("Couldn't init mpd.");
-
-    if (! init_lua()) 
-        ierr("Can't init lua.");
 
     int first = 1;
     unsigned int cur_read;
