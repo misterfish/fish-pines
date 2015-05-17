@@ -6,6 +6,7 @@ config = {
         timeout_playlist_ms = 3000,
         play_on_load_playlist = true,
         my_friend = 3.4,
-        [3] = 4,
+        nothing = 0,
+        --[3] = 4,
     }
 }

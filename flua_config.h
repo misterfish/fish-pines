@@ -9,6 +9,7 @@
 /* Example usage.
  *
  * The vars must be called 'key' and 'val' and have the types below.
+ * Everything is passed unquoted.
  *
  *
 bool f_mpd_config(const char *key, void *val) {
@@ -16,6 +17,8 @@ bool f_mpd_config(const char *key, void *val) {
     flua_config_line(conf, host, string)
     flua_config_line(conf, port, int)
     flua_config_line(conf, timeout_ms, int)
+    // returns false if unknown key
+    flua_config_unknown 
 
     return true;
 }
@@ -38,9 +41,16 @@ bool f_mpd_config(const char *key, void *val) {
 } while (0);
 
 #define flua_config_set_double(conf_struct, key_name) do { \
-    conf_struct.key_name = (double) *(double*) val; \
+    conf_struct.key_name = *(double*) val; \
     if (flua_config_Verbose) { \
         flua_config_inform(conf_struct, key_name, double, "%f"); \
+    } \
+} while (0);
+
+#define flua_config_set_boolean(conf_struct, key_name) do { \
+    conf_struct.key_name = *(bool*) val; \
+    if (flua_config_Verbose) { \
+        flua_config_inform(conf_struct, key_name, boolean, "<bool>"); \
     } \
 } while (0);
 
@@ -48,18 +58,29 @@ bool f_mpd_config(const char *key, void *val) {
     _(); \
     Y(#conf_struct); \
     Y(#key_name); \
-    spr(format, conf_struct.key_name); \
-    G(_u); \
+    if (! strcmp(format, "<bool>")) { \
+        G(conf_struct.key_name ? "true" : "false"); \
+        spr("«%s»", _u); \
+    } \
+    else { \
+        spr(format, conf_struct.key_name); \
+        G(_u); \
+    } \
     M(#type); \
     info("flua_config: setting %s.%s = %s (%s)", _s, _t, _v, _w); \
 } while (0);
 
+#define flua_config_unknown \
+    else { \
+        _(); \
+        BR(key); \
+        warn("Unknown config key: %s.", _s); \
+        return false; \
+    }
+
 #define flua_config_start if (false) {} 
 
-#define flua_stringify(x) #x
-
 /* Allowed types: string, int, double, bool.
- * Without quotes!
  */
 
 #define flua_config_line(conf_struct, key_name, type) \

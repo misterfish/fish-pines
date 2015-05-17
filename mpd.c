@@ -48,7 +48,10 @@ bool f_mpd_config(const char *key, void *val) {
     flua_config_line(conf, host, string)
     flua_config_line(conf, port, int)
     flua_config_line(conf, timeout_ms, int)
+    flua_config_line(conf, timeout_playlist_ms, int)
     flua_config_line(conf, my_friend, double)
+    flua_config_line(conf, play_on_load_playlist, boolean)
+    flua_config_unknown
 
     return true;
 }
