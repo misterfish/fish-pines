@@ -27,6 +27,7 @@
 ./global.c
 ./global.h
 ./buttons.c
+./flua_config.h
 ./mpd.c
 ./util.h
 ./fish-pines.c

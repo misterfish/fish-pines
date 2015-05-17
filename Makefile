@@ -47,11 +47,11 @@ LDFLAGS		+= $(foreach i,$(modules_manual),$(${i}_ldflags))
 LDFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --libs))
 
 
-src		= $(main).c vol.c buttons.c mpd.c util.c 
+src		= $(main).c vol.c buttons.c mpd.c util.c flua_config.c
 
-hdr		= vol.h buttons.h mpd.h util.h global.h const.h
+hdr		= vol.h buttons.h mpd.h util.h global.h const.h flua_config.h
 
-obj		= $(main).o vol.o buttons.o mpd.o util.o 
+obj		= $(main).o vol.o buttons.o mpd.o util.o flua_config.o
 
 ifneq ($(NO_NES), 1)
     src  	+= nes.c
@@ -61,7 +61,7 @@ endif
 all: submodules $(main)
 
 submodules: 
-	for i in "$(submodules)"; do \
+	@for i in "$(submodules)"; do \
 	    make -C "$$i"; \
 	done
 

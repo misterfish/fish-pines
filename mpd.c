@@ -9,14 +9,12 @@
 
 #include <unistd.h> // usleep
 
-#include <lua.h>
-#include <lauxlib.h>
-
 #include <fish-util.h>
 #include <fish-utils.h>
 
 //#include <fish-pigpio.h> // works also on no_nes but why XX
 #include "const.h"
+#include "flua_config.h"
 #include "global.h"
 
 #include "mpd.h"
@@ -27,21 +25,39 @@ static int get_elapsed_time();
 static bool load_playlist(int idx);
 static bool reload_playlists();
 
-bool f_mpd_configl() {
-    warn("mpd_configl called.");
+struct {
+    struct mpd_connection *connection;
+    bool init;
+    vec *playlist_vec;
+    int playlist_idx;
+    int playlist_n;
+} g;
 
-    lua_State *L = global.L;
-    char *str;
-    str = luaL_checkstring(L, 2);
-    warn("top is %d", lua_gettop(L));
-    warn("and i got %s", str);
-    lua_pop(L, 1);
-    if (! lua_isnil(L, 2)) {
-        str = luaL_checkstring(L, 2);
-        warn("and i got %s", str);
-    }
+struct {
+    char *host;
+    short port;
+    short timeout_ms;
+    short timeout_playlist_ms;
+    bool play_on_load_playlist;
+    
+    double my_friend;
+} conf;
+
+bool f_mpd_config(const char *key, void *val) {
+    flua_config_start
+    flua_config_line(conf, host, string)
+    flua_config_line(conf, port, int)
+    flua_config_line(conf, timeout_ms, int)
+    flua_config_line(conf, my_friend, double)
 
     return true;
+}
+
+// throws
+void f_mpd_configl() {
+    /* Dies on lua errors, returns false on others.
+     */
+    flua_config(global.L, f_mpd_config);
 }
 
 bool f_error = false;
@@ -115,22 +131,6 @@ bool f_error = false;
  * Go into idle to receive updates (e.g. random).
  */
 
-struct {
-    struct mpd_connection *connection;
-    bool init;
-    vec *playlist_vec;
-    int playlist_idx;
-    int playlist_n;
-} g;
-
-struct {
-    char *host;
-    short port;
-    short timeout_ms;
-    short timeout_playlist_ms;
-    bool play_on_load_playlist;
-} conf;
-
 #if 0
 #ifdef NO_NES
 bool _led_random_on() { 
@@ -193,6 +193,8 @@ static bool check_conf() {
 }
 
 bool f_mpd_init() {
+info("using port %d", conf.port);
+info("using host %s", conf.host);
 if (g.init) 
     mpd_connection_free(g.connection);
 
@@ -201,11 +203,10 @@ if (g.init)
         "opening connection"
     );
 
-    g.connection = mpd_connection_new (conf.host, conf.port, conf.timeout_ms);
-    fprintf(stderr, "connection = %p\n", g.connection);
-    return false;
-
-        warn("GOT HERE");
+    //g.connection = mpd_connection_new (conf.host, conf.port, conf.timeout_ms);
+    //fprintf(stderr, "connection = %p\n", g.connection);
+    //return false;
+        //warn("GOT HERE");
 
 if (!g.init) {
     if (! check_conf()) 

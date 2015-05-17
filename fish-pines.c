@@ -28,6 +28,7 @@
 #include "buttons.h"
 #include "mpd.h"
 #include "vol.h"
+#include "flua_config.h"
 //#include "mode.h"
 #include "util.h"
 
@@ -109,6 +110,8 @@ int main() {
     if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND)) 
         err("Couldn't set terminal raw.");
 #endif
+
+    flua_config_set_verbose(true);
 
     if (! init_lua()) 
         err("Can't init lua.");

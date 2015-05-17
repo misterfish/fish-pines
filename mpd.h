@@ -23,4 +23,6 @@ bool f_mpd_random_on();
 bool f_mpd_prev_playlist();
 bool f_mpd_next_playlist();
 
-bool f_mpd_configl();
+/* "throws"
+ */
+void f_mpd_configl();

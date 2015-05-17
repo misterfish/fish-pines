@@ -9,20 +9,6 @@ function say (format, ...)
     io.write(string.format(format, ...))
 end
 
-say("Starting script, Frank.\n")
-say("config sez allen = %d", config.mpd.port)
-
-capi.mpd.config_func('allen', 'haim')
---capi.mpd.config_func('port', 6600)
-
---capi.creak()
-say("%d", cbuttons.up)
-say("%d", cbuttons.left)
-
-function creak()
-    io.write("CREAK!")
-end
-
 function map (map_fn, itable)
     local result = {}
     local idx = 0
@@ -32,6 +18,8 @@ function map (map_fn, itable)
     end
     return result
 end
+
+capi.mpd.config_func(config.mpd)
 
 function rule (buttons, options, cb) 
     local buttons_as_numbers = map(
