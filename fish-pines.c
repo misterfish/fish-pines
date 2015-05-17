@@ -111,7 +111,7 @@ int main() {
         err("Couldn't set terminal raw.");
 #endif
 
-    flua_config_set_verbose(true);
+    //flua_config_set_verbose(true);
 
     if (! init_lua()) 
         err("Can't init lua.");

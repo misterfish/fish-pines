@@ -20,7 +20,7 @@ main		= fish-pines
 # Will be looped over to put <module>_cflags, <module>_ldflags into CFLAGS
 # and LDFLAGS.
 modules_manual 		= fishutil fishutils wiringPi
-modules_pkgconfig	= libmpdclient lua5.1
+modules_pkgconfig	= libmpdclient lua5.1 glib-2.0
 # Subdirectories (will be make -C'ed).
 # wiringPi
 submodules		= fish-lib-util
