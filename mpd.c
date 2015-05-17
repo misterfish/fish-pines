@@ -19,10 +19,16 @@
 
 #include "mpd.h"
 
+#define CONF_DEFAULT_HOST "localhost"
+#define CONF_DEFAULT_PORT 6601
+#define CONF_DEFAULT_TIMEOUT_MS 3000
+#define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
+
 static int get_state();
 static int get_queue_pos();
 static int get_elapsed_time();
 static bool load_playlist(int idx);
+static bool have_playlists();
 static bool reload_playlists();
 
 struct {
@@ -34,11 +40,17 @@ struct {
 } g;
 
 struct {
+    /* Required, have defaults. 
+     */
     char *host;
     short port;
     short timeout_ms;
     short timeout_playlist_ms;
+
+    /* Optional.
+     */
     bool play_on_load_playlist;
+    char *playlist_path;
     
     double my_friend;
 } conf;
@@ -51,12 +63,13 @@ bool f_mpd_config(const char *key, void *val) {
     flua_config_line(conf, timeout_playlist_ms, int)
     flua_config_line(conf, my_friend, double)
     flua_config_line(conf, play_on_load_playlist, boolean)
+    flua_config_line(conf, playlist_path, string)
     flua_config_unknown
 
     return true;
 }
 
-// throws
+/* Throws. */
 void f_mpd_configl() {
     /* Dies on lua errors, returns false on others.
      */
@@ -175,11 +188,6 @@ bool f_mpd_ok() {
     }
 } 
 
-#define CONF_DEFAULT_HOST "localhost"
-#define CONF_DEFAULT_PORT 6601
-#define CONF_DEFAULT_TIMEOUT_MS 3000
-#define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
-
 /* Everything has a default value.
  */
 static bool check_conf() {
@@ -221,7 +229,7 @@ if (!g.init) {
 
     info("MPD connection opened successfully.");
 
-    if (!reload_playlists()) 
+    if (have_playlists() && !reload_playlists()) 
         pieprf;
 
 }
@@ -405,7 +413,7 @@ bool f_mpd_update() {
 
         if (reload) {
             // warn but don't return false
-            if (!reload_playlists()) 
+            if (have_playlists() && !reload_playlists()) 
                 piep;
         }
 
@@ -484,21 +492,23 @@ static bool load_playlist(int idx) {
     return true;
 }
 
+static bool have_playlists() {
+    return conf.playlist_path ? true : false;
+}
+
 static bool reload_playlists() {
     vec *v = g.playlist_vec;
     {
         int s = vec_size(v);
-        if (s == -1) {
+        if (s == -1) 
             pieprf;
-        }
-        else if (s) {
+        else if (s) 
             vec_clear(v);
-        }
     }
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
-    f_try_rf(mpd_send_list_meta(g.connection, PL_PATH), "send list meta");
+    f_try_rf(mpd_send_list_meta(g.connection, conf.playlist_path), "send list meta");
 
     /* Can receive either pair or entity from mpd. 
      * Entity can give a playlist object, but you can't do too much with it

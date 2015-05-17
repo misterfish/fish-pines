@@ -14,13 +14,11 @@ bool flua_config(lua_State *L, bool (*config_cb)(const char *, void *)) {
             size_t s;
             char *as_str = "";
             const char *try = lua_tolstring(L, -2, &s); // NULL unless number or string
-            size_t as_str_len = 0;
             if (try) {
                 _();
                 BR(try);
                 spr(" (%s)", _s);
                 as_str = _t;
-                as_str_len = strlen(as_str);
             }
 
             warn("Non-string key val passed in config%s, ignoring.", as_str);
