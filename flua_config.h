@@ -8,25 +8,26 @@
 #include <lauxlib.h>
 #include <glib.h>
 
-/* Example usage. XX
+/* Example usage.
  *
- * The vars must be called 'key' and 'val' and have the types below.
- * Everything is passed unquoted.
- *
- *
-bool f_mpd_config(const char *key, void *val) {
-    flua_config_start
-    flua_config_line(conf, host, string)
-    flua_config_line(conf, port, int)
-    flua_config_line(conf, timeout_ms, int)
-    // returns false if unknown key
-    flua_config_unknown 
+    flua_config_new(global.L, "mpd");
 
-    return true;
-}
+    flua_conf_default(host, char*, CONF_DEFAULT_HOST)
+    flua_conf_default(port, int, CONF_DEFAULT_PORT)
+    flua_conf_default(play_on_load_playlist, bool, false)
+    flua_conf_optional(playlist_path, char*)
+    flua_conf_required(my_friend, double)
+
+    // Throws on lua errors, returns false on others (and then we throw).
+    if (! flua_config_load_config_f(FLUA_CONFIG_VERBOSE)) {
+        _();
+        BR("Couldn't load lua config.");
+        lua_pushstring(global.L, _s);
+        lua_error(global.L);
+    }
 */
 
-/* Quiet means don't complain on stderr about e.g. missine keys.
+/* Quiet means don't complain on stderr about e.g. missing keys.
  * Verbose refers to stdout.
  */
 #define FLUA_CONFIG_QUIET   0x01
@@ -40,7 +41,6 @@ bool f_mpd_config(const char *key, void *val) {
         type_name *storeme = malloc(sizeof(*storeme)); /* XX */ \
     *storeme = dflt; \
     item->value = (gpointer) storeme; \
-    info("stored %s %d %s", #key_name, *storeme, item->type); \
     flua_config_insert((gpointer) #key_name, (gpointer) item); \
 } while (0);
 
@@ -76,7 +76,7 @@ struct conf_t {
 
 #define flua_config_get_conf(type, key_name) *(type *) (flua_config_get((gpointer) #key_name))
 
-void flua_config_new(lua_State *L);
+void flua_config_new(lua_State *L, char *nspace);
 void flua_config_insert(gpointer key, gpointer val);
 gpointer flua_config_get(gpointer key);
 

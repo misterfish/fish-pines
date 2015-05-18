@@ -20,7 +20,7 @@
 #include "mpd.h"
 
 #define CONF_DEFAULT_HOST "localhost"
-#define CONF_DEFAULT_PORT 6601
+#define CONF_DEFAULT_PORT 6600
 #define CONF_DEFAULT_TIMEOUT_MS 3000
 #define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
 
@@ -42,7 +42,7 @@ struct {
 } g;
 
 void f_mpd_configl() {
-    flua_config_new(global.L);
+    flua_config_new(global.L, "mpd");
 
     flua_conf_default(host, char*, CONF_DEFAULT_HOST)
     flua_conf_default(port, int, CONF_DEFAULT_PORT)

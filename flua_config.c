@@ -9,24 +9,28 @@
 
 #include "flua_config.h"
 
+// XX globals
 /* String indices of hash are all static,
  * i.e., don't free.
  */
 static GHashTable *conf;
 static GHashTable *required_keys;
-
+static char *namespace;
 static lua_State *L;
 
 static bool required_key_set(gpointer key);
 static void got_required_key(gpointer key);
 static GList *get_required_keys();
 
-void flua_config_new(lua_State *l) {
+/* namespace is optional (gives nicer verbose messages).
+ */
+void flua_config_new(lua_State *l, char *nspace) {
     if (conf) 
         g_hash_table_destroy(conf);
     if (required_keys) 
         g_hash_table_destroy(required_keys);
 
+    namespace = nspace;
     conf = g_hash_table_new/*_full*/(
         g_str_hash,
         g_str_equal
@@ -135,7 +139,16 @@ fprintf(stderr, "yes it was.\n");
         }
 
         if (verbose) 
-            info("flua_config: setting (MPDXX) %s = %s (%s)", _s, _u, _v); 
+            if (namespace) {
+                M(namespace);
+                spr("| %s » ", _w);
+            }
+            else {
+                spr("");
+                spr("");
+            }
+
+            info("flua_config: setting %s%s = %s (%s)", _x, _s, _u, _v); 
     }
 
     bool ok = true;
@@ -143,7 +156,7 @@ fprintf(stderr, "yes it was.\n");
     GList *req = get_required_keys();
     while (req) {
         gpointer req_key = req->data;
-        if (! g_hash_table_lookup(required_keys, req_key)) {
+        if (! required_key_set(req_key)) {
             ok = false;
             _();
             BR((char *) req_key);
@@ -174,7 +187,7 @@ static void got_required_key(gpointer key) {
 }
 
 static bool required_key_set(gpointer key) {
-    return ! g_hash_table_lookup(required_keys, key);
+    return g_hash_table_lookup(required_keys, key);
 }
 
 static GList *get_required_keys() {
