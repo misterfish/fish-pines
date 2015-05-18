@@ -9,24 +9,32 @@
 
 #include "flua_config.h"
 
-/* String indices of hash and string elements of vector are all static,
+/* String indices of hash are all static,
  * i.e., don't free.
  */
 static GHashTable *conf;
-static vec *unknown_keys;
+static GHashTable *required_keys;
+
 static lua_State *L;
+
+static bool required_key_set(gpointer key);
+static void got_required_key(gpointer key);
+static GList *get_required_keys();
 
 void flua_config_new(lua_State *l) {
     if (conf) 
         g_hash_table_destroy(conf);
-    if (unknown_keys) 
-        vec_destroy(unknown_keys);
+    if (required_keys) 
+        g_hash_table_destroy(required_keys);
 
     conf = g_hash_table_new/*_full*/(
         g_str_hash,
         g_str_equal
     );
-    unknown_keys = vec_new();
+    required_keys = g_hash_table_new/*_full*/(
+        g_str_hash,
+        g_str_equal
+    );
 
     L = l;
 }
@@ -40,7 +48,8 @@ bool flua_config_load_config_f(int flags) {
     lua_pushnil(L); // first key
     while (
         first ? (first = false) : lua_pop(L, 1), // pop val, keep key for iter
-        lua_next(L, -2) != 0) { // puts key -> -2, val -> -1
+        lua_next(L, -2) != 0) 
+    { // puts key -> -2, val -> -1
         const char *key; 
         const char *luatype = lua_typename(L, lua_type(L, -2));
         if (strcmp(luatype, "string")) {
@@ -76,7 +85,6 @@ bool flua_config_load_config_f(int flags) {
             Y(key); // _s
         }
 
-        //const char *valtype = lua_typename(L, lua_type(L, -1));
         if (!strcmp(type, "char*")) {
             const char *val = luaL_checkstring(L, -1);
             if (!val) 
@@ -121,26 +129,56 @@ bool flua_config_load_config_f(int flags) {
         else 
             piepc;
 
-        if (verbose) {
-            info("flua_config: setting (MPDXX) %s = %s (%s)", _s, _u, _v); \
+        if (lookup->required)  {
+fprintf(stderr, "yes it was.\n");
+            got_required_key((gpointer) key);
         }
+
+        if (verbose) 
+            info("flua_config: setting (MPDXX) %s = %s (%s)", _s, _u, _v); 
     }
 
-    return true;
+    bool ok = true;
+
+    GList *req = get_required_keys();
+    while (req) {
+        gpointer req_key = req->data;
+        if (! g_hash_table_lookup(required_keys, req_key)) {
+            ok = false;
+            _();
+            BR((char *) req_key);
+            warn("Missing required key: %s.", _s);
+        }
+
+        req = req->next;
+    }
+    g_list_free(req);
+
+    return ok;
 }
 
 bool flua_config_load_config() {
     return flua_config_load_config_f(0);
 }
 
-/*
-void flua_config_set_verbose(bool v) {
-    flua_config_Verbose = v;
-}
-*/
- 
 void flua_config_insert(gpointer key, gpointer val) {
     g_hash_table_insert(conf, key, val);
+}
+
+void flua_config_add_required_key(gpointer key) {
+    g_hash_table_insert(required_keys, key, NULL);
+}
+
+static void got_required_key(gpointer key) {
+    g_hash_table_replace(required_keys, key, GINT_TO_POINTER(1));
+}
+
+static bool required_key_set(gpointer key) {
+    return ! g_hash_table_lookup(required_keys, key);
+}
+
+static GList *get_required_keys() {
+    return g_hash_table_get_keys(required_keys);
 }
 
 gpointer flua_config_get(gpointer key) {
@@ -148,16 +186,4 @@ gpointer flua_config_get(gpointer key) {
 }
 
 
-
-            /* Throwing version.
-            char *err = "Non-string key val passed in config%s";
-            int errstr_len = as_str_len + strlen(err) - 2 + 1;
-            char *errstr = str(errstr_len);
-            if (snprintf(errstr, errstr_len, err, as_str) == errstr_len) {
-                iwarn("overflow");
-                return false;
-            }
-            lua_pushstring(L, errstr);
-            lua_error(L);
-            */
 

@@ -52,11 +52,15 @@ void f_mpd_configl() {
     flua_conf_optional(playlist_path, char*)
 
     flua_conf_required(my_friend, double)
-    //flua_conf_optional(my_friend, double)
 
-    /* Throws on lua errors, returns false on others. */
-    if (! flua_config_load_config_f(FLUA_CONFIG_VERBOSE)) 
-        warn("Couldn't load lua config.");
+    /* Throws on lua errors, returns false on others (and then we throw).
+     */
+    if (! flua_config_load_config_f(FLUA_CONFIG_VERBOSE)) {
+        _();
+        BR("Couldn't load lua config.");
+        lua_pushstring(global.L, _s);
+        lua_error(global.L);
+    }
 }
 
 bool f_error = false;
