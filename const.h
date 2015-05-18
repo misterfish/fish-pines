@@ -44,13 +44,55 @@ This is the mapping from physical pins to BCM pins using my physical counting:
 
 */
 
-// XX
-/* yellow */
-//#define DPIN 6 // 25
-/* red */
-//#define CPIN 5 // 24
-/* orange */
-//#define LPIN 4 // 23
+/* From BCM numbering to wiringPi numbering.
+ * (Reverse of pinToGpioR2)
+ */
+inline short BCM2WIRINGPI(short b) {
+    if (b == 17)
+        return 0;
+    else if (b == 18)
+        return 1;
+    else if (b == 27)
+        return 2;
+    else if (b == 22)
+        return 3;
+    else if (b == 23)
+        return 4;
+    else if (b == 24)
+        return 5;
+    else if (b == 25)
+        return 6;
+    else if (b == 4)
+        return 7;
+    else if (b == 2)
+        return 8;
+    else if (b == 3)
+        return 9;
+    else if (b == 8)
+        return 10;
+    else if (b == 7)
+        return 11;
+    else if (b == 10)
+        return 12;
+    else if (b == 9)
+        return 13;
+    else if (b == 11)
+        return 14;
+    else if (b == 14)
+        return 15;
+    else if (b == 15)
+        return 16;
+    else if (b == 28)
+        return 17;
+    else if (b == 29)
+        return 18;
+    else if (b == 30)
+        return 19;
+    else if (b == 31)
+        return 20;
+    else
+        return 0;
+}
 
 /* From wiringPi.
  */

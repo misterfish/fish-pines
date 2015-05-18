@@ -1,11 +1,11 @@
 config = {
     nes = {
-        dpin = 6,
-        cpin = 5,
-        lpin = 4,
+        -- Using Broadcom gpio numbering.
+        dpin = 25, --yellow
+        cpin = 24, --red
+        lpin = 23, --orange
     },
     mpd = {
-        --[3] = 4,
         host = 'localhost',
         port = 6600,
         timeout_ms = 3000,
@@ -14,6 +14,5 @@ config = {
         playlist_path = "mpd-playlists", -- relative to root
         -- update mpd every n times through the main loop.
         update_on_n_ticks = 10,
-        my_friend = 3.4,
     }
 }

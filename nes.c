@@ -8,6 +8,8 @@
 
 #define CONF_NAMESPACE "nes"
 
+extern short BCM2WIRINGPI(short);
+
 #define conf_s(x) \
     flua_config_get_string(g.conf, #x)
 #define conf_b(x) \
@@ -60,7 +62,36 @@ static bool init_wiringPi() {
 
 static int init_joystick() {
     int joystick;
-    if ((joystick = setupNesJoystick(conf_i(dpin), conf_i(cpin), conf_i(lpin))) == -1) {
+    short dpin_bcm = conf_i(dpin);
+    short cpin_bcm = conf_i(cpin);
+    short lpin_bcm = conf_i(lpin);
+
+    short dpin = BCM2WIRINGPI(dpin_bcm);
+    short lpin = BCM2WIRINGPI(lpin_bcm);
+    short cpin = BCM2WIRINGPI(cpin_bcm);
+    if (! dpin) {
+        _();
+        spr("%d", dpin_bcm);
+        BR(_s);
+        warn("Can't convert dpin (%s) to wiringPi numbering.", _t);
+        return -1;
+    }
+    if (! cpin) {
+        _();
+        spr("%d", cpin_bcm);
+        BR(_s);
+        warn("Can't convert cpin (%s) to wiringPi numbering.", _t);
+        return -1;
+    }
+    if (! lpin) {
+        _();
+        spr("%d", lpin_bcm);
+        BR(_s);
+        warn("Can't convert lpin (%s) to wiringPi numbering.", _t);
+        return -1;
+    }
+
+    if ((joystick = setupNesJoystick(dpin, cpin, lpin)) == -1) {
         warn("Unable to set up joystick");
         pieprneg1;
     }

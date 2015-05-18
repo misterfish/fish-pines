@@ -29,10 +29,6 @@ function rule (buttons, options, cb)
         end, 
     buttons)
 
---    for i,v in ipairs(buttons_as_numbers) do
---        io.write(string.format("%d: %d", i, v))
---    end
-
 end
 
 rule({'b', 'right'}, { kill_multiple = false }, creak)

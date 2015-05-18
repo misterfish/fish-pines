@@ -46,8 +46,6 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_optional(playlist_path, string)
     flua_conf_optional(update_on_n_ticks, integer)
 
-    flua_conf_required(my_friend, real)
-
     flua_conf_last
 };
 
@@ -238,10 +236,8 @@ bool f_mpd_init() {
         if (have_playlists() && !reload_playlists()) 
             pieprf;
 
-        //g.init = true;
-    }
-
         g.init = true;
+    }
     return true;
 }
 
