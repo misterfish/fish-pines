@@ -86,4 +86,8 @@ double flua_config_get_real(struct flua_config_conf_t *conf, gpointer key);
 /* Throws on lua errors, returns false on others. */
 bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules);
 
+void flua_config_set_verbose(bool v);
+void flua_config_set_quiet(bool q);
+
 #endif
+

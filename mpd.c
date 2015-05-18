@@ -14,9 +14,9 @@
 
 #include "fish-pines.h"
 //#include <fish-pigpio.h> // works also on no_nes but why XX
+#include "global.h"
 #include "const.h"
 #include "flua_config.h"
-#include "global.h"
 
 #include "mpd.h"
 
@@ -60,6 +60,7 @@ static bool reload_playlists();
 
 static struct {
     struct flua_config_conf_t *conf;
+    bool lua_initted;
 
     struct mpd_connection *connection;
     bool init;
@@ -67,22 +68,6 @@ static struct {
     int playlist_idx;
     int playlist_n;
 } g;
-
-void f_mpd_configl() {
-    g.conf = flua_config_new_f(global.L, FLUA_CONFIG_VERBOSE);
-    flua_config_set_namespace(g.conf, CONF_NAMESPACE);
-
-    int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
-
-    /* Throws. 
-     */
-    if (! flua_config_load_config(g.conf, CONF, num_rules)) {
-        _();
-        BR("Couldn't load lua config.");
-        lua_pushstring(global.L, _s);
-        lua_error(global.L);
-    }
-}
 
 bool f_error = false;
 
@@ -196,34 +181,67 @@ bool f_mpd_ok() {
     }
 } 
 
+bool f_mpd_init_config() {
+    g.conf = flua_config_new(global.L);
+    if (!g.conf)
+        pieprf;
+    flua_config_set_namespace(g.conf, CONF_NAMESPACE);
+    return true;
+}
+
+void f_mpd_configl() {
+    int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
+
+    /* Throws. 
+     */
+    if (! flua_config_load_config(g.conf, CONF, num_rules)) {
+        _();
+        BR("Couldn't load lua config.");
+        lua_pushstring(global.L, _s);
+        lua_error(global.L);
+    }
+    g.lua_initted = true;
+}
+
+// XX
 bool f_mpd_init() {
-if (g.init) 
-    mpd_connection_free(g.connection);
+
+    if (!g.init) {
+        if (! g.lua_initted) {
+            warn("%s: forgot lua init?", CONF_NAMESPACE);
+            return false;
+        }
+    }
+
+    if (g.init) 
+        mpd_connection_free(g.connection);
 
     f_try_rf(
         g.connection = mpd_connection_new (conf_s(host), conf_i(port), conf_i(timeout_ms)),
         "opening connection"
     );
 
-if (!g.init) {
+    if (!g.init) {
 
-    {
-        int i = conf_i(update_on_n_ticks);
-        if (i)
-            main_register_loop_event("mpd update", i, f_mpd_update);
+        {
+            int i = conf_i(update_on_n_ticks);
+            if (i)
+                main_register_loop_event("mpd update", i, f_mpd_update);
+        }
+
+        g.playlist_vec = vec_new();
+        g.playlist_idx = -1;
+        g.playlist_n = 0;
+
+        info("MPD connection opened successfully.");
+
+        if (have_playlists() && !reload_playlists()) 
+            pieprf;
+
+        //g.init = true;
     }
 
-    g.playlist_vec = vec_new();
-    g.playlist_idx = -1;
-    g.playlist_n = 0;
-
-    info("MPD connection opened successfully.");
-
-    if (have_playlists() && !reload_playlists()) 
-        pieprf;
-
-}
-    g.init = true;
+        g.init = true;
     return true;
 }
 

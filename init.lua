@@ -20,6 +20,7 @@ function map (map_fn, itable)
 end
 
 capi.mpd.config_func(config.mpd)
+capi.nes.config_func(config.nes)
 
 function rule (buttons, options, cb) 
     local buttons_as_numbers = map(

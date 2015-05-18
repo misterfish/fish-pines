@@ -9,7 +9,9 @@ struct pl {
     char *path;
 };
 
+bool f_mpd_init_config();
 bool f_mpd_init();
+
 bool f_mpd_toggle_play();
 bool f_mpd_seek(int);
 bool f_mpd_cleanup();

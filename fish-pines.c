@@ -145,16 +145,23 @@ int main() {
         ierr("Couldn't init vol");
 
 #ifndef NO_NES
-    info("setting up wiringPi");
+    if (! nes_init_config())
+        ierr("Couldn't init nes config");
+#endif
+    if (! f_mpd_init_config())
+        ierr("Couldn't init mpd config");
 
-    if (! nes_init_wiring()) 
-        ierr("Couldn't init wiring.");
+    flua_config_set_verbose(true);
 
-    info("setting up nes");
+    if (! init_lua()) 
+        err("Can't init lua.");
 
-    int joystick = nes_setup();
-    if (joystick == -1) 
-        ierr("Couldn't init joystick");
+#ifndef NO_NES
+    info("Setting up wiringPi+nes.");
+
+    int joystick = nes_init();
+    if (joystick == -1)
+        ierr("Couldn't init wiringPi/nes.");
 #else
     info("setting terminal raw");
 
@@ -164,11 +171,6 @@ int main() {
     if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND)) 
         err("Couldn't set terminal raw.");
 #endif
-
-    //flua_config_set_verbose(true);
-
-    if (! init_lua()) 
-        err("Can't init lua.");
 
     info("setting up ctl + mpd");
     if (! f_mpd_init()) 
@@ -461,6 +463,19 @@ static bool init_lua() {
     lua_rawset(L, -3);  // } capi.mpd
 
     // } 
+    // capi.nes = {
+    lua_pushstring(L, "nes");
+    lua_newtable(L);
+
+    lua_pushstring(L, "config_func");
+    lua_pushcfunction(L, (lua_CFunction) nes_configl);
+    lua_rawset(L, -3);  
+    // }
+
+    lua_rawset(L, -3);  // } capi.mpd
+
+    // } 
+
     lua_setglobal(L, "capi");
 
     if (luaL_loadfile(L, "init.lua")) {

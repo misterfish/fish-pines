@@ -1,8 +1,9 @@
 #ifndef __INCL_CONST_H
 #define __INCL_CONST_H
 
-/* The wiringPi numbering system (for revision 2) is:
- *
+/* This is the mapping for DPIN, CPIN, and LPIN to the Broadcom (revision 2) pin
+ * numbers. The values come from pinToGpioR2 in wiringPi/wiringPi.c.
+
   0 -> 17
   1 -> 18
   2 -> 27
@@ -25,16 +26,31 @@
   19 -> 30
   20 -> 31
 
-  cf pinToGpioR2 in wiringPi/wiringPi.c
+This is the mapping from physical pins to BCM pins using my physical counting:
+
+     1   2 [+5]
+   2 3   4 [+5]
+   3 5   6 [GND]
+   4 7   8 14
+     9  10 15
+  17 11 12 18
+  27 13 14 -1
+  22 15 16 23
+     17 18 24
+  10 19 20
+   9 21 22 25
+  11 23 24 8
+     25 26 7
+
 */
 
 // XX
 /* yellow */
-#define DPIN 6
+//#define DPIN 6 // 25
 /* red */
-#define CPIN 5
+//#define CPIN 5 // 24
 /* orange */
-#define LPIN 4
+//#define LPIN 4 // 23
 
 /* From wiringPi.
  */
@@ -65,12 +81,6 @@
 #define POLL_MS     40
 #endif
 
-/* Need generic config XX
- */
-
-/* Poll mpd for updates every times through loop, i.e., if it's 5 and
- * POLL_MS is 40, every 200 ms
- */
 #define LED_ORANGE 12
 #define LED_BLUE 10
 
