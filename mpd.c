@@ -19,12 +19,35 @@
 
 #include "mpd.h"
 
+#define CONF_NAMESPACE "mpd"
+
 #define CONF_DEFAULT_HOST "localhost"
 #define CONF_DEFAULT_PORT 6600
 #define CONF_DEFAULT_TIMEOUT_MS 3000
 #define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
 
-#define conf(type, x) flua_config_get_conf(type, x)
+#define conf_s(x) \
+    flua_config_get_string(g.conf, #x)
+#define conf_b(x) \
+    flua_config_get_boolean(g.conf, #x)
+#define conf_r(x) \
+    flua_config_get_real(g.conf, #x)
+#define conf_i(x) \
+    flua_config_get_integer(g.conf, #x)
+
+static struct flua_config_conf_item_t CONF[] = {
+    flua_conf_default(timeout_ms, integer, CONF_DEFAULT_TIMEOUT_MS)
+    flua_conf_default(host, string, CONF_DEFAULT_HOST)
+
+    flua_conf_default(port, integer, CONF_DEFAULT_PORT)
+    flua_conf_default(timeout_playlist_ms, integer, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
+    flua_conf_default(play_on_load_playlist, boolean, false)
+    flua_conf_optional(playlist_path, string)
+
+    flua_conf_required(my_friend, real)
+
+    flua_conf_last
+};
 
 static int get_state();
 static int get_queue_pos();
@@ -33,7 +56,9 @@ static bool load_playlist(int idx);
 static bool have_playlists();
 static bool reload_playlists();
 
-struct {
+static struct {
+    struct flua_config_conf_t *conf;
+
     struct mpd_connection *connection;
     bool init;
     vec *playlist_vec;
@@ -42,20 +67,14 @@ struct {
 } g;
 
 void f_mpd_configl() {
-    flua_config_new(global.L, "mpd");
+    g.conf = flua_config_new(global.L);
+    flua_config_set_namespace(g.conf, CONF_NAMESPACE);
 
-    flua_conf_default(host, char*, CONF_DEFAULT_HOST)
-    flua_conf_default(port, int, CONF_DEFAULT_PORT)
-    flua_conf_default(timeout_ms, int, CONF_DEFAULT_TIMEOUT_MS)
-    flua_conf_default(timeout_playlist_ms, int, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
-    flua_conf_default(play_on_load_playlist, bool, false)
-    flua_conf_optional(playlist_path, char*)
+    int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-    flua_conf_required(my_friend, double)
-
-    /* Throws on lua errors, returns false on others (and then we throw).
+    /* Throws. 
      */
-    if (! flua_config_load_config_f(FLUA_CONFIG_VERBOSE)) {
+    if (! flua_config_load_config(g.conf, CONF, num_rules, FLUA_CONFIG_VERBOSE)) {
         _();
         BR("Couldn't load lua config.");
         lua_pushstring(global.L, _s);
@@ -175,42 +194,16 @@ bool f_mpd_ok() {
     }
 } 
 
-#if 0
-/* Everything has a default value.
- */
-static bool check_conf() {
-    if (! conf.host) 
-        conf.host = CONF_DEFAULT_HOST;
-    if (! conf.port) 
-        conf.port = CONF_DEFAULT_PORT;
-    if (! conf.timeout_ms) 
-        conf.timeout_ms = CONF_DEFAULT_TIMEOUT_MS;
-    if (! conf.timeout_playlist_ms) 
-        conf.timeout_playlist_ms = CONF_DEFAULT_TIMEOUT_PLAYLIST_MS;
-
-    return true;
-}
-#endif
-
 bool f_mpd_init() {
-info("using port %d", conf(int, port));
-info("using host %s", conf(char*, host));
 if (g.init) 
     mpd_connection_free(g.connection);
 
     f_try_rf(
-        g.connection = mpd_connection_new (conf(char*, host), conf(int, port), conf(int, timeout_ms)),
+        g.connection = mpd_connection_new (conf_s(host), conf_i(port), conf_i(timeout_ms)),
         "opening connection"
     );
 
-    //g.connection = mpd_connection_new (conf.host, conf.port, conf.timeout_ms);
-    //fprintf(stderr, "connection = %p\n", g.connection);
-    //return false;
-        //warn("GOT HERE");
-
 if (!g.init) {
-    //if (! check_conf()) 
-        //return false;
 
     g.playlist_vec = vec_new();
     g.playlist_idx = -1;
@@ -470,11 +463,11 @@ static bool load_playlist(int idx) {
     info("Loading playlist [%s -> %s]", _s, _t);
 
     // void
-    mpd_connection_set_timeout(g.connection, conf(int, timeout_playlist_ms));
+    mpd_connection_set_timeout(g.connection, conf_i(timeout_playlist_ms));
     f_try_rf(mpd_run_load(g.connection, path), "load playlist");
-    mpd_connection_set_timeout(g.connection, conf(int, timeout_ms));
+    mpd_connection_set_timeout(g.connection, conf_i(timeout_ms));
 
-    if (conf(bool, play_on_load_playlist)) 
+    if (conf_b(play_on_load_playlist)) 
         f_try_rf(mpd_run_play(g.connection), "play");
 
 
@@ -482,7 +475,7 @@ static bool load_playlist(int idx) {
 }
 
 static bool have_playlists() {
-    return conf(char*, playlist_path) ? true : false;
+    return conf_s(playlist_path) ? true : false;
 }
 
 static bool reload_playlists() {
@@ -497,7 +490,7 @@ static bool reload_playlists() {
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
-    f_try_rf(mpd_send_list_meta(g.connection, conf(char*, playlist_path)), "send list meta");
+    f_try_rf(mpd_send_list_meta(g.connection, conf_s(playlist_path)), "send list meta");
 
     /* Can receive either pair or entity from mpd. 
      * Entity can give a playlist object, but you can't do too much with it
