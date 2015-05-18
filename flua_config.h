@@ -84,6 +84,5 @@ gpointer flua_config_get(gpointer key);
 bool flua_config_load_config();
 bool flua_config_load_config_f(int flags);
 void flua_config_add_required_key(gpointer key);
-vec *flua_config_get_required_keys();
 
 #endif
