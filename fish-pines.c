@@ -41,6 +41,19 @@
 /* inlined in const.h */
 extern short BUTTONS(short);
 
+#ifdef NO_NES
+static unsigned int read_buttons_testing();
+static int make_canonical(unsigned int read);
+static char *debug_read_init();
+static void debug_read(unsigned int read_canonical, char *ret);
+#endif
+
+static void cleanup();
+
+static bool do_read(unsigned int cur_read);
+static bool process_read(unsigned int read, char *button_print);
+static int get_max_button_print_size();
+
 static bool init_globals();
 static void init_state();
 static bool init_lua();
@@ -62,16 +75,54 @@ static struct {
 
     char *button_print;
 
+    /* Elements are struct main_loop_event_t *.
+     */
+    vec *loop_events;
+    int num_loop_events;
+
 #ifdef DEBUG
     char *debug_read_s;
 #endif
 } g;
+
+struct main_loop_event_t {
+    char *desc;
+    int gong; // how many ticks per gong
+    int count; // how many ticks we're at
+    bool (*cb)(void *data); // the callback
+};
 
 static bool _break = false;
 
 void sighandler_term() {
     info("Ctl c");
     _break = true;
+}
+
+bool ping(void *data) {
+    ++data;
+    info("ping.");
+    return true;
+}
+
+bool ping_fail(void *data) {
+    ++data;
+    info("bad ping.");
+    return false;
+}
+
+/* desc is not dup'ed.
+ */
+void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
+    struct main_loop_event_t *ev = f_mallocv(*ev);
+    memset(ev, '\0', sizeof *ev);
+    ev->desc = desc;
+    ev->gong = count;
+    ev->count = 0;
+    ev->cb = cb;
+
+    vec_add(g.loop_events, ev);
+    g.num_loop_events++;
 }
 
 int main() {
@@ -83,6 +134,9 @@ int main() {
         ierr("Can't init globals.");
 
     init_state();
+
+    main_register_loop_event("ping", 50, ping);
+    main_register_loop_event("ping", 150, ping_fail);
 
     if (! buttons_init()) 
         ierr("Couldn't init buttons");
@@ -121,9 +175,7 @@ int main() {
         err("Couldn't init mpd.");
 
     int first = 1;
-    unsigned int cur_read;
-
-    int i_mpd_update = 0;
+    unsigned int cur_read = 0;
 
 #ifdef DEBUG
     g.debug_read_s = debug_read_init();
@@ -139,11 +191,18 @@ int main() {
     while (1) {
         if (_break) 
             break; // ctl c
-        bool do_mpd_update = false;
 
-        if (++i_mpd_update % MPD_UPDATE == 0) {
-            i_mpd_update = 0;
-            do_mpd_update = true;
+        for (int i = 0; i < g.num_loop_events; i++) {
+            struct main_loop_event_t *ev = (struct main_loop_event_t *) vec_get(g.loop_events, i);
+            if (++ev->count == ev->gong) {
+                bool ok = (*ev->cb)(NULL);
+                if (!ok) {
+                    _();
+                    BR(ev->desc);
+                    warn("Error on loop event %s", _s);
+                }
+                ev->count = 0;
+            }
         }
 
 #ifdef NO_NES
@@ -160,11 +219,6 @@ int main() {
         /* Do it also if cur_read is 0.
          */
         do_read(cur_read);
-
-        /* Check for mpd events.
-         */
-        if (do_mpd_update) 
-            f_mpd_update();
     }
 
     cleanup();
@@ -363,12 +417,6 @@ static bool init_lua() {
 
     lua_newtable(L); // capi
 
-    /*
-    lua_pushstring(L, "creak");
-    lua_pushcfunction(L, (lua_CFunction) creak);
-    lua_rawset(L, -3);
-    */
-
     // capi.buttons = {
     lua_pushstring(L, "buttons"); 
     lua_newtable(L); 
@@ -429,6 +477,9 @@ static bool init_lua() {
 }
 
 static void init_state() {
+    g.loop_events = vec_new();
+    f_track_heap(g.loop_events);
+
     g.button_names.left = G_("left");
     g.button_names.right = G_("right");
     g.button_names.up = G_("up");

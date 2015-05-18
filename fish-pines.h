@@ -1,14 +1,6 @@
-#ifdef NO_NES
-static unsigned int read_buttons_testing();
-static int make_canonical(unsigned int read);
-static char *debug_read_init();
-static void debug_read(unsigned int read_canonical, char *ret);
-#endif
-
-static void cleanup();
-
-static bool do_read(unsigned int cur_read);
-static bool process_read(unsigned int read, char *button_print);
-static int get_max_button_print_size();
-
+#ifndef __INCL_FISH_PINES_H
+#define __INCL_FISH_PINES_H
 void main_set_mode(int mode);
+void main_register_loop_event(char *desc, int count, bool (*cb)(void *data));
+
+#endif

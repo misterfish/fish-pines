@@ -54,6 +54,8 @@ struct flua_config_conf_t {
     GHashTable *conf;
     GHashTable *required_keys;
     char *namespace;
+    bool verbose; // info on stdout
+    bool quiet; // warnings on stderr
     lua_State *L;
 };
 
@@ -71,6 +73,7 @@ struct flua_config_conf_item_t {
 };
 
 struct flua_config_conf_t *flua_config_new(lua_State *l);
+struct flua_config_conf_t *flua_config_new_f(lua_State *l, int flags);
 void flua_config_destroy(struct flua_config_conf_t *conf);
 
 void flua_config_set_namespace(struct flua_config_conf_t *conf, char *ns);
@@ -81,6 +84,6 @@ int flua_config_get_integer(struct flua_config_conf_t *conf, gpointer key);
 double flua_config_get_real(struct flua_config_conf_t *conf, gpointer key);
 
 /* Throws on lua errors, returns false on others. */
-bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules, int flags);
+bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules);
 
 #endif

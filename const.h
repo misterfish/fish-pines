@@ -71,8 +71,6 @@
 /* Poll mpd for updates every times through loop, i.e., if it's 5 and
  * POLL_MS is 40, every 200 ms
  */
-#define MPD_UPDATE 10
-
 #define LED_ORANGE 12
 #define LED_BLUE 10
 
@@ -88,7 +86,6 @@
  */
 #define ANTON_MODE true
 
-#define MPD_PLAYLIST_DIR    "mpd-playlists"
 #define LEDD_SOCK           "/tmp/.ledd-socket"
 #define VOLD_SOCK           "/tmp/.vold-simple-socket"
 #define FISH_VOL_SOCK       "%s/.local/share/fish-vol/socket"

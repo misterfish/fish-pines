@@ -12,6 +12,7 @@
 #include <fish-util.h>
 #include <fish-utils.h>
 
+#include "fish-pines.h"
 //#include <fish-pigpio.h> // works also on no_nes but why XX
 #include "const.h"
 #include "flua_config.h"
@@ -43,6 +44,7 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(timeout_playlist_ms, integer, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
     flua_conf_default(play_on_load_playlist, boolean, false)
     flua_conf_optional(playlist_path, string)
+    flua_conf_optional(update_on_n_ticks, integer)
 
     flua_conf_required(my_friend, real)
 
@@ -67,14 +69,14 @@ static struct {
 } g;
 
 void f_mpd_configl() {
-    g.conf = flua_config_new(global.L);
+    g.conf = flua_config_new_f(global.L, FLUA_CONFIG_VERBOSE);
     flua_config_set_namespace(g.conf, CONF_NAMESPACE);
 
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
      */
-    if (! flua_config_load_config(g.conf, CONF, num_rules, FLUA_CONFIG_VERBOSE)) {
+    if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
         BR("Couldn't load lua config.");
         lua_pushstring(global.L, _s);
@@ -204,6 +206,12 @@ if (g.init)
     );
 
 if (!g.init) {
+
+    {
+        int i = conf_i(update_on_n_ticks);
+        if (i)
+            main_register_loop_event("mpd update", i, f_mpd_update);
+    }
 
     g.playlist_vec = vec_new();
     g.playlist_idx = -1;
@@ -364,7 +372,8 @@ bool f_mpd_random_on() {
     return true;
 }
 
-bool f_mpd_update() {
+bool f_mpd_update(void *p) {
+    p++; // XX
     bool disable_timeout = true; // blocks forever on recv
 
     /* Enter idle momentarily.
@@ -478,6 +487,8 @@ static bool have_playlists() {
     return conf_s(playlist_path) ? true : false;
 }
 
+/* Check have_playlists() before calling this.
+ */
 static bool reload_playlists() {
     vec *v = g.playlist_vec;
     {
@@ -490,7 +501,9 @@ static bool reload_playlists() {
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
-    f_try_rf(mpd_send_list_meta(g.connection, conf_s(playlist_path)), "send list meta");
+    char *playlist_path = conf_s(playlist_path);
+
+    f_try_rf(mpd_send_list_meta(g.connection, playlist_path), "send list meta");
 
     /* Can receive either pair or entity from mpd. 
      * Entity can give a playlist object, but you can't do too much with it
@@ -521,8 +534,8 @@ static bool reload_playlists() {
             strcpy(path, _path);
 
             char *regex_spr = "^ %s / (.+) \\.m3u $";
-            char *regex = str(1 + strlen(regex_spr) - 2 + strlen(MPD_PLAYLIST_DIR));
-            sprintf(regex, regex_spr, MPD_PLAYLIST_DIR);
+            char *regex = str(1 + strlen(regex_spr) - 2 + strlen(playlist_path));
+            sprintf(regex, regex_spr, playlist_path);
 
             if (!match_matches(path, regex, matches)) {
                 iwarn("Got unexpected path: %s", path);

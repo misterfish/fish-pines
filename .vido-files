@@ -26,6 +26,7 @@
 ./fish-lib-util/fish-util/fish-util.h
 ./global.c
 ./global.h
+./flua_config.c
 ./buttons.c
 ./flua_config.h
 ./mpd.c
