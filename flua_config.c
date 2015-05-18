@@ -89,6 +89,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
             flua_config_add_required_key(conf, confitem->key);
     }
 
+    if (conf->namespace && (g.verbose || conf->verbose)) {
+        _();
+        M(conf->namespace);
+        info("flua_config: config namespace « %s »", _s);
+    }
+
     bool first = true;
     //luaH_checktable(conf->L, -1); XX
     lua_pushnil(conf->L); // first key
@@ -139,7 +145,6 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
             if (!val) 
                 pieprf;
             char *dup = (char*) g_strdup(val); // -O- lua string
-            /**(char **) */
             lookup->value.string = dup;
             if (g.verbose || conf->verbose) {
                 spr("%s", dup); // _t
@@ -149,29 +154,26 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         }
         else if (!strcmp(type, "integer")) {
             lua_Number val = luaL_checknumber(conf->L, -1);
-            //*(int *) 
             lookup->value.integer = (int) val;
             if (g.verbose || conf->verbose) {
                 spr("%d", (int) val); // _t
                 G(_t); // _u
-                M("int"); // _v
+                M("integer"); // _v
             }
         }
         else if (!strcmp(type, "real")) {
             lua_Number val = luaL_checknumber(conf->L, -1);
-            //*(double *) 
             lookup->value.real = val;
             if (g.verbose || conf->verbose) {
                 spr("%f", val); // _t
                 G(_t); // _u
-                M("double"); // _v
+                M("real"); // _v
             }
         }
         else if (!strcmp(type, "boolean")) {
 
             // doesn't throw
             bool val = lua_toboolean(conf->L, -1);
-            //*(bool *) 
             lookup->value.boolean = val;
             if (g.verbose || conf->verbose) {
                 G(val ? "true" : "false"); // _t
@@ -185,18 +187,8 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         if (lookup->required)  
             got_required_key(conf, (gpointer) key);
 
-        if (g.verbose || conf->verbose) {
-            if (conf->namespace) {
-                M(conf->namespace);
-                spr("| %s » ", _w);
-            }
-            else {
-                spr("");
-                spr("");
-            }
-
-            info("flua_config: setting %s%s = %s (%s)", _x, _s, _u, _v); 
-        }
+        if (g.verbose || conf->verbose) 
+            info("flua_config: setting %s = %s (%s)", _s, _u, _v); 
     }
 
     bool ok = true;

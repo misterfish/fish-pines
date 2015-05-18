@@ -14,5 +14,7 @@ config = {
         playlist_path = "mpd-playlists", -- relative to root
         -- update mpd every n times through the main loop.
         update_on_n_ticks = 10,
+
+        --the_thing = 30,
     }
 }

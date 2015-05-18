@@ -1,35 +1,155 @@
 #define _GNU_SOURCE
 
+#include <lua.h>
+#include <lauxlib.h> // luaL_ functions..h>
+
+#include "const.h"
 #include "buttons.h"
+
+#define BUTTONS_PRESS 0
+#define BUTTONS_RELEASE 1
+
 //#include "mode.h"
 
-#define new_rule(vec, buttons, kill_multiple, cb) { \
-    bool rc = rule(vec, buttons, kill_multiple, cb); \
-    if (!rc) \
-        pieprf; \
-};
-
-/* Mapping from our standard order to their N_ order.
+/* vector of vector of vectors.
+ * outer index is mode. 
+ * next vector is indexed by 0/1 (press/release)
+ * finally, vector of button_rule_t.
  */
+static struct {
+    vec *rules;
+} g;
 
-static vec *rules_music; // members: struct button_rule *
-static vec *rules_general; // members: struct button_rule *
+static vec *get_rules(short mode, short event);
+static struct button_rule_t *get_rule(short mode, short event, short read);
 
-static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)()) {
-    struct button_rule *rule = f_malloc(sizeof(struct button_rule));
+// add checks for combos / single logic.
+// and comments. XX
 
+/* Throws.
+ */
+int buttons_add_rulel() {
+    lua_State *L = global.L;
+    lua_pushnil(L); // init iter
+    short buttons = 0;
+    short event = -1;
+
+    struct button_rule_t *rule = f_mallocv(*rule);
+    memset(rule, '\0', sizeof *rule);
+    while (lua_next(L, -2)) {
+        const char *luatype = lua_typename(L, lua_type(L, -2));
+        //info("got key type %s", luatype);
+        // plain table entry, i.e. button name.
+        if (! strcmp(luatype, "number")) {
+            const char *value = luaL_checkstring(L, -1);
+            if (! strcmp(value, "a")) 
+                buttons |= N_A;
+            else if (! strcmp(value, "b"))
+                buttons += N_B;
+            else if (! strcmp(value, "select"))
+                buttons += N_SELECT;
+            else if (! strcmp(value, "start"))
+                buttons += N_START;
+            else if (! strcmp(value, "up"))
+                buttons += N_UP;
+            else if (! strcmp(value, "down"))
+                buttons += N_DOWN;
+            else if (! strcmp(value, "left"))
+                buttons += N_LEFT;
+            else if (! strcmp(value, "right"))
+                buttons += N_RIGHT;
+        }
+        else {
+            const char *key = luaL_checkstring(L, -2);
+            if (! strcmp(key, "kill_multiple")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->kill_multiple = value;
+info("kill: %d", value);
+            }
+            else if (! strcmp(key, "mode")) {
+                const char *value = luaL_checkstring(L, -1);
+                info("mode: %s", value);
+            }
+            else if (! strcmp(key, "event")) {
+                const char *value = luaL_checkstring(L, -1);
+info("event: %s", value);
+                if (! strcmp(value, "press"))
+                    event = BUTTONS_PRESS;
+                else if (! strcmp(value, "release"))
+                    event = BUTTONS_RELEASE;
+                else {
+                    lua_pushstring(global.L, ("Unknown event type %s."));
+                    lua_error(global.L);
+                }
+            }
+            else if (! strcmp(key, "handler")) {
+                if (strcmp(lua_typename(L, lua_type(L, -1)), "function")) 
+                    piep;
+                else {
+                    int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops
+                    info("got index %d", reg_index);
+                    rule->has_handler = true;
+                    rule->handler = reg_index;
+                    continue;
+                }
+            }
+        }
+        lua_pop(L, 1);
+    }
+
+    // XX
+short mode = 0;
+
+    if (event == -1) {
+        lua_pushstring(global.L, "Need event for rule.");
+        lua_error(global.L);
+    }
+
+    if (! buttons) {
+        lua_pushstring(global.L, "Need buttons for rule.");
+        lua_error(global.L);
+    }
+
+info("storing buttons %d, event %d", buttons, event);
     rule->buttons = buttons;
-    rule->kill_multiple = kill_multiple;
-    rule->press_event = cb;
+    rule->event = event;
 
-    if (!vec_add(vec, rule))
-        pieprf;
+    vec *rules = get_rules(mode, event);
 
-    return true;
+    if (! rules) 
+        piepr0;
+    else 
+        vec_add(rules, rule);
+
+    return 0;
 }
 
+static vec *get_rules(short mode, short event) {
+    vec *rules_for_mode = vec_get(g.rules, mode);
+    if (!rules_for_mode) 
+        pieprnull;
+    vec *rules_for_event = vec_get(rules_for_mode, event);
+    if (!rules_for_event) 
+        pieprnull;
+    return rules_for_event;
+}
+
+// XX
+#define NUMMODES 2
 
 bool buttons_init() {
+    g.rules = vec_new();
+
+    for (int i = 0; i < NUMMODES; i++) {
+        vec *rules_for_mode = vec_new();
+        vec_add(g.rules, rules_for_mode);
+
+        for (int event = 0; event < 2; event++) {
+            vec *rules_for_event = vec_new();
+            vec_add(rules_for_mode, rules_for_event);
+        }
+    }
+
 #if 0
     /* Put rules in order -- first matching rule wins.
  */
@@ -95,41 +215,35 @@ bool buttons_init() {
     return true;
 }
 
-struct button_rule *buttons_get_rule(unsigned int read) {
-return NULL;
-    vec *vec;
-    int cnt;
+struct button_rule_t *buttons_get_rule_press(short mode, short read) {
+    return get_rule(mode, BUTTONS_PRESS, read);
+}
+struct button_rule_t *buttons_get_rule_release(short mode, short read) {
+    return get_rule(mode, BUTTONS_RELEASE, read);
+}
 
-    /*
-    if (mode_music()) {
-        vec = rules_music;
-    }
-    else if (mode_general()) {
-        vec = rules_general;
-    }
-    else 
-        pieprf;
-        */
+static struct button_rule_t *get_rule(short mode, short event, short read) {
+    vec *rules = get_rules(mode, event);
+    if (!rules)
+        pieprnull;
+info("getting rule for %d, event %d", read, event);
 
-    vec = rules_music;
-
-    cnt = vec_size(vec);
+    int cnt = vec_size(rules);
 
     /* Stop on first matching rule.
      */
     for (int i = 0; i < cnt; i++) {
         // ok to cast NULL
-        struct button_rule *rule = (struct button_rule *) vec_get(vec, i);
-        if (rule == NULL) {
-            piep;
-            continue;
-        }
+        struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules, i);
+        if (! rule) 
+            piepc;
 
-        unsigned int mask = rule->buttons;
-        if ((read & mask) == mask) {
-#ifdef DEBUG
-            info("kill multiple: %d", rule->kill_multiple);
-#endif
+info("rule->event %d", rule->event);
+
+        short rule_buttons = rule->buttons;
+info("checking against %d", rule_buttons);
+        if ((read & rule_buttons) == rule_buttons) {
+            // got it.
             return rule;
         }
     }
@@ -139,6 +253,7 @@ return NULL;
 
 bool buttons_cleanup() {
     bool ok = true;
+    /*
     if (!vec_destroy_flags(rules_music, VEC_DESTROY_DEEP)) {
         piep;
         ok = false;
@@ -147,5 +262,6 @@ bool buttons_cleanup() {
         piep;
         ok = false;
     }
+    */
     return ok;
 }

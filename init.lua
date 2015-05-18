@@ -19,8 +19,10 @@ function map (map_fn, itable)
     return result
 end
 
-capi.mpd.config_func(config.mpd)
-capi.nes.config_func(config.nes)
+for _,v in pairs {'mpd', 'nes', --[['mode']] } do
+    print(string.format("calling for %s", v))
+    capi[v].config_func(config[v])
+end
 
 function rule (buttons, options, cb) 
     local buttons_as_numbers = map(
@@ -31,4 +33,35 @@ function rule (buttons, options, cb)
 
 end
 
-rule({'b', 'right'}, { kill_multiple = false }, creak)
+function stickthyme()
+    say('stick thyme!')
+end
+function stickthyme2()
+    say('oregano!')
+end
+
+local rules = {
+    -- mode = music
+    music = {
+        press = {
+            { 'b', 'right', kill_multiple = false, handler = stickthyme },
+            { 'b',          kill_multiple = false, handler = stickthyme2 },
+        },
+        release = {
+            { 'b'       , handler = stickthyme3 },
+        }
+    },
+    -- mode = general
+    general = {
+    }
+}
+
+for mode,t in pairs(rules) do
+    for event,u in pairs(t) do
+        for _,rule in ipairs(u) do
+            rule.mode = mode
+            rule.event = event
+            capi.buttons.add_rule(rule)
+        end
+    end
+end

@@ -46,6 +46,8 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_optional(playlist_path, string)
     flua_conf_optional(update_on_n_ticks, integer)
 
+    flua_conf_optional(the_thing, real)
+
     flua_conf_last
 };
 
@@ -187,7 +189,7 @@ bool f_mpd_init_config() {
     return true;
 }
 
-void f_mpd_configl() {
+int f_mpd_configl() {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
@@ -199,6 +201,9 @@ void f_mpd_configl() {
         lua_error(global.L);
     }
     g.lua_initted = true;
+
+info("the thing is %f", conf_r(the_thing));
+    return 0;
 }
 
 // XX

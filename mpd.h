@@ -27,4 +27,4 @@ bool f_mpd_next_playlist();
 
 /* "throws"
  */
-void f_mpd_configl();
+int f_mpd_configl();

@@ -300,13 +300,19 @@ static bool do_read(unsigned int cur_read) {
 static bool process_read(unsigned int read, char *button_print) {
     static unsigned int prev_read = -1;
 
-    struct button_rule *rule = buttons_get_rule(read);
+int mode = 0; // XX
+
+    struct button_rule_t *rule_press = NULL;
+    if (read)
+        rule_press = buttons_get_rule_press(mode, read);
+    struct button_rule_t *rule_release = NULL;
 
     bool kill_multiple = BUTTONS_KILL_MULTIPLE_DEFAULT;
-    bool (*press_cb)() = NULL;
-    if (rule) {
-        kill_multiple = rule->kill_multiple;
-        press_cb = rule->press_event;
+    bool has_event_press = false, has_event_release = false;
+    if (rule_press) {
+        kill_multiple = rule_press->kill_multiple;
+        has_event_press = rule_press->has_handler;
+info("got rule press %p, has_event_press %d", rule_press, has_event_press);
     }
 
     if ((prev_read == read) && kill_multiple) {
@@ -319,31 +325,37 @@ static bool process_read(unsigned int read, char *button_print) {
     if (button_print) 
         printf("[ %s ] ", button_print);
 
-    /* Do the press and release events for each individual button. 
+    /* Do the release events for each button. 
      * Then do the event matching the combination.
+     *
+     * Note that even a 3-button combination followed by releasing one of
+     * the 3 buttons will generate a release event for that button.
      */
     bool ok = true;
     for (int i = 0; i < 8; i++) {
         int button_flag = BUTTONS(i); // wiringPi system
 
-        bool this_ok;
         /* Button down (press or hold).
          */
         if (read & button_flag) {
-            // XX
         }
 
         /* Button not down.
          */
         else {
-            /* Released.
+            /* It was down before (i.e., now released).
              */
             if (prev_read & button_flag) {
-                /*
-                this_ok = (*event_release)();
-                if (!this_ok) 
-                    ok = false;
-                    */
+                if ((rule_release = buttons_get_rule_release(mode, button_flag))) {
+                    if (rule_release->has_handler) {
+                        int reg_idx = rule_release->handler;
+                        lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
+                        if (lua_pcall(global.L, 0, 0, 0)) {
+                            ok = false;
+                            piepc; // XX
+                        }
+                    }
+                }
             }
 
             /* Was up and stayed up, do nothing.
@@ -353,9 +365,14 @@ static bool process_read(unsigned int read, char *button_print) {
         }
     }
 
-    if (press_cb) {
-        if (! (*press_cb)())
-            pieprf;
+    if (has_event_press) {
+        int reg_idx = rule_press->handler;
+        lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
+        // what to do on runtime errors? XX
+        if (lua_pcall(global.L, 0, 0, 0)) {
+            ok = false;
+            piepc; // XX
+        }
     }
     prev_read = read;
     return ok;
@@ -449,6 +466,9 @@ static bool init_lua() {
     lua_pushstring(L, "a");
     lua_pushnumber(L, F_A);
     lua_rawset(L, -3);
+    lua_pushstring(L, "add_rule");
+    lua_pushcfunction(L, (lua_CFunction) buttons_add_rulel);
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);  // buttons
 
@@ -460,23 +480,20 @@ static bool init_lua() {
     lua_pushcfunction(L, (lua_CFunction) f_mpd_configl);
     lua_rawset(L, -3);  
 
-    lua_rawset(L, -3);  // } capi.mpd
-
+    lua_rawset(L, -3);
     // } 
+
     // capi.nes = {
     lua_pushstring(L, "nes");
     lua_newtable(L);
-
     lua_pushstring(L, "config_func");
     lua_pushcfunction(L, (lua_CFunction) nes_configl);
     lua_rawset(L, -3);  
+    lua_rawset(L, -3);
     // }
 
-    lua_rawset(L, -3);  // } capi.mpd
-
-    // } 
-
     lua_setglobal(L, "capi");
+
 
     if (luaL_loadfile(L, "init.lua")) {
         warn("Couldn't load lua init script: %s", lua_tostring(L, -1));

@@ -39,7 +39,7 @@ bool nes_init_config() {
     return true;
 }
 
-void nes_configl() {
+int nes_configl() {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
     /* Throws.
      */
@@ -50,6 +50,8 @@ void nes_configl() {
         lua_error(global.L);
     }
     g.lua_initted = true;
+
+    return 0;
 }
 
 static bool init_wiringPi() {

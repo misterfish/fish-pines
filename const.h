@@ -96,14 +96,14 @@ inline short BCM2WIRINGPI(short b) {
 
 /* From wiringPi.
  */
-# define	N_RIGHT	0x01
-# define	N_LEFT	0x02
-# define	N_DOWN	0x04
-# define	N_UP		0x08
-# define	N_START	0x10
-# define	N_SELECT	0x20
-# define	N_B		0x40
-# define	N_A		0x80
+#define	N_RIGHT	        0x01
+#define	N_LEFT	        0x02
+#define	N_DOWN	        0x04
+#define	N_UP		0x08
+#define	N_START	        0x10
+#define	N_SELECT	0x20
+#define	N_B		0x40
+#define	N_A		0x80
 
 /* Our std order.
  */
@@ -162,7 +162,7 @@ inline short BUTTONS(short b) {
     else if (b == 7) 
         return N_A;
     else 
-        pieprneg1;
+        return 0;
 }
 
 #endif
