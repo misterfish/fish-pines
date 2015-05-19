@@ -8,6 +8,9 @@
 #include <lauxlib.h>
 #include <glib.h>
 
+#include <fish-util.h>
+#include <fish-utils.h>
+
 /* Example usage. XX
  *
 */
@@ -69,6 +72,10 @@ struct flua_config_conf_item_t {
         bool boolean;
         int integer;
         double real;
+        vec *stringlist;
+        vec *booleanlist;
+        vec *integerlist;
+        vec *reallist;
     } value;
 };
 
@@ -77,11 +84,12 @@ struct flua_config_conf_t *flua_config_new_f(lua_State *l, int flags);
 void flua_config_destroy(struct flua_config_conf_t *conf);
 
 void flua_config_set_namespace(struct flua_config_conf_t *conf, char *ns);
-//gpointer flua_config_get(gpointer key);
+
 char *flua_config_get_string(struct flua_config_conf_t *conf, gpointer key);
 bool flua_config_get_boolean(struct flua_config_conf_t *conf, gpointer key);
 int flua_config_get_integer(struct flua_config_conf_t *conf, gpointer key);
 double flua_config_get_real(struct flua_config_conf_t *conf, gpointer key);
+vec *flua_config_get_vector(struct flua_config_conf_t *conf, gpointer key);
 
 /* Throws on lua errors, returns false on others. */
 bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules);

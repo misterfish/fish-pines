@@ -27,6 +27,7 @@
 #include "global.h"
 #include "buttons.h"
 #include "mpd.h"
+#include "mode.h"
 #include "vol.h"
 #include "flua_config.h"
 //#include "mode.h"
@@ -152,6 +153,9 @@ int main() {
 #endif
     if (! f_mpd_init_config())
         ierr("Couldn't init mpd config");
+
+    if (! mode_init_config())
+        ierr("Couldn't init mode config");
 
     flua_config_set_verbose(true);
 
@@ -479,6 +483,17 @@ static bool init_lua() {
 
     lua_pushstring(L, "config_func");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_configl);
+    lua_rawset(L, -3);  
+
+    lua_rawset(L, -3);
+    // } 
+
+    // capi.mode = {
+    lua_pushstring(L, "mode");
+    lua_newtable(L);
+
+    lua_pushstring(L, "config_func");
+    lua_pushcfunction(L, (lua_CFunction) mode_configl);
     lua_rawset(L, -3);  
 
     lua_rawset(L, -3);

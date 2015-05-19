@@ -17,6 +17,7 @@
 #include "global.h"
 #include "const.h"
 #include "flua_config.h"
+#include "util.h"
 
 #include "mpd.h"
 
@@ -27,15 +28,6 @@
 #define CONF_DEFAULT_TIMEOUT_MS 3000
 #define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
 
-#define conf_s(x) \
-    flua_config_get_string(g.conf, #x)
-#define conf_b(x) \
-    flua_config_get_boolean(g.conf, #x)
-#define conf_r(x) \
-    flua_config_get_real(g.conf, #x)
-#define conf_i(x) \
-    flua_config_get_integer(g.conf, #x)
-
 static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(timeout_ms, integer, CONF_DEFAULT_TIMEOUT_MS)
     flua_conf_default(host, string, CONF_DEFAULT_HOST)
@@ -45,8 +37,6 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(play_on_load_playlist, boolean, false)
     flua_conf_optional(playlist_path, string)
     flua_conf_optional(update_on_n_ticks, integer)
-
-    flua_conf_optional(the_thing, real)
 
     flua_conf_last
 };
@@ -202,7 +192,6 @@ int f_mpd_configl() {
     }
     g.lua_initted = true;
 
-info("the thing is %f", conf_r(the_thing));
     return 0;
 }
 

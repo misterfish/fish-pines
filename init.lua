@@ -19,8 +19,8 @@ function map (map_fn, itable)
     return result
 end
 
-for _,v in pairs {'mpd', 'nes', --[['mode']] } do
-    print(string.format("calling for %s", v))
+for _,v in pairs {'mpd', 'nes', 'mode' } do
+--for _,v in pairs {'mpd', 'nes',  } do
     capi[v].config_func(config[v])
 end
 

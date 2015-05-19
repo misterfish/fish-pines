@@ -16,5 +16,20 @@ config = {
         update_on_n_ticks = 10,
 
         --the_thing = 30,
+    },
+    mode = {
+        modes = {
+            'music',
+            'general',
+        },
+        fun = {
+            1,2,3,
+        },
+        funt = {
+            true, false, true,
+        },
+        funr = {
+            1.2, 2.3, 109.2
+        }
     }
 }

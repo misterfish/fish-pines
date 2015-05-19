@@ -3,6 +3,7 @@
 #include <glib.h>
 
 #include <string.h>
+#include <assert.h>
 
 #include <fish-util.h>
 #include <fish-utils.h>
@@ -100,11 +101,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
     lua_pushnil(conf->L); // first key
     while (
         first ? (first = false) : lua_pop(conf->L, 1), // pop val, keep key for iter
-        lua_next(conf->L, -2) != 0) 
+        lua_next(conf->L, -2)) 
     { // puts key -> -2, val -> -1
         const char *key; 
-        const char *luatype = lua_typename(conf->L, lua_type(conf->L, -2));
-        if (strcmp(luatype, "string")) {
+        const char *keytype = lua_typename(conf->L, lua_type(conf->L, -2));
+
+        if (strcmp(keytype, "string")) {
             size_t s;
             char *as_str = "";
             const char *try = lua_tolstring(conf->L, -2, &s); // NULL unless number or string
@@ -138,6 +140,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         if (g.verbose || conf->verbose) {
             _();
             Y(key); // _s
+fprintf(stderr, "s is %s", key);
         }
 
         if (!strcmp(type, "string")) {
@@ -181,10 +184,189 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 M("boolean"); // _v
             }
         }
+
+        /* For table ("list") types: disregard all keys, and die unless all
+         * elements have the same type as the first element.
+         */
+        else if (!strcmp(type, "stringlist")) {
+            char *type = NULL;
+            // checktable XX
+            lua_pushnil(conf->L); // first key
+            bool ok = true;
+            lookup->value.stringlist = vec_new();
+            vec *valvec = lookup->value.stringlist;
+            bool first = true;
+            while (lua_next(conf->L, -2)) {
+                const char *this_type = lua_typename(conf->L, lua_type(conf->L, -1));
+                const char *val = luaL_checkstring(conf->L, -1);
+                char *dup = g_strdup(val);
+                vec_add(valvec, dup);
+
+                if (first) {
+                    type = g_strdup(this_type);
+                    if (g.verbose || conf->verbose) {
+                        spr("{ %s … }", dup); // _t
+                        G(_t); // _u
+                        M("stringlist"); // _v
+                    }
+                    first = false;
+                }
+                else {
+                    assert(type);
+                    if (strcmp(type, this_type)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                lua_pop(conf->L, 1);
+            }
+            if (type) 
+                free(type);
+            if (! ok) {
+                _();
+                BR(key);
+                spr("key is «%s»", _s);
+                spr("flua_config: need all values in stringlist to have the same type (%s).", _t);
+                lua_pushstring(conf->L, _u);
+                lua_error(conf->L);
+            }
+        }
+        else if (!strcmp(type, "integerlist")) {
+            char *type = NULL;
+            // checktable XX
+            lua_pushnil(conf->L); // first key
+            bool ok = true;
+            lookup->value.integerlist = vec_new();
+            vec *valvec = lookup->value.integerlist;
+            bool first = true;
+            while (lua_next(conf->L, -2)) {
+                const char *this_type = lua_typename(conf->L, lua_type(conf->L, -1));
+                int *val = f_malloct(int);
+                *val = (int) luaL_checknumber(conf->L, -1);
+
+                vec_add(valvec, val);
+
+                if (first) {
+                    type = g_strdup(this_type);
+                    if (g.verbose || conf->verbose) {
+                        spr("{ %d … }", *val); // _t
+                        G(_t); // _u
+                        M("integerlist"); // _v
+                    }
+                    first = false;
+                }
+                else {
+                    assert(type);
+                    if (strcmp(type, this_type)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                lua_pop(conf->L, 1);
+            }
+            if (type) 
+                free(type);
+            if (! ok) {
+                _();
+                BR(key);
+                spr("key is «%s»", _s);
+                spr("flua_config: need all values in integerlist to have the same type (%s).", _t);
+                lua_pushstring(conf->L, _u);
+                lua_error(conf->L);
+            }
+        }
+        else if (!strcmp(type, "booleanlist")) {
+            char *type = NULL;
+            // checktable XX
+            lua_pushnil(conf->L); // first key
+            bool ok = true;
+            lookup->value.booleanlist = vec_new();
+            vec *valvec = lookup->value.booleanlist;
+            bool first = true;
+            while (lua_next(conf->L, -2)) {
+                const char *this_type = lua_typename(conf->L, lua_type(conf->L, -1));
+                bool *val = f_malloct(bool);
+                // doesn't throw
+                *val = lua_toboolean(conf->L, -1);
+                vec_add(valvec, val);
+
+                if (first) {
+                    type = g_strdup(this_type);
+                    if (g.verbose || conf->verbose) {
+                        spr("{ %s … }", *val ? "true" : "false"); // _t
+                        G(_t); // _u
+                        M("booleanlist"); // _v
+                    }
+                    first = false;
+                }
+                else {
+                    assert(type);
+                    if (strcmp(type, this_type)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                lua_pop(conf->L, 1);
+            }
+            if (type) 
+                free(type);
+            if (! ok) {
+                _();
+                BR(key);
+                spr("key is «%s»", _s);
+                spr("flua_config: need all values in booleanlist to have the same type (%s).", _t);
+                lua_pushstring(conf->L, _u);
+                lua_error(conf->L);
+            }
+        }
+        else if (!strcmp(type, "reallist")) {
+            char *type = NULL;
+            // checktable XX
+            lua_pushnil(conf->L); // first key
+            bool ok = true;
+            lookup->value.reallist = vec_new();
+            vec *valvec = lookup->value.reallist;
+            bool first = true;
+            while (lua_next(conf->L, -2)) {
+                const char *this_type = lua_typename(conf->L, lua_type(conf->L, -1));
+                lua_Number *val = f_malloct(lua_Number);
+                *val = luaL_checknumber(conf->L, -1);
+                vec_add(valvec, val);
+
+                if (first) {
+                    type = g_strdup(this_type);
+                    if (g.verbose || conf->verbose) {
+                        spr("{ %f … }", *val); // _t
+                        G(_t); // _u
+                        M("reallist"); // _v
+                    }
+                    first = false;
+                }
+                else {
+                    assert(type);
+                    if (strcmp(type, this_type)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                lua_pop(conf->L, 1);
+            }
+            if (type) 
+                free(type);
+            if (! ok) {
+                _();
+                BR(key);
+                spr("key is «%s»", _s);
+                spr("flua_config: need all values in reallist to have the same type (%s).", _t);
+                lua_pushstring(conf->L, _u);
+                lua_error(conf->L);
+            }
+        }
+
         else 
             piepc;
 
-        if (lookup->required)  
+        if (lookup->required)
             got_required_key(conf, (gpointer) key);
 
         if (g.verbose || conf->verbose) 

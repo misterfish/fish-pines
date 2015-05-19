@@ -1,3 +1,4 @@
+./mode.c
 ./buttons.h
 ./README.md
 ./init.lua
@@ -36,3 +37,4 @@
 ./nes.c
 ./fish-pines.h
 ./vol.c
+./mode.h
