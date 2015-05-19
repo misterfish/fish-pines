@@ -38,7 +38,6 @@ int buttons_add_rulel() {
     memset(rule, '\0', sizeof *rule);
     while (lua_next(L, -2)) {
         const char *luatype = lua_typename(L, lua_type(L, -2));
-        //info("got key type %s", luatype);
         // plain table entry, i.e. button name.
         if (! strcmp(luatype, "number")) {
             const char *value = luaL_checkstring(L, -1);
@@ -64,15 +63,13 @@ int buttons_add_rulel() {
             if (! strcmp(key, "kill_multiple")) {
                 const bool value = lua_toboolean(L, -1);
                 rule->kill_multiple = value;
-info("kill: %d", value);
             }
             else if (! strcmp(key, "mode")) {
                 const char *value = luaL_checkstring(L, -1);
-                info("mode: %s", value);
+                // XX
             }
             else if (! strcmp(key, "event")) {
                 const char *value = luaL_checkstring(L, -1);
-info("event: %s", value);
                 if (! strcmp(value, "press"))
                     event = BUTTONS_PRESS;
                 else if (! strcmp(value, "release"))
@@ -87,7 +84,6 @@ info("event: %s", value);
                     piep;
                 else {
                     int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops
-                    info("got index %d", reg_index);
                     rule->has_handler = true;
                     rule->handler = reg_index;
                     continue;
@@ -110,7 +106,6 @@ short mode = 0;
         lua_error(global.L);
     }
 
-info("storing buttons %d, event %d", buttons, event);
     rule->buttons = buttons;
     rule->event = event;
 
@@ -226,7 +221,6 @@ static struct button_rule_t *get_rule(short mode, short event, short read) {
     vec *rules = get_rules(mode, event);
     if (!rules)
         pieprnull;
-info("getting rule for %d, event %d", read, event);
 
     int cnt = vec_size(rules);
 
@@ -238,10 +232,7 @@ info("getting rule for %d, event %d", read, event);
         if (! rule) 
             piepc;
 
-info("rule->event %d", rule->event);
-
         short rule_buttons = rule->buttons;
-info("checking against %d", rule_buttons);
         if ((read & rule_buttons) == rule_buttons) {
             // got it.
             return rule;

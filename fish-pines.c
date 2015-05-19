@@ -135,8 +135,10 @@ int main() {
 
     init_state();
 
+    /* For testing.
     main_register_loop_event("ping", 50, ping);
     main_register_loop_event("ping", 150, ping_fail);
+    */
 
     if (! buttons_init()) 
         ierr("Couldn't init buttons");
@@ -312,7 +314,6 @@ int mode = 0; // XX
     if (rule_press) {
         kill_multiple = rule_press->kill_multiple;
         has_event_press = rule_press->has_handler;
-info("got rule press %p, has_event_press %d", rule_press, has_event_press);
     }
 
     if ((prev_read == read) && kill_multiple) {

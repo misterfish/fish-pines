@@ -24,15 +24,6 @@ for _,v in pairs {'mpd', 'nes', --[['mode']] } do
     capi[v].config_func(config[v])
 end
 
-function rule (buttons, options, cb) 
-    local buttons_as_numbers = map(
-        function (i,v)
-            return cbuttons[v]
-        end, 
-    buttons)
-
-end
-
 function stickthyme()
     say('stick thyme!')
 end
@@ -46,6 +37,8 @@ local rules = {
         press = {
             { 'b', 'right', kill_multiple = false, handler = stickthyme },
             { 'b',          kill_multiple = false, handler = stickthyme2 },
+            { 'a', 'right', kill_multiple = false, handler = stickthyme2 },
+            { 'a',          kill_multiple = true, handler = stickthyme2 },
         },
         release = {
             { 'b'       , handler = stickthyme3 },
