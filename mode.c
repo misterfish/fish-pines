@@ -61,7 +61,15 @@ bool mode_init() {
         warn("%s: forgot lua init?", CONF_NAMESPACE);
         return false;
     }
-    g.modes = vec_new();
+    g.modes = conf_sl(modes);
+
+int s = vec_size(g.modes);
+info("size is %d", s);
+for (int i = 0; i < s; i++) {
+    char *m = (char*) vec_get(g.modes, i);
+    info("mode is %s", m);
+}
+
     g.cur_mode_idx = -1;
 
     return true;

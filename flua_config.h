@@ -89,7 +89,10 @@ char *flua_config_get_string(struct flua_config_conf_t *conf, gpointer key);
 bool flua_config_get_boolean(struct flua_config_conf_t *conf, gpointer key);
 int flua_config_get_integer(struct flua_config_conf_t *conf, gpointer key);
 double flua_config_get_real(struct flua_config_conf_t *conf, gpointer key);
-vec *flua_config_get_vector(struct flua_config_conf_t *conf, gpointer key);
+vec *flua_config_get_stringlist(struct flua_config_conf_t *conf, gpointer key);
+vec *flua_config_get_booleanlist(struct flua_config_conf_t *conf, gpointer key);
+vec *flua_config_get_integerlist(struct flua_config_conf_t *conf, gpointer key);
+vec *flua_config_get_reallist(struct flua_config_conf_t *conf, gpointer key);
 
 /* Throws on lua errors, returns false on others. */
 bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules);

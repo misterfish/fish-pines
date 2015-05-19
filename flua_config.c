@@ -140,7 +140,6 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         if (g.verbose || conf->verbose) {
             _();
             Y(key); // _s
-fprintf(stderr, "s is %s", key);
         }
 
         if (!strcmp(type, "string")) {
@@ -467,6 +466,31 @@ double flua_config_get_real(struct flua_config_conf_t *conf, gpointer key) {
     if ((item = lookup_key(conf, key)))
         return item->value.real;
     return 0;
+}
+
+vec *flua_config_get_stringlist(struct flua_config_conf_t *conf, gpointer key) {
+    struct flua_config_conf_item_t *item;
+    if ((item = lookup_key(conf, key)))
+        return item->value.stringlist;
+    return NULL;
+}
+vec *flua_config_get_booleanlist(struct flua_config_conf_t *conf, gpointer key) {
+    struct flua_config_conf_item_t *item;
+    if ((item = lookup_key(conf, key)))
+        return item->value.booleanlist;
+    return NULL;
+}
+vec *flua_config_get_integerlist(struct flua_config_conf_t *conf, gpointer key) {
+    struct flua_config_conf_item_t *item;
+    if ((item = lookup_key(conf, key)))
+        return item->value.integerlist;
+    return NULL;
+}
+vec *flua_config_get_reallist(struct flua_config_conf_t *conf, gpointer key) {
+    struct flua_config_conf_item_t *item;
+    if ((item = lookup_key(conf, key)))
+        return item->value.reallist;
+    return NULL;
 }
 
 static void required_keys_value_destroy(gpointer value) {

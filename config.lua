@@ -22,14 +22,5 @@ config = {
             'music',
             'general',
         },
-        fun = {
-            1,2,3,
-        },
-        funt = {
-            true, false, true,
-        },
-        funr = {
-            1.2, 2.3, 109.2
-        }
     }
 }
