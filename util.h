@@ -32,6 +32,5 @@
  */
 bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second);
 bool f_terminal_normal();
-
-
+void check_lua_err(int rc, char *format, ...);
 #endif

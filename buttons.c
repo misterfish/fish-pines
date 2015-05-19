@@ -4,12 +4,12 @@
 #include <lauxlib.h> // luaL_ functions..h>
 
 #include "const.h"
+#include "mode.h"
+
 #include "buttons.h"
 
 #define BUTTONS_PRESS 0
 #define BUTTONS_RELEASE 1
-
-//#include "mode.h"
 
 /* vector of vector of vectors.
  * outer index is mode. 
@@ -93,8 +93,7 @@ int buttons_add_rulel() {
         lua_pop(L, 1);
     }
 
-    // XX
-short mode = 0;
+    short mode = mode_get_mode();
 
     if (event == -1) {
         lua_pushstring(global.L, "Need event for rule.");
@@ -229,8 +228,9 @@ static struct button_rule_t *get_rule(short mode, short event, short read) {
     for (int i = 0; i < cnt; i++) {
         // ok to cast NULL
         struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules, i);
-        if (! rule) 
+        if (! rule) { 
             piepc;
+        }
 
         short rule_buttons = rule->buttons;
         if ((read & rule_buttons) == rule_buttons) {

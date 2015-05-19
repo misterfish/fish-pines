@@ -141,12 +141,6 @@ int main() {
     main_register_loop_event("ping", 150, ping_fail);
     */
 
-    if (! buttons_init()) 
-        ierr("Couldn't init buttons");
-
-    if (! vol_init()) 
-        ierr("Couldn't init vol");
-
 #ifndef NO_NES
     if (! nes_init_config())
         ierr("Couldn't init nes config");
@@ -158,6 +152,11 @@ int main() {
         ierr("Couldn't init mode config");
 
     flua_config_set_verbose(true);
+
+    /* Before init_lua.
+     */
+    if (! buttons_init()) 
+        ierr("Couldn't init buttons");
 
     if (! init_lua()) 
         err("Can't init lua.");
@@ -177,6 +176,12 @@ int main() {
     if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND)) 
         err("Couldn't set terminal raw.");
 #endif
+
+    if (! mode_init()) 
+        ierr("Couldn't init mode");
+
+    if (! vol_init()) 
+        ierr("Couldn't init vol");
 
     info("setting up ctl + mpd");
     if (! f_mpd_init()) 
@@ -373,10 +378,13 @@ int mode = 0; // XX
     if (has_event_press) {
         int reg_idx = rule_press->handler;
         lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
-        // what to do on runtime errors? XX
-        if (lua_pcall(global.L, 0, 0, 0)) {
-            ok = false;
-            piepc; // XX
+        /* Don't set ok to false (it's not bad enough to bubble up as a
+         * failed process_read()).
+         */
+        int rc;
+        if (rc = lua_pcall(global.L, 0, 0, 0)) {
+            const char *err = luaL_checkstring(global.L, -1);
+            check_lua_err(rc, "Lua error on press event: %s", err);
         }
     }
     prev_read = read;
@@ -494,6 +502,12 @@ static bool init_lua() {
 
     lua_pushstring(L, "config_func");
     lua_pushcfunction(L, (lua_CFunction) mode_configl);
+    lua_rawset(L, -3);  
+    lua_pushstring(L, "next_mode");
+    lua_pushcfunction(L, (lua_CFunction) mode_next_model);
+    lua_rawset(L, -3);  
+    lua_pushstring(L, "get_mode_name");
+    lua_pushcfunction(L, (lua_CFunction) mode_get_mode_namel);
     lua_rawset(L, -3);  
 
     lua_rawset(L, -3);

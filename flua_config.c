@@ -362,8 +362,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
             }
         }
 
-        else 
+        else {
             piepc;
+        }
 
         if (lookup->required)
             got_required_key(conf, (gpointer) key);

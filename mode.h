@@ -16,10 +16,17 @@ struct mode_t {
 };
 
 bool mode_init_config();
-int mode_configl();
 
 bool mode_init();
 bool mode_cleanup();
 
+short mode_get_mode();
+bool mode_set_mode(short s);
+bool mode_next_mode();
+char *mode_get_mode_name();
+
+int mode_configl();
+int mode_next_model();
+int mode_get_mode_namel();
 
 #endif

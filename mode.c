@@ -7,6 +7,7 @@
 #include <fish-utils.h>
 
 #include "const.h"
+#include "global.h"
 #include "util.h"
 #include "flua_config.h"
 
@@ -27,8 +28,8 @@ static struct {
     struct flua_config_conf_t *conf;
 
     vec *modes;
-    int num_modes;
-    int cur_mode_idx;
+    short num_modes;
+    short cur_mode_idx;
     struct mode_t *cur_mode;
 } g;
 
@@ -61,18 +62,77 @@ bool mode_init() {
         warn("%s: forgot lua init?", CONF_NAMESPACE);
         return false;
     }
-    g.modes = conf_sl(modes);
 
-int s = vec_size(g.modes);
+    short num_modes;
+    vec *mode_names = conf_sl(modes);
+    bool ok = false;
+    if (mode_names) {
+        num_modes = (short) vec_size(mode_names);
+        if (num_modes) 
+            ok = true;
+    }
+
+    if (!ok) {
+        warn("No modes.");
+        return false;
+    }
+
+    g.modes = vec_new();
+    g.num_modes = num_modes;
+    for (int i = 0; i < num_modes; i++) {
+        char *name = (char *) vec_get(mode_names, i);
+        //info("Got mode: %s", m);
+        struct mode_t *mode = f_mallocv(*mode);
+        memset(mode, '\0', sizeof *mode);
+        // No dup. Assume conf doesn't get cleaned up.
+        mode->name = name;
+        vec_add(g.modes, mode);
+    }
+
+/*
 info("size is %d", s);
-for (int i = 0; i < s; i++) {
-    char *m = (char*) vec_get(g.modes, i);
-    info("mode is %s", m);
+*/
+
+    return mode_set_mode(0);
 }
 
-    g.cur_mode_idx = -1;
+char *mode_get_mode_name() {
+    struct mode_t *cur_mode = (struct mode_t *) vec_get(g.modes, g.cur_mode_idx);
+    return cur_mode->name;
+}
 
+short mode_get_mode() {
+    return g.cur_mode_idx;
+}
+
+bool mode_set_mode(short s) {
+    if (s < 0 || s >= g.num_modes) {
+        iwarn("Bad mode");
+        return false;
+    }
+    g.cur_mode_idx = s;
+    g.cur_mode = (struct mode_t *) vec_get(g.modes, s);
     return true;
+}
+
+bool mode_next_mode() {
+    short s = g.cur_mode_idx;
+    s = ++s % g.num_modes;
+    return mode_set_mode(s);
+}
+
+int mode_next_model() {
+    if (!mode_next_mode()) {
+        lua_pushstring(global.L, "Couldn't switch to next mode.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+
+int mode_get_mode_namel() {
+    char *mode = mode_get_mode_name();
+    lua_pushstring(global.L, mode);
+    return 1;
 }
 
 // XX

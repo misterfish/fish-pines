@@ -1,3 +1,9 @@
+#define _BSD_SOURCE // cfmakeraw
+#include <unistd.h> // _exit
+
+#include <lua.h>
+//#include <lauxlib.h>
+
 #include <fish-util.h>
 
 #include "util.h"
@@ -6,6 +12,7 @@ struct termios save_attr_cooked;
 bool saved;
 
 bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
+    // gcc complains about missing initializer like this XX
     struct termios term = {0};
     int fd = 0;
     if (tcgetattr(fd, &term)) {
@@ -94,3 +101,37 @@ bool f_terminal_normal() {
     }
     return !(bool)failure;
 }
+
+/* Error handler function (last arg to pcall) has already been called, if
+ * there is one.
+ *
+ * Dies immediately on OOM.
+ */
+
+void check_lua_err(int rc, char *format, ...) {
+    int SIZE = 100;
+    char buf[SIZE];
+    va_list arglist;
+    va_start(arglist, format);
+    if (SIZE == vsnprintf(buf, SIZE, format, arglist)) 
+        fprintf(stderr, "(warning truncated)");
+    va_end(arglist);
+
+    if (rc == LUA_ERRMEM) {
+        fprintf(stderr, "Out of memory!");
+        _exit(1);
+    }
+    else if (rc == LUA_ERRERR) {
+        warn(buf);
+        warn("Also, error running lua error handler.");
+    }
+    // lua runtime error
+    else if (rc == LUA_ERRRUN) {
+        warn(buf);
+    }
+    else {
+        piep;
+    }
+}
+
+

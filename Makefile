@@ -38,7 +38,7 @@ ifneq ($(NO_NES), 1)
     wiringPi_ldflags	+= -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
 endif
 
-CFLAGS		+= -Werror=implicit-function-declaration -W -Wall -Wextra -I./
+CFLAGS		+= -Werror=implicit-function-declaration -W -Wall -Wextra -Wno-missing-field-initializers -I./
 CFLAGS		+= $(foreach i,$(modules_manual),$(${i}_cflags))
 CFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --cflags))
 
