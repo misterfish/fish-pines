@@ -677,13 +677,14 @@ static int get_max_button_print_size() {
  * .•..
  */
 static void print_multiple_indicator(short s) {
+    static short DELAY = 2; // how many times to stay on the same pos
+    static short NUM = 5;
     static short last_state = 0;
     static short t = -1;
-    static short delay = 2; // e.g., [1, 10]
     static short delay_cur = -1;
     if (!s) {
         t = -1;
-        delay_cur = delay - 1;
+        delay_cur = DELAY - 1;
         last_state = 0;
         printf("\n");
     }
@@ -692,20 +693,20 @@ static void print_multiple_indicator(short s) {
             last_state = 1;
             printf("\n");
         }
-        delay_cur = ++delay_cur % (delay + 1);
-        if (delay_cur == delay) 
-            t = ++t % 6;
-        if (t < 4) {
+        delay_cur = ++delay_cur % (DELAY + 1);
+        if (delay_cur == DELAY) 
+            t = ++t % (2*NUM - 2);
+        if (t < NUM) {
             printf("\r[ ");
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < NUM; i++) {
                 printf("%s", i == t ? "•" : ".");
             }
             printf(" ]");
         }
         else {
             printf("\r[ ");
-            for (int i = 0; i < 4; i++) {
-                int u = 2*3 - t;
+            for (int i = 0; i < NUM; i++) {
+                int u = 2*(NUM - 1) - t;
                 printf("%s", i == u ? "•" : ".");
             }
             printf(" ]");
