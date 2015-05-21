@@ -49,6 +49,7 @@ static char *debug_read_init();
 static void debug_read(unsigned int read_canonical, char *ret);
 #endif
 
+static void print_multiple_indicator(short s);
 static void cleanup();
 
 static bool do_read(short cur_read);
@@ -335,8 +336,10 @@ static bool process_read(short read, char *button_print) {
             pieprf;
     }
 
-    if ((prev_read != read) && button_print) 
+    if ((prev_read != read) && button_print) {
+        print_multiple_indicator(0); 
         printf("[ %s ] ", button_print);
+    }
 
     /* Cycle through individual buttons, triggering their release events if
      * they have them. 
@@ -403,7 +406,7 @@ static bool process_read(short read, char *button_print) {
     int j = 0, l = vec_size(rules_press);
 
     if (l == 0) 
-        printf("[ … ] ");
+        print_multiple_indicator(1);
 
     for (; j < l; j++) {
         struct button_rule_t *rule_press = (struct button_rule_t *) vec_get(rules_press, j);
@@ -421,7 +424,7 @@ static bool process_read(short read, char *button_print) {
         }
 
         if (prev_read == read)
-            printf("[ … ] ");
+            print_multiple_indicator(1);
 
         if (rule_press->has_handler) {
             int reg_idx = rule_press->handler;
@@ -665,4 +668,48 @@ static int get_max_button_print_size() {
     return n+1;
 }
 
+/* Print (bullet is U2022)
+ * •...
+ * .•..
+ * ..•.
+ * ...•
+ * ..•.
+ * .•..
+ */
+static void print_multiple_indicator(short s) {
+    static short last_state = 0;
+    static short t = -1;
+    static short delay = 2; // e.g., [1, 10]
+    static short delay_cur = -1;
+    if (!s) {
+        t = -1;
+        delay_cur = delay - 1;
+        last_state = 0;
+        printf("\n");
+    }
+    else {
+        if (last_state == 0) {
+            last_state = 1;
+            printf("\n");
+        }
+        delay_cur = ++delay_cur % (delay + 1);
+        if (delay_cur == delay) 
+            t = ++t % 6;
+        if (t < 4) {
+            printf("\r[ ");
+            for (int i = 0; i < 4; i++) {
+                printf("%s", i == t ? "•" : ".");
+            }
+            printf(" ]");
+        }
+        else {
+            printf("\r[ ");
+            for (int i = 0; i < 4; i++) {
+                int u = 2*3 - t;
+                printf("%s", i == u ? "•" : ".");
+            }
+            printf(" ]");
+        }
+    }
+}
 
