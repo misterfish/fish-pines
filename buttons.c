@@ -28,7 +28,7 @@ static bool get_rules_for_read(short mode, short event, short read, vec *rules_r
 
 /* Throws.
  */
-int buttons_add_rulel() {
+int buttons_add_rule_l() {
     lua_State *L = global.L;
     lua_pushnil(L); // init iter
     short buttons = 0;

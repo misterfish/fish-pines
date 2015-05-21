@@ -45,7 +45,7 @@ struct button_name_s {
 bool buttons_init();
 bool buttons_cleanup();
 
-int buttons_add_rulel();
+int buttons_add_rule_l();
 
 /*
 struct button_rule_t *buttons_get_rule_press(short mode, short read);

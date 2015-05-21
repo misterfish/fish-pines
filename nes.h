@@ -2,7 +2,7 @@
 #include <piNes.h>
 
 bool nes_init_config();
-int nes_configl();
+int nes_config_l();
 int nes_init();
 int nes_read(int joystick);
 

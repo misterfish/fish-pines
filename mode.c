@@ -41,7 +41,7 @@ bool mode_init_config() {
     return true;
 }
 
-int mode_configl() {
+int mode_config_l() {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
@@ -120,7 +120,7 @@ bool mode_next_mode() {
     return mode_set_mode(s);
 }
 
-int mode_next_model() {
+int mode_next_mode_l() {
     if (!mode_next_mode()) {
         lua_pushstring(global.L, "Couldn't switch to next mode.");
         lua_error(global.L);
@@ -128,7 +128,7 @@ int mode_next_model() {
     return 0;
 }
 
-int mode_get_mode_namel() {
+int mode_get_mode_name_l() {
     char *mode = mode_get_mode_name();
     lua_pushstring(global.L, mode);
     return 1;

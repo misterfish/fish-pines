@@ -179,7 +179,7 @@ bool f_mpd_init_config() {
     return true;
 }
 
-int f_mpd_configl() {
+int f_mpd_config_l() {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
@@ -351,18 +351,24 @@ static int get_elapsed_time() {
     return ret;
 }
 
-// cache states? XX
-int get_random() {
+bool f_mpd_get_random(bool *r) {
     struct mpd_status* s = get_status();
-    if (s == NULL) return -1;
-    bool ret = mpd_status_get_random(s);
+    if (!s) 
+        pieprf;
+    *r = mpd_status_get_random(s); // error ? XX
     free_status(s);
-    return ret;
+    return true;
 }
 
-bool f_mpd_toggle_random() {
-    bool random = (bool) get_random();
-    return random ? f_mpd_random_off() : f_mpd_random_on();
+// r can be NULL.
+bool f_mpd_toggle_random(bool *r) {
+    bool random;
+    if (! f_mpd_get_random(&random))
+        pieprf;
+    bool ok = random ? f_mpd_random_off() : f_mpd_random_on();
+    if (ok && r) 
+        *r = !random;
+    return ok;
 }
 
 /* Leds actually lit twice, once here, and once in response to event, which
@@ -380,8 +386,13 @@ bool f_mpd_random_on() {
     return true;
 }
 
-bool f_mpd_update(void *p) {
-    p++; // XX
+/* Wrapper for loop register. */
+bool f_mpd_update_wrapper(void *p) {
+    ++p; // warnings
+    return f_mpd_update();
+}
+
+bool f_mpd_update() {
     bool disable_timeout = true; // blocks forever on recv
 
     /* Enter idle momentarily.
@@ -397,8 +408,9 @@ bool f_mpd_update(void *p) {
     if (res) {
         bool reload = false;
         if (res & MPD_IDLE_OPTIONS) {
-            bool random = (bool) get_random();
-            info("Random changed to %s", random ? "on" : "off");
+            bool random;
+            if (! f_mpd_get_random(&random))
+                pieprf;
             //_led_update_random(random);
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
@@ -428,7 +440,7 @@ bool f_mpd_update(void *p) {
             str = "the volume has been modified";
         else if (res & MPD_IDLE_OUTPUT) 
             str = "an audio output device has been enabled or disabled";
-        /* old version on pi XX
+        /* Only in the newer version.
         else if (res & MPD_IDLE_STICKER) 
             str = "a sticker has been modified.";
         else if (res & MPD_IDLE_SUBSCRIPTION) 
@@ -586,4 +598,90 @@ static bool reload_playlists() {
     }
     free(matches);
     return true;
+}
+
+/* Lua versions. 
+ * These all 'throw'.
+ */
+int f_mpd_toggle_play_l() {
+    if (! f_mpd_toggle_play()) {
+        lua_pushstring(global.L, "Couldn't toggle play.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_prev_l() {
+    if (! f_mpd_prev()) {
+        lua_pushstring(global.L, "Couldn't go to prev song.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_next_l() {
+    if (! f_mpd_next()) {
+        lua_pushstring(global.L, "Couldn't go to next song.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_get_random_l() {
+    bool r;
+    if (! f_mpd_get_random(&r)) {
+        lua_pushstring(global.L, "Couldn't get random.");
+        lua_error(global.L);
+    }
+    lua_pushboolean(global.L, r);
+    return 1;
+}
+int f_mpd_toggle_random_l() {
+    bool r;
+    if (! f_mpd_toggle_random(&r)) {
+        lua_pushstring(global.L, "Couldn't toggle random.");
+        lua_error(global.L);
+    }
+    lua_pushboolean(global.L, r);
+    return 1;
+}
+int f_mpd_random_off_l() {
+    if (! f_mpd_random_off()) {
+        lua_pushstring(global.L, "Couldn't turn random off.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_random_on_l() {
+    if (! f_mpd_random_on()) {
+        lua_pushstring(global.L, "Couldn't turn random on.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_update_l() {
+    if (! f_mpd_update()) {
+        lua_pushstring(global.L, "Couldn't update mpd.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_next_playlist_l() {
+    if (! f_mpd_next_playlist()) {
+        lua_pushstring(global.L, "Couldn't go to next playlist.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_prev_playlist_l() {
+    if (! f_mpd_prev_playlist()) {
+        lua_pushstring(global.L, "Couldn't go to prev playlist.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_seek_l(/* int secs */) {
+    lua_Number seek = luaL_checknumber(global.L, -1);
+    if (! f_mpd_seek((int) seek)) {
+        lua_pushstring(global.L, "Couldn't seek.");
+        lua_error(global.L);
+    }
+    return 0;
 }

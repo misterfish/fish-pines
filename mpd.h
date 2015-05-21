@@ -17,14 +17,29 @@ bool f_mpd_seek(int);
 bool f_mpd_cleanup();
 bool f_mpd_prev();
 bool f_mpd_next();
+bool f_mpd_update_wrapper(void *p);
 bool f_mpd_update();
-bool f_mpd_toggle_random();
+bool f_mpd_toggle_random(bool *r);
+bool f_mpd_get_random(bool *r);
 bool f_mpd_random_off();
 bool f_mpd_random_on();
 
 bool f_mpd_prev_playlist();
 bool f_mpd_next_playlist();
 
-/* "throws"
+/* Lua functions. 
+ * These 'throw'.
  */
-int f_mpd_configl();
+int f_mpd_config_l();
+int f_mpd_toggle_play_l();
+int f_mpd_prev_l();
+int f_mpd_next_l();
+int f_mpd_toggle_random_l();
+int f_mpd_get_random_l();
+int f_mpd_random_off_l();
+int f_mpd_random_on_l();
+int f_mpd_update_l();
+int f_mpd_next_playlist_l();
+int f_mpd_prev_playlist_l();
+int f_mpd_seek_l(/* int secs */);
+

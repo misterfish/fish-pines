@@ -1,101 +1,49 @@
 local capi = capi
 
 require 'config'
+require 'util'
 
-function say (...) 
-    io.write(...)
-    io.write('\n')
-end
+local u = util
 
-function sayf (format, ...) 
-    if format == nil then
-        return
-    end
-    format = format .. '\n'
-    io.write(string.format(format, ...))
-end
-
--- takes itable as input, and map_fn(v, i)
--- caller is free to mess with i.
--- depending on that, the return is an itable or a table.
-function imap (map_fn, itable)
-    local result = {}
-    for i, v in ipairs(itable) do
-        local newi, newv
-        newi, newv = map_fn(v, i)
-        result[newi] = newv
-    end
-    return result
-end
-
--- takes table as input, and map_fn(v, k)
--- caller is free to mess with k.
--- depending on that, the return is an itable or a table.
--- actually map can do everything imap can do, only imap officially
--- calls ipairs instead of pairs.
-function map (map_fn, table)
-    local result = {}
-    for k, v in pairs(table) do
-        local newk, newv
-        newk, newv = map_fn(v, k)
-        result[newk] = newv
-    end
-    return result
-end
+local say = util.say
+local printf = util.printf
+local sayf = util.sayf
+local imap = util.imap
+local map = util.map
 
 for _,v in pairs {'mpd', 'nes', 'mode' } do
---for _,v in pairs {'mpd', 'nes',  } do
-    capi[v].config_func(config[v])
+    capi[v].config(config[v])
 end
-
-function stickthyme()
-    say('stick thyme!')
-end
-function stickthyme2()
-    say('oregano!')
-end
-
-function color(col, s) return string.format('[' .. '%d' .. 'm' .. '%s' .. '[0m', col, s) end
-function G(s) return color(32, s) end 
-function BG(s) return color(92, s) end 
-function Y(s) return color(33, s) end 
-function BY(s) return color(93, s) end 
-function R(s) return color(31, s) end 
-function BR(s) return color(91, s) end 
-function B(s) return color(34, s) end 
-function BB(s) return color(94, s) end 
-function M(s) return color(35, s) end 
-function BM(s) return color(95, s) end 
-function CY(s) return color(36, s) end 
-function BCY(s) return color(96, s) end 
 
 function mode_next() 
     capi.mode.next_mode()
     local m = capi.mode.get_mode_name()
---[
     local col
     if m == config.mode.modes[1] then
-        col = Y
+        col = u.Y
     else
-        col = CY
+        col = u.CY
     end
 
     sayf("Switched to mode %s", col(m))
---]]
+end
+
+function toggle_random() 
+    local rand = capi.mpd.toggle_random() 
+    printf("Random set to %s", u.CY(rand))
 end
 
 local rules = {
     -- mode = music
     music = {
         press = {
-            { 'b', 'right', handler = stickthyme },
-            { 'b',          handler = stickthyme2 },
-            { 'a', 'right', handler = stickthyme2 },
-            { 'a',          handler = stickthyme2 },
+            { 'b', 'right', handler = function() capi.mpd.seek(configlocal.mpd.seek) end },
+            { 'b', 'left',  handler = function() capi.mpd.seek(-1 * configlocal.mpd.seek) end },
+            { 'a',          once = true, handler = toggle_random },
             { 'select',     once = true, handler = mode_next  },
+            { 'start',      once = true, handler = function() capi.mpd.toggle_play() end },
         },
         release = {
-            { 'b',          handler = stickthyme3 },
         }
     },
     -- mode = general

@@ -39,7 +39,7 @@ bool nes_init_config() {
     return true;
 }
 
-int nes_configl() {
+int nes_config_l() {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
     /* Throws.
      */

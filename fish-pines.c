@@ -100,6 +100,7 @@ struct main_loop_event_t {
 static bool _break = false;
 
 void sighandler_term() {
+    say("");
     info("Ctl c");
     _break = true;
 }
@@ -534,7 +535,7 @@ static bool lua_init() {
     lua_pushnumber(L, F_A);
     lua_rawset(L, -3);
     lua_pushstring(L, "add_rule");
-    lua_pushcfunction(L, (lua_CFunction) buttons_add_rulel);
+    lua_pushcfunction(L, (lua_CFunction) buttons_add_rule_l);
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);  // buttons
@@ -543,9 +544,53 @@ static bool lua_init() {
     lua_pushstring(L, "mpd");
     lua_newtable(L);
 
-    lua_pushstring(L, "config_func");
-    lua_pushcfunction(L, (lua_CFunction) f_mpd_configl);
+    lua_pushstring(L, "config");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_config_l);
     lua_rawset(L, -3);  
+
+    lua_pushstring(L, "toggle_play");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_toggle_play_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "prev_song");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_prev_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "next_song");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_next_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "toggle_random");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_toggle_random_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "get_random");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_get_random_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "random_off");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_random_off_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "random_on");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_random_on_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "mpd update");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_update_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "next playlist");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_next_playlist_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "prev playlist");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_prev_playlist_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "seek");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_seek_l);
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);
     // } 
@@ -554,14 +599,14 @@ static bool lua_init() {
     lua_pushstring(L, "mode");
     lua_newtable(L);
 
-    lua_pushstring(L, "config_func");
-    lua_pushcfunction(L, (lua_CFunction) mode_configl);
+    lua_pushstring(L, "config");
+    lua_pushcfunction(L, (lua_CFunction) mode_config_l);
     lua_rawset(L, -3);  
     lua_pushstring(L, "next_mode");
-    lua_pushcfunction(L, (lua_CFunction) mode_next_model);
+    lua_pushcfunction(L, (lua_CFunction) mode_next_mode_l);
     lua_rawset(L, -3);  
     lua_pushstring(L, "get_mode_name");
-    lua_pushcfunction(L, (lua_CFunction) mode_get_mode_namel);
+    lua_pushcfunction(L, (lua_CFunction) mode_get_mode_name_l);
     lua_rawset(L, -3);  
 
     lua_rawset(L, -3);
@@ -570,8 +615,8 @@ static bool lua_init() {
     // capi.nes = {
     lua_pushstring(L, "nes");
     lua_newtable(L);
-    lua_pushstring(L, "config_func");
-    lua_pushcfunction(L, (lua_CFunction) nes_configl);
+    lua_pushstring(L, "config");
+    lua_pushcfunction(L, (lua_CFunction) nes_config_l);
     lua_rawset(L, -3);  
     lua_rawset(L, -3);
     // }
