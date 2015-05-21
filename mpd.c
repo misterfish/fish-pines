@@ -130,33 +130,6 @@ bool f_error = false;
  * Go into idle to receive updates (e.g. random).
  */
 
-#if 0
-#ifdef NO_NES
-bool _led_random_on() { 
-    info("random led on, teehee"); 
-    return true;
-}
-bool _led_random_off() { 
-    info("random led off, teehee"); 
-    return true;
-}
-bool _led_update_random(bool random) {
-    return random ? _led_random_on() : _led_random_off();
-}
-#else
-
-bool _led_random_on() { 
-    return led_update_random(true);
-}
-bool _led_random_off() { 
-    return led_update_random(false);
-}
-bool _led_update_random(bool random) { 
-    return led_update_random(random);
-}
-#endif
-#endif
-
 bool f_mpd_ok() {
     if (g.connection) {
         enum mpd_error e = mpd_connection_get_error(g.connection);
@@ -371,18 +344,13 @@ bool f_mpd_toggle_random(bool *r) {
     return ok;
 }
 
-/* Leds actually lit twice, once here, and once in response to event, which
- * lags a bit.
- */
 bool f_mpd_random_off() {
     f_try_rf(mpd_run_random(g.connection, false), "random off");
-    //return _led_random_off();
     return true;
 }
 
 bool f_mpd_random_on() {
     f_try_rf(mpd_run_random(g.connection, true), "random on");
-    //return _led_random_on();
     return true;
 }
 
@@ -411,7 +379,6 @@ bool f_mpd_update() {
             bool random;
             if (! f_mpd_get_random(&random))
                 pieprf;
-            //_led_update_random(random);
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
             info("Stored playlists have been altered / created, reloading.");

@@ -1,6 +1,11 @@
 require 'io'
 require 'string'
 
+
+local table = table
+local print = print
+local select = select
+local unpack = unpack
 local ipairs = ipairs
 local pairs = pairs
 local type = type
@@ -17,6 +22,7 @@ end
 
 function printf (format, ...) 
     if format == nil then
+        io.write("<nil>")
         return
     end
     io.write(string.format(format, ...))
@@ -24,6 +30,20 @@ end
 
 function sayf (format, ...)
     return printf(format .. "\n", ...)
+end
+
+function ipush(tbl, ...)
+    for i, v in select(1, ...) do
+        tbl[#tbl + 1] = v
+    end
+    return tbl
+end
+
+function push(tbl, ...)
+    for _,v in ipairs { select(1, ...) } do
+        tbl[table.maxn(tbl) + 1] = v
+    end
+    return tbl
 end
 
 -- takes itable as input, and map_fn(v, i)

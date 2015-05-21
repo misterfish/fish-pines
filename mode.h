@@ -12,7 +12,6 @@
 
 struct mode_t {
     char *name;
-    // leds XX
 };
 
 bool mode_init_config();

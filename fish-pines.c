@@ -252,6 +252,7 @@ static unsigned int read_buttons_testing() {
     int fd = 0; // stdin
     s = read(fd, buf, 1);
 
+info("HI");
     int ret;
     if (s == -1) {
         ret = 0;
@@ -612,6 +613,7 @@ static bool lua_init() {
     lua_rawset(L, -3);
     // } 
 
+#ifndef NO_NES
     // capi.nes = {
     lua_pushstring(L, "nes");
     lua_newtable(L);
@@ -620,6 +622,7 @@ static bool lua_init() {
     lua_rawset(L, -3);  
     lua_rawset(L, -3);
     // }
+#endif
 
     lua_setglobal(L, "capi");
 

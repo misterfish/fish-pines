@@ -28,3 +28,12 @@ configlocal = {
         seek = 5, -- secs
     }
 }
+
+--[[
+#define LED_ORANGE 12
+#define LED_BLUE 10
+
+#define LED_MODE LED_ORANGE
+#define LED_RANDOM LED_BLUE
+#define LED_REMAKE_PLAYLIST LED_BLUE
+]]

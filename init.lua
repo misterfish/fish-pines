@@ -5,13 +5,19 @@ require 'util'
 
 local u = util
 
-local say = util.say
-local printf = util.printf
-local sayf = util.sayf
-local imap = util.imap
-local map = util.map
+-- export everything from util
+setmetatable(_G, {__index = function(tbl, varname, val)
+    if (val == nil) then
+        return util[varname]
+    end
+end})
 
-for _,v in pairs {'mpd', 'nes', 'mode' } do
+local no_nes = os.getenv("NO_NES") == '1'
+
+local conf = {'mpd', 'mode'}
+if not no_nes then push(conf, 'nes') end
+
+for _,v in pairs(conf) do
     capi[v].config(config[v])
 end
 
@@ -19,18 +25,14 @@ function mode_next()
     capi.mode.next_mode()
     local m = capi.mode.get_mode_name()
     local col
-    if m == config.mode.modes[1] then
-        col = u.Y
-    else
-        col = u.CY
-    end
+    col = m == config.mode.modes[1] and Y or CY
 
     sayf("Switched to mode %s", col(m))
 end
 
 function toggle_random() 
     local rand = capi.mpd.toggle_random() 
-    printf("Random set to %s", u.CY(rand))
+    printf("Random set to %s", CY(rand))
 end
 
 local rules = {
@@ -38,7 +40,7 @@ local rules = {
     music = {
         press = {
             { 'b', 'right', handler = function() capi.mpd.seek(configlocal.mpd.seek) end },
-            { 'b', 'left',  handler = function() capi.mpd.seek(-1 * configlocal.mpd.seek) end },
+            { 'b', 'left',  handler = function() capi.mpd.seek(configlocal.mpd.seek * -1) end },
             { 'a',          once = true, handler = toggle_random },
             { 'select',     once = true, handler = mode_next  },
             { 'start',      once = true, handler = function() capi.mpd.toggle_play() end },

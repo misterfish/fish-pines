@@ -123,14 +123,6 @@ inline short BCM2WIRINGPI(short b) {
 #define POLL_MS     40
 #endif
 
-#define LED_ORANGE 12
-#define LED_BLUE 10
-
-#define LED_MODE LED_ORANGE
-#define LED_RANDOM LED_BLUE
-#define LED_REMAKE_PLAYLIST LED_BLUE
-
-//#define SHUTDOWN_HOLD_SECS 2
 #define SHUTDOWN_HOLD_SECS 0
 
 /* Switch down and up keys for volume control.
@@ -138,7 +130,6 @@ inline short BCM2WIRINGPI(short b) {
  */
 #define ANTON_MODE true
 
-#define LEDD_SOCK           "/tmp/.ledd-socket"
 #define VOLD_SOCK           "/tmp/.vold-simple-socket"
 #define FISH_VOL_SOCK       "%s/.local/share/fish-vol/socket"
 
