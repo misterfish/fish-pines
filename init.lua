@@ -35,6 +35,52 @@ function toggle_random()
     printf("Random set to %s", CY(rand))
 end
 
+local shutdown = (function () 
+    local time_down = {
+        secs = nil,
+        usecs = nil,
+    }
+    function start_pressed () 
+        time_down.secs, time_down.usecs = capi.util.get_clock()
+    end
+    function start_released ()
+        if time_down.secs == -1 or time_down.usecs == -1 then
+            return warn "start_released called before start_pressed."
+        end
+        -- assume we're not talking about more than 10 secs here.
+        local toen = {}
+        local now = {}
+        now.secs, now.usecs = capi.util.get_clock()
+        toen.secs, toen.usecs = time_down.secs, time_down.usecs
+
+        for _,v in pairs {now, toen} do
+            local s = string.sub(v.secs, -2) -- ok on numbers, too
+            v.combined = s + v.usecs * 1e-6
+        end
+
+        if now.combined - toen.combined > configlocal.shutdown_secs then
+            doit()
+        end
+    end
+    function doit () 
+        say "Shutting down!"
+        local cmd = "sudo shutdown"
+        local code = os.execute(cmd)
+        if code ~= 0 then
+            warnf("Couldn't execute cmd «%s», code was «%s»", BR(cmd), Y(code))
+        end
+    end
+
+    return {
+        start_pressed = start_pressed,
+        start_released = start_released
+    }
+end )()
+
+function test ()
+end
+
+-- rules can also have a 'chain' attribute (default false)
 local rules = {
     -- mode = music
     music = {
@@ -52,6 +98,10 @@ local rules = {
     general = {
         press = {
             { 'select',     once = true, handler = mode_next  },
+            { 'start',      once = true, handler = shutdown.start_pressed  },
+        },
+        release = {
+            { 'start',      handler = shutdown.start_released  },
         }
     }
 }

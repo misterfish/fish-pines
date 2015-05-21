@@ -252,7 +252,6 @@ static unsigned int read_buttons_testing() {
     int fd = 0; // stdin
     s = read(fd, buf, 1);
 
-info("HI");
     int ret;
     if (s == -1) {
         ret = 0;
@@ -612,6 +611,19 @@ static bool lua_init() {
 
     lua_rawset(L, -3);
     // } 
+
+    // capi.util = {
+    lua_pushstring(L, "util");
+    lua_newtable(L);
+
+    lua_pushstring(L, "get_clock");
+    lua_pushcfunction(L, (lua_CFunction) util_get_clock_l);
+    lua_rawset(L, -3);  
+
+    lua_rawset(L, -3);
+    // } 
+
+
 
 #ifndef NO_NES
     // capi.nes = {

@@ -26,7 +26,8 @@ config = {
 configlocal = {
     mpd = {
         seek = 5, -- secs
-    }
+    },
+    shutdown_secs = 1.3,
 }
 
 --[[

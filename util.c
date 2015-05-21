@@ -1,11 +1,16 @@
 #define _BSD_SOURCE // cfmakeraw
+//#define _POSIX_C_SOURCE 199309L // time stuff
+
 #include <unistd.h> // _exit
+//#include <time.h>
+#include <sys/time.h>
 
 #include <lua.h>
 //#include <lauxlib.h>
 
 #include <fish-util.h>
 
+#include "global.h"
 #include "util.h"
 
 struct termios save_attr_cooked;
@@ -134,4 +139,57 @@ void check_lua_err(int rc, char *format, ...) {
     }
 }
 
+bool util_get_clock(time_t *secs, suseconds_t *usecs) {
 
+#if 0 // requires extra feature macros, and -lrt.
+bool util_get_clock(time_t *secs, long *nanosecs) {
+    /*
+     *    struct timespec {
+     *        time_t   tv_sec;        // seconds
+     *        long     tv_nsec;       // nanoseconds
+     *    };
+     */
+    struct timespec ts = {0};
+
+    if (clock_gettime(CLOCK_REALTIME, &ts)) {
+        warn_perr("Can't get realtime clock");
+        return false;
+    }
+    *secs = ts.tv_sec;
+    *nanosecs = ts.tv_nsec;
+#endif
+
+    /*
+    struct timeval {
+        time_t      tv_sec;     // seconds
+        suseconds_t tv_usec;    // microseconds
+    };
+    */
+
+    struct timeval tv = {0};
+    struct timezone *tz = NULL;
+
+    if (gettimeofday(&tv, tz)) {
+        warn_perr("Can't call gettimeofday()");
+        return false;
+    }
+    *secs = tv.tv_sec;
+    *usecs = tv.tv_usec;
+
+    return true;
+}
+
+int util_get_clock_l() {
+    time_t secs = {0};
+    //long nanosecs;
+    suseconds_t usecs = {0};
+    if (! util_get_clock(&secs, &usecs)) {
+        lua_pushstring(global.L, "Can't get clock.");
+        lua_error(global.L);
+        return 0;
+    }
+    lua_pushnumber(global.L, secs);
+    lua_pushnumber(global.L, usecs);
+
+    return 2;
+}

@@ -84,8 +84,11 @@ int buttons_add_rule_l() {
                     lua_error(global.L);
                 }
             }
+            /* Note that a nil handler will never even show up here (can't
+             * have nil as value in a table).
+             */
             else if (! strcmp(key, "handler")) {
-                if (strcmp(lua_typename(L, lua_type(L, -1)), "function")) 
+                if (strcmp(lua_typename(L, lua_type(L, -1)), "function"))
                     piep;
                 else {
                     int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops

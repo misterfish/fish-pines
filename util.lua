@@ -1,6 +1,6 @@
-require 'io'
-require 'string'
-
+--require 'io'
+--require 'string'
+--require 'math'
 
 local table = table
 local print = print
@@ -11,6 +11,7 @@ local pairs = pairs
 local type = type
 local tostring = tostring
 local io = io
+local math = math
 local string = string
 
 module('util')
@@ -18,6 +19,10 @@ module('util')
 function say (...) 
     io.write(...)
     io.write('\n')
+end
+
+function spr (...)
+    return string.format(...)
 end
 
 function printf (format, ...) 
@@ -32,7 +37,24 @@ function sayf (format, ...)
     return printf(format .. "\n", ...)
 end
 
-function ipush(tbl, ...)
+--local BULLETS = {'꣐', '⩕', '٭', '᳅', '�', '�', '�', '�', '�'}
+local BULLETS = {'꣐', '⩕', '٭', '᳅'}
+
+function bullet() 
+    return BULLETS[1 + math.floor(math.random() * #BULLETS)]
+end
+
+function warnf (format, ...) 
+    sayf("%s " .. format, BR(bullet()), ...)
+    return nil
+end
+
+function warn (string) 
+    warnf(string)
+    return nil
+end
+
+function ipush (tbl, ...)
     for i, v in select(1, ...) do
         tbl[#tbl + 1] = v
     end
@@ -94,3 +116,25 @@ function BM(s) return color(95, s) end
 function CY(s) return color(36, s) end 
 function BCY(s) return color(96, s) end 
 
+
+
+
+
+--[[ lua 5.2
+        local ok, how, value = os.execute(cmd)
+        local isok = true
+        --if not ok then
+        local str = spr("Couldn't execute cmd «%s»", BR(cmd))
+        say(how)
+        if how == 'signal' then
+            isok = false
+            str = str .. spr(", got signal «%s»", CY(value))
+        elseif how == 'exit' then 
+            if value == 0 then
+                isok = true
+            else
+                isok = false
+                str = str .. spr(", exit code was «%s»", CY(value))
+            end
+        end
+]]
