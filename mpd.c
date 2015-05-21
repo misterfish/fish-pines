@@ -304,7 +304,7 @@ bool f_mpd_cleanup() {
      */
     mpd_connection_free(g.connection);
 
-    if (!vec_destroy_flags(g.playlist_vec, VEC_DESTROY_DEEP))
+    if (!vec_destroy_f(g.playlist_vec, VEC_DESTROY_DEEP))
         pieprf;
 
     return true;

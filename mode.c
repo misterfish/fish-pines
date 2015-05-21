@@ -81,7 +81,6 @@ bool mode_init() {
     g.num_modes = num_modes;
     for (int i = 0; i < num_modes; i++) {
         char *name = (char *) vec_get(mode_names, i);
-        //info("Got mode: %s", m);
         struct mode_t *mode = f_mallocv(*mode);
         memset(mode, '\0', sizeof *mode);
         // No dup. Assume conf doesn't get cleaned up.
@@ -89,11 +88,11 @@ bool mode_init() {
         vec_add(g.modes, mode);
     }
 
-/*
-info("size is %d", s);
-*/
-
     return mode_set_mode(0);
+}
+
+short mode_get_num_modes() {
+    return g.num_modes;
 }
 
 char *mode_get_mode_name() {

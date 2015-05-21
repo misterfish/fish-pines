@@ -1,6 +1,8 @@
 # Use caps for vars which users are allowed to initialise from outside (and
 # CC, which is special).
 
+# fish-util remake should trigger a remake of us XX
+
 cc 		= gcc -ggdb
 CC 		= $(cc) 
 

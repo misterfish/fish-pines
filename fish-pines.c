@@ -51,13 +51,16 @@ static void debug_read(unsigned int read_canonical, char *ret);
 
 static void cleanup();
 
-static bool do_read(unsigned int cur_read);
-static bool process_read(unsigned int read, char *button_print);
+static bool do_read(short cur_read);
+static bool process_read(short read, char *button_print);
 static int get_max_button_print_size();
 
 static bool init_globals();
 static void init_state();
-static bool init_lua();
+
+static bool lua_init();
+static bool lua_buttons_config();
+
 static int get_max_button_print_size();
 #ifdef DEBUG
 static int make_canonical(unsigned int read);
@@ -153,12 +156,7 @@ int main() {
 
     flua_config_set_verbose(true);
 
-    /* Before init_lua.
-     */
-    if (! buttons_init()) 
-        ierr("Couldn't init buttons");
-
-    if (! init_lua()) 
+    if (! lua_init()) 
         err("Can't init lua.");
 
 #ifndef NO_NES
@@ -177,8 +175,12 @@ int main() {
         err("Couldn't set terminal raw.");
 #endif
 
+    /* Before buttons_init, which needs to know about the modes. */
     if (! mode_init()) 
         ierr("Couldn't init mode");
+
+    if (! buttons_init()) 
+        ierr("Couldn't init buttons");
 
     if (! vol_init()) 
         ierr("Couldn't init vol");
@@ -186,6 +188,9 @@ int main() {
     info("setting up ctl + mpd");
     if (! f_mpd_init()) 
         err("Couldn't init mpd.");
+
+    if (! lua_buttons_config()) 
+        err("Can't init lua buttons.");
 
     int first = 1;
     unsigned int cur_read = 0;
@@ -270,7 +275,7 @@ static unsigned int read_buttons_testing() {
 }
 #endif
 
-static bool do_read(unsigned int cur_read) {
+static bool do_read(short cur_read) {
 #ifdef DEBUG
     if (cur_read) {
         /* our bit order
@@ -308,85 +313,131 @@ static bool do_read(unsigned int cur_read) {
     return true;
 }
 
-static bool process_read(unsigned int read, char *button_print) {
-    static unsigned int prev_read = -1;
+static bool process_read(short read, char *button_print) {
+    static short prev_read = 0;
 
-int mode = 0; // XX
+    static vec *rules_press = NULL;
+    static vec *rules_release = NULL;
+    if (!rules_press) 
+        rules_press = vec_new();
+    else if (! vec_clear(rules_press))
+        pieprf;
 
-    struct button_rule_t *rule_press = NULL;
-    if (read)
-        rule_press = buttons_get_rule_press(mode, read);
-    struct button_rule_t *rule_release = NULL;
+    if (!rules_release) 
+        rules_release = vec_new();
+    else if (! vec_clear(rules_release))
+        pieprf;
 
-    bool kill_multiple = BUTTONS_KILL_MULTIPLE_DEFAULT;
-    bool has_event_press = false, has_event_release = false;
-    if (rule_press) {
-        kill_multiple = rule_press->kill_multiple;
-        has_event_press = rule_press->has_handler;
+    short mode = mode_get_mode();
+
+    if (read) {
+        if (! buttons_get_rules_press(mode, read, rules_press))
+            pieprf;
     }
 
-    if ((prev_read == read) && kill_multiple) {
-#ifdef DEBUG
-        info("Ignoring read %d (kill multiple is true)", read);
-#endif
-        return true;
-    }
-
-    if (button_print) 
+    if ((prev_read != read) && button_print) 
         printf("[ %s ] ", button_print);
 
-    /* Do the release events for each button. 
-     * Then do the event matching the combination.
+    /* Cycle through individual buttons, triggering their release events if
+     * they have them. 
      *
-     * Note that even a 3-button combination followed by releasing one of
-     * the 3 buttons will generate a release event for that button.
+     * Note that an n-button combination followed by releasing one of
+     * the buttons will generate a release event for that button (followed
+     * by a press event for the (n-1) combination.
+     *
+     * Also, 'once' only applies to press events.
      */
+
     bool ok = true;
     for (int i = 0; i < 8; i++) {
         int button_flag = BUTTONS(i); // wiringPi system
 
-        /* Button down (press or hold).
-         */
+        /* Button down (press or hold) -- do nothing */
         if (read & button_flag) {
         }
 
-        /* Button not down.
-         */
+        /* Button not down. */
         else {
-            /* It was down before (i.e., now released).
-             */
+            /* It was down before (i.e., now released). */
             if (prev_read & button_flag) {
-                if ((rule_release = buttons_get_rule_release(mode, button_flag))) {
+                if (! buttons_get_rules_release(mode, button_flag, rules_release)) {
+                    piepc;
+                }
+
+                int j, l;
+                for (j = 0, l = vec_size(rules_release); j < l; j++) {
+                    struct button_rule_t *rule_release = (struct button_rule_t *) vec_get(rules_release, j);
+                    if (! rule_release) {
+                        piepc;
+                    }
+
                     if (rule_release->has_handler) {
                         int reg_idx = rule_release->handler;
                         lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
-                        if (lua_pcall(global.L, 0, 0, 0)) {
-                            ok = false;
-                            piepc; // XX
+
+                        /* Don't set ok to false -- not serious enough. */
+                        int rc;
+                        if ((rc = lua_pcall(global.L, 0, 0, 0))) {
+                            const char *err = luaL_checkstring(global.L, -1);
+                            check_lua_err(rc, "Lua error on press event: %s", err);
+                            continue;
                         }
                     }
                 }
             }
 
-            /* Was up and stayed up, do nothing.
-             */
+            /* Was up and stayed up -- do nothing. */
             else {
             }
         }
     }
 
-    if (has_event_press) {
-        int reg_idx = rule_press->handler;
-        lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
-        /* Don't set ok to false (it's not bad enough to bubble up as a
-         * failed process_read()).
-         */
-        int rc;
-        if (rc = lua_pcall(global.L, 0, 0, 0)) {
-            const char *err = luaL_checkstring(global.L, -1);
-            check_lua_err(rc, "Lua error on press event: %s", err);
+    if (! read) 
+        goto END;
+
+    /*
+     * Then do the event matching the combination.
+     *
+     * by a combo-event for the two remaining.
+     */
+    int j = 0, l = vec_size(rules_press);
+
+    if (l == 0) 
+        printf("[ … ] ");
+
+    for (; j < l; j++) {
+        struct button_rule_t *rule_press = (struct button_rule_t *) vec_get(rules_press, j);
+        if (! rule_press) {
+            piepc;
         }
+        if (rule_press->once && prev_read == read) {
+#ifdef DEBUG
+            info("Ignoring read %d (->once is true)", read);
+#endif
+            if (! rule_press->chain) 
+                break;
+            else
+                continue;
+        }
+
+        if (prev_read == read)
+            printf("[ … ] ");
+
+        if (rule_press->has_handler) {
+            int reg_idx = rule_press->handler;
+            lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
+
+            /* Don't set ok to false -- not serious enough. */
+            int rc;
+            if ((rc = lua_pcall(global.L, 0, 0, 0))) {
+                const char *err = luaL_checkstring(global.L, -1);
+                check_lua_err(rc, "Lua error on press event: %s", err);
+            }
+        }
+        if (! rule_press->chain) 
+            break;
     }
+END:
     prev_read = read;
     return ok;
 }
@@ -439,7 +490,7 @@ void creak() {
     fprintf(stderr, "CREAK!\n");
 }
 
-static bool init_lua() {
+static bool lua_init() {
     lua_State *L = global.L;
     /* Was set in luaL but overwrite it. 
      * Returns old panic function.
@@ -530,11 +581,25 @@ static bool init_lua() {
         return false;
     }
 
-    if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
-        warn("Failed to run script: %s\n", lua_tostring(L, -1));
+    int rc;
+    if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
+        const char *err = luaL_checkstring(L, -1);
+        check_lua_err(rc, "Failed to run init.lua: %s", err);
         return false;
     }
 
+    return true;
+}
+
+static bool lua_buttons_config() {
+    lua_State *L = global.L;
+    lua_getglobal(L, "buttons_config");
+    int rc;
+    if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
+        const char *err = luaL_checkstring(L, -1);
+        check_lua_err(rc, "Failed to run buttons_config: %s", err);
+        return false;
+    }
     return true;
 }
 

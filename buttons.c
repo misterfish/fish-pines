@@ -12,19 +12,19 @@
 #define BUTTONS_RELEASE 1
 
 /* vector of vector of vectors.
- * outer index is mode. 
- * next vector is indexed by 0/1 (press/release)
- * finally, vector of button_rule_t.
+ * [ mode => [ {_PRESS|_RELEASE} => [ button_rule_t *rule, ...] ] ]
  */
 static struct {
     vec *rules;
 } g;
 
-static vec *get_rules(short mode, short event);
-static struct button_rule_t *get_rule(short mode, short event, short read);
+/* Return pointer to our global vector-in-a-vector. */
+static vec *get_rules_for_event(short mode, short event);
+
+/* Fill in the given vector. */
+static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret);
 
 // add checks for combos / single logic.
-// and comments. XX
 
 /* Throws.
  */
@@ -32,6 +32,7 @@ int buttons_add_rulel() {
     lua_State *L = global.L;
     lua_pushnil(L); // init iter
     short buttons = 0;
+    short mode = -1;
     short event = -1;
 
     struct button_rule_t *rule = f_mallocv(*rule);
@@ -44,29 +45,33 @@ int buttons_add_rulel() {
             if (! strcmp(value, "a")) 
                 buttons |= N_A;
             else if (! strcmp(value, "b"))
-                buttons += N_B;
+                buttons |= N_B;
             else if (! strcmp(value, "select"))
-                buttons += N_SELECT;
+                buttons |= N_SELECT;
             else if (! strcmp(value, "start"))
-                buttons += N_START;
+                buttons |= N_START;
             else if (! strcmp(value, "up"))
-                buttons += N_UP;
+                buttons |= N_UP;
             else if (! strcmp(value, "down"))
-                buttons += N_DOWN;
+                buttons |= N_DOWN;
             else if (! strcmp(value, "left"))
-                buttons += N_LEFT;
+                buttons |= N_LEFT;
             else if (! strcmp(value, "right"))
-                buttons += N_RIGHT;
+                buttons |= N_RIGHT;
         }
         else {
             const char *key = luaL_checkstring(L, -2);
-            if (! strcmp(key, "kill_multiple")) {
+            if (! strcmp(key, "once")) {
                 const bool value = lua_toboolean(L, -1);
-                rule->kill_multiple = value;
+                rule->once = value;
+            }
+            if (! strcmp(key, "chain")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->chain = value;
             }
             else if (! strcmp(key, "mode")) {
-                const char *value = luaL_checkstring(L, -1);
-                // XX
+                lua_Number val = luaL_checknumber(L, -1);
+                mode = (short) val;
             }
             else if (! strcmp(key, "event")) {
                 const char *value = luaL_checkstring(L, -1);
@@ -93,7 +98,10 @@ int buttons_add_rulel() {
         lua_pop(L, 1);
     }
 
-    short mode = mode_get_mode();
+    if (mode == -1) {
+        lua_pushstring(global.L, "Need mode for rule.");
+        lua_error(global.L);
+    }
 
     if (event == -1) {
         lua_pushstring(global.L, "Need event for rule.");
@@ -108,7 +116,7 @@ int buttons_add_rulel() {
     rule->buttons = buttons;
     rule->event = event;
 
-    vec *rules = get_rules(mode, event);
+    vec *rules = get_rules_for_event(mode, event);
 
     if (! rules) 
         piepr0;
@@ -118,7 +126,7 @@ int buttons_add_rulel() {
     return 0;
 }
 
-static vec *get_rules(short mode, short event) {
+static vec *get_rules_for_event(short mode, short event) {
     vec *rules_for_mode = vec_get(g.rules, mode);
     if (!rules_for_mode) 
         pieprnull;
@@ -128,13 +136,35 @@ static vec *get_rules(short mode, short event) {
     return rules_for_event;
 }
 
-// XX
-#define NUMMODES 2
+static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret) {
+    vec *rules_for_event = get_rules_for_event(mode, event);
+    if (!rules_for_event)
+        pieprf;
+    int i, l;
+    for (i = 0, l = vec_size(rules_for_event); i < l; i++) {
+        // ok to cast NULL
+        struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules_for_event, i);
+        if (! rule) 
+            pieprf;
+
+        short rule_buttons = rule->buttons;
+        if ((read & rule_buttons) == rule_buttons) {
+            // got it.
+            if ( !vec_add(rules_ret, rule)) 
+                pieprf;
+        }
+    }
+    return true;
+}
 
 bool buttons_init() {
     g.rules = vec_new();
 
-    for (int i = 0; i < NUMMODES; i++) {
+info("modes %d", mode_get_num_modes());
+
+    short modes = mode_get_num_modes();
+
+    for (int i = 0; i < modes; i++) {
         vec *rules_for_mode = vec_new();
         vec_add(g.rules, rules_for_mode);
 
@@ -209,50 +239,16 @@ bool buttons_init() {
     return true;
 }
 
-struct button_rule_t *buttons_get_rule_press(short mode, short read) {
-    return get_rule(mode, BUTTONS_PRESS, read);
-}
-struct button_rule_t *buttons_get_rule_release(short mode, short read) {
-    return get_rule(mode, BUTTONS_RELEASE, read);
+bool buttons_get_rules_press(short mode, short read, vec *rules_ret) {
+    return get_rules_for_read(mode, BUTTONS_PRESS, read, rules_ret);
 }
 
-static struct button_rule_t *get_rule(short mode, short event, short read) {
-    vec *rules = get_rules(mode, event);
-    if (!rules)
-        pieprnull;
-
-    int cnt = vec_size(rules);
-
-    /* Stop on first matching rule.
-     */
-    for (int i = 0; i < cnt; i++) {
-        // ok to cast NULL
-        struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules, i);
-        if (! rule) { 
-            piepc;
-        }
-
-        short rule_buttons = rule->buttons;
-        if ((read & rule_buttons) == rule_buttons) {
-            // got it.
-            return rule;
-        }
-    }
-
-    return NULL;
+bool buttons_get_rules_release(short mode, short read, vec *rules_ret) {
+    return get_rules_for_read(mode, BUTTONS_RELEASE, read, rules_ret);
 }
 
 bool buttons_cleanup() {
+    // XX
     bool ok = true;
-    /*
-    if (!vec_destroy_flags(rules_music, VEC_DESTROY_DEEP)) {
-        piep;
-        ok = false;
-    }
-    if (!vec_destroy_flags(rules_general, VEC_DESTROY_DEEP)) {
-        piep;
-        ok = false;
-    }
-    */
     return ok;
 }

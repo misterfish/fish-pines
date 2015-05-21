@@ -15,12 +15,30 @@ function sayf (format, ...)
     io.write(string.format(format, ...))
 end
 
-function map (map_fn, itable)
+-- takes itable as input, and map_fn(v, i)
+-- caller is free to mess with i.
+-- depending on that, the return is an itable or a table.
+function imap (map_fn, itable)
     local result = {}
-    local idx = 0
-    for i,v in ipairs(itable) do
-        idx = idx + 1
-        result[idx] = map_fn(i, v)
+    for i, v in ipairs(itable) do
+        local newi, newv
+        newi, newv = map_fn(v, i)
+        result[newi] = newv
+    end
+    return result
+end
+
+-- takes table as input, and map_fn(v, k)
+-- caller is free to mess with k.
+-- depending on that, the return is an itable or a table.
+-- actually map can do everything imap can do, only imap officially
+-- calls ipairs instead of pairs.
+function map (map_fn, table)
+    local result = {}
+    for k, v in pairs(table) do
+        local newk, newv
+        newk, newv = map_fn(v, k)
+        result[newk] = newv
     end
     return result
 end
@@ -70,27 +88,37 @@ local rules = {
     -- mode = music
     music = {
         press = {
-            { 'b', 'right', kill_multiple = false, handler = stickthyme },
-            { 'b',          kill_multiple = false, handler = stickthyme2 },
-            { 'a', 'right', kill_multiple = false, handler = stickthyme2 },
-            { 'a',          kill_multiple = true, handler = stickthyme2 },
-            { 'select',          kill_multiple = true, handler = mode_next  },
+            { 'b', 'right', handler = stickthyme },
+            { 'b',          handler = stickthyme2 },
+            { 'a', 'right', handler = stickthyme2 },
+            { 'a',          handler = stickthyme2 },
+            { 'select',     once = true, handler = mode_next  },
         },
         release = {
-            { 'b'       , handler = stickthyme3 },
+            { 'b',          handler = stickthyme3 },
         }
     },
     -- mode = general
     general = {
+        press = {
+            { 'select',     once = true, handler = mode_next  },
+        }
     }
 }
 
-for mode,t in pairs(rules) do
-    for event,u in pairs(t) do
-        for _,rule in ipairs(u) do
-            rule.mode = mode
-            rule.event = event
-            capi.buttons.add_rule(rule)
+-- called by C after init.
+function buttons_config() 
+    local mode_names = imap(function (v, i) 
+        return v, i
+    end, config.mode.modes)
+
+    for mode,t in pairs(rules) do
+        for event,u in pairs(t) do
+            for _,rule in ipairs(u) do
+                rule.mode = mode_names[mode] - 1
+                rule.event = event
+                capi.buttons.add_rule(rule)
+            end
         end
     end
 end

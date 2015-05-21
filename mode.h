@@ -29,4 +29,6 @@ int mode_configl();
 int mode_next_model();
 int mode_get_mode_namel();
 
+short mode_get_num_modes();
+
 #endif
