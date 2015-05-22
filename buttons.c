@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 
+#include <math.h>
+
 #include <lua.h>
 #include <lauxlib.h> // luaL_ functions..h>
 
@@ -92,7 +94,7 @@ int buttons_add_rule_l() {
                 else if (! strcmp(value, "release"))
                     event = BUTTONS_RELEASE;
                 else {
-                    lua_pushstring(global.L, ("Unknown event type %s."));
+                    lua_pushstring(global.L, "Unknown event type");
                     lua_error(global.L);
                 }
             }
@@ -108,6 +110,33 @@ int buttons_add_rule_l() {
                     rule->handler = reg_index;
                     continue;
                 }
+            }
+        }
+        /* Disallow combinations for release events. We do it by checking
+         * that the button flag is a pure power of 2 (probably a faster
+         * way).
+         *
+         * Also disallow setting of 'once', 'exact', or 'chain'
+         * (specifically, disallow setting it to a value other than the
+         * default).
+         */
+        if (event == BUTTONS_RELEASE) {
+            float power = log(buttons) / log(2);
+            if (power != (int) power) {
+                lua_pushstring(global.L, "Release events can not be applied to combinations.");
+                lua_error(global.L);
+            }
+            if (rule->once != DEFAULT_ONCE) {
+                lua_pushstring(global.L, "Attribute 'once' not writeable for release events.");
+                lua_error(global.L);
+            }
+            if (rule->exact != DEFAULT_EXACT) {
+                lua_pushstring(global.L, "Attribute 'exact' not writeable for release events.");
+                lua_error(global.L);
+            }
+            if (rule->chain != DEFAULT_CHAIN) {
+                lua_pushstring(global.L, "Attribute 'chain' not writeable for release events.");
+                lua_error(global.L);
             }
         }
         lua_pop(L, 1);

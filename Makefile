@@ -46,6 +46,7 @@ CFLAGS		+= $(foreach i,$(modules_manual),$(${i}_cflags))
 CFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --cflags))
 
 LDFLAGS		+= -Wl,--export-dynamic
+LDFLAGS		+= -lm # log
 LDFLAGS		+= $(foreach i,$(modules_manual),$(${i}_ldflags))
 LDFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --libs))
 

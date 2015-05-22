@@ -5,14 +5,18 @@
 ./shutdown.lua
 ./init.lua
 ./README
+./vol.lua
+./mode.lua
 ./const.h
 ./INSTALL
 ./Makefile
 ./config.lua
+./gpio.h
 ./nes.h
 ./util.lua
 ./vol.h
 ./mpd.h
+./led.lua
 ./fish-lib-util/README.md
 ./fish-lib-util/fish-utils/fish-utils/vec.h
 ./fish-lib-util/fish-utils/fish-utils/regex.h
@@ -31,6 +35,7 @@
 ./global.c
 ./global.h
 ./flua_config.c
+./gpio.c
 ./buttons.c
 ./flua_config.h
 ./mpd.c
