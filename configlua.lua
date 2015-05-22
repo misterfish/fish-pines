@@ -15,5 +15,16 @@ return {
         -- BCM numbering.
         random = 15,
         mode = 18,
-    }
+    },
+    vol = {
+        upamount = 5,
+        downamount = 5,
+        sock = os.getenv('HOME') .. '/.local/share/fish-vol/socket'
+    },
+    verbose = {
+        sockets = false,
+    },
+    -- switch down and up for changing the volume.
+    -- useful for bugging the bartender.
+    anton_mode = true,
 }

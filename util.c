@@ -6,12 +6,14 @@
 #include <sys/time.h>
 
 #include <lua.h>
-//#include <lauxlib.h>
+#include <lauxlib.h>
 
 #include <fish-util.h>
 
 #include "global.h"
 #include "util.h"
+
+#define SOCKET_LENGTH_DEFAULT 100
 
 struct termios save_attr_cooked;
 bool saved;
@@ -192,4 +194,16 @@ int util_get_clock_l() {
     lua_pushnumber(global.L, usecs);
 
     return 2;
+}
+
+int util_socket_unix_message() {
+    const char *filename = luaL_checkstring(global.L, -2);
+    const char *msg = luaL_checkstring(global.L, -1);
+    char response[SOCKET_LENGTH_DEFAULT];
+    if (! f_socket_unix_message_f(filename, msg, response, SOCKET_LENGTH_DEFAULT)) {
+        warn("Couldn't send message to socket.");
+        return 0;
+    }
+    lua_pushstring(global.L, f_strdup(response));
+    return 1;
 }

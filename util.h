@@ -38,5 +38,6 @@ void check_lua_err(int rc, char *format, ...);
 bool util_get_clock(time_t *secs, long *nanosecs);
 
 int util_get_clock_l();
+int util_socket_unix_message();
 
 #endif

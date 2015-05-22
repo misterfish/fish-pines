@@ -11,6 +11,7 @@ config          = require 'config'
 configlua       = require 'configlua'
 
 shutdown        = require 'shutdown'
+vol             = require 'vol'
 led             = require 'led'
 custom          = require 'custom'
 mode            = require 'mode'
@@ -85,6 +86,8 @@ local rules = {
             {      'left',  handler = function() capi.mpd.prev_song() end },
             { 'b', 'up',    handler = function() capi.mpd.next_playlist() end },
             { 'b', 'down',  handler = function() capi.mpd.prev_playlist() end },
+            {      'down',  handler = function() vol.down() end },
+            { 'up',         handler = function() vol.up() end },
             { 'a',          once = true, handler = toggle_random },
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      once = true, handler = function() capi.mpd.toggle_play() end },

@@ -645,6 +645,10 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) util_get_clock_l);
     lua_rawset(L, -3);  
 
+    lua_pushstring(L, "socket_unix_message");
+    lua_pushcfunction(L, (lua_CFunction) util_socket_unix_message);
+    lua_rawset(L, -3);  
+
     lua_rawset(L, -3);
     // } 
 
