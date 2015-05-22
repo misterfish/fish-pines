@@ -1,23 +1,10 @@
 # Use caps for vars which users are allowed to initialise from outside (and
 # CC, which is special).
 
-cc 		= gcc 
+# fish-util remake should trigger a remake of us XX
+
+cc 		= gcc #-ggdb
 CC 		= $(cc) 
-
-CFLAGS		+= -std=c99 
-LDFLAGS		?= 
-
-main		= fish-pines
-
-# Will be looped over to build <module>_cflags, <module>_ldflags, etc.
-modules 	= fishutil fishutils
-submodules	= fish-lib-util
-
-fishutil_dir		= fish-lib-util
-fishutil_cflags		= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-util)
-fishutil_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-util)
-fishutils_cflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-utils)
-fishutils_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-utils)
 
 ifeq ($(NO_NES), 1)
     CC 	+= -DNO_NES
@@ -27,12 +14,24 @@ ifeq ($(DEBUG), 1)
     CC += -DDEBUG
 endif
 
-modules 		= mpdclient wiringPi fishutil fishutils
-submodules		= fish-lib-util
-pkg_names		=
+CFLAGS		+= -std=c99 
+LDFLAGS		?= 
 
-mpdclient_cflags	= # system-wide
-mpdclient_ldflags	= -lmpdclient 
+main		= fish-pines
+
+# Will be looped over to put <module>_cflags, <module>_ldflags into CFLAGS
+# and LDFLAGS.
+modules_manual 		= fishutil fishutils wiringPi
+modules_pkgconfig	= libmpdclient lua5.1 glib-2.0
+# Subdirectories (will be make -C'ed).
+# wiringPi
+submodules		= fish-lib-util
+
+fishutil_dir		= fish-lib-util
+fishutil_cflags		= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-util)
+fishutil_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-util)
+fishutils_cflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-utils)
+fishutils_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-utils)
 
 wiringPi_cflags		= -IwiringPi/devLib -IwiringPi/wiringPi 
 wiringPi_ldflags	=
@@ -41,17 +40,21 @@ ifneq ($(NO_NES), 1)
     wiringPi_ldflags	+= -LwiringPi/wiringPi -lwiringPi -LwiringPi/devLib -lwiringPiDev
 endif
 
-CFLAGS		+= -W -Wall -Wextra -I./
-CFLAGS		+= $(foreach i,$(modules),$(${i}_cflags))
+CFLAGS		+= -Werror=implicit-function-declaration -W -Wall -Wextra -I./
+CFLAGS		+= -Wno-missing-field-initializers # GCC bug with {0}
+CFLAGS		+= $(foreach i,$(modules_manual),$(${i}_cflags))
+CFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --cflags))
 
 LDFLAGS		+= -Wl,--export-dynamic
-LDFLAGS		+= $(foreach i,$(modules),$(${i}_ldflags))
+LDFLAGS		+= $(foreach i,$(modules_manual),$(${i}_ldflags))
+LDFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --libs))
 
-src		= $(main).c vol.c mode.c buttons.c ctl-default.c ctl-custom.c led.c mpd.c util.c global.c
 
-hdr		= vol.h mode.h buttons.h ctl-default.h ctl-custom.h led.h mpd.h util.h
+src		= $(main).c vol.c buttons.c mpd.c gpio.c mode.c util.c flua_config.c
 
-obj		= $(main).o vol.o mode.o buttons.o ctl-default.o ctl-custom.o led.o mpd.o util.o global.o
+hdr		= vol.h buttons.h mpd.h gpio.h mode.h util.h global.h const.h flua_config.h
+
+obj		= $(main).o vol.o buttons.o mpd.o gpio.o mode.o util.o flua_config.o
 
 ifneq ($(NO_NES), 1)
     src  	+= nes.c
@@ -61,14 +64,11 @@ endif
 all: submodules $(main)
 
 submodules: 
-	for i in "$(submodules)"; do \
-	    cd "$$i"; \
-	    make; \
-	    cd ..; \
-	done;
+	@for i in "$(submodules)"; do \
+	    make -C "$$i"; \
+	done
 
 $(main): $(src) $(hdr) $(obj)
-	@#echo $(CC) $(CFLAGS) $(LDFLAGS) $(obj) -o $(main)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(obj) -o $(main)
 
 # Note that all objs get rebuilt if any header changes. 

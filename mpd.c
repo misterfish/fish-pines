@@ -12,20 +12,58 @@
 #include <fish-util.h>
 #include <fish-utils.h>
 
-//#include <fish-pigpio.h> // works also on no_nes but why XX
-
+#include "fish-pines.h"
 #include "global.h"
-#include "led.h"
+#include "const.h"
+#include "flua_config.h"
+#include "util.h"
 
 #include "mpd.h"
+
+#define CONF_NAMESPACE "mpd"
+
+#define CONF_DEFAULT_HOST "localhost"
+#define CONF_DEFAULT_PORT 6600
+#define CONF_DEFAULT_TIMEOUT_MS 3000
+#define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
+
+static struct flua_config_conf_item_t CONF[] = {
+    flua_conf_default(timeout_ms, integer, CONF_DEFAULT_TIMEOUT_MS)
+    flua_conf_default(host, string, CONF_DEFAULT_HOST)
+
+    flua_conf_default(port, integer, CONF_DEFAULT_PORT)
+    flua_conf_default(timeout_playlist_ms, integer, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
+    flua_conf_default(play_on_load_playlist, boolean, false)
+    flua_conf_optional(playlist_path, string)
+    flua_conf_optional(update_on_n_ticks, integer)
+
+    flua_conf_last
+};
 
 static int get_state();
 static int get_queue_pos();
 static int get_elapsed_time();
 static bool load_playlist(int idx);
+static bool have_playlists();
 static bool reload_playlists();
 
+static struct {
+    struct flua_config_conf_t *conf;
+    bool lua_initted;
+
+    struct mpd_connection *connection;
+    bool init;
+    vec *playlist_vec;
+    int playlist_idx;
+    int playlist_n;
+} g;
+
 bool f_error = false;
+
+/* this was in f_mpd_error, and causing an infinite loop. 
+        if (!f_mpd_init()) \
+            piep; \
+            */
 
 #define f_mpd_error(s) do { \
     if (g.connection) { \
@@ -38,10 +76,8 @@ bool f_error = false;
             BR(mpd_connection_get_error_message(g.connection));   \
             warn("Error on %s: %s.", s, _s);      \
         } \
-        if (!f_mpd_init()) \
-            piep; \
     } \
-} while (0); 
+} while (0)
 
 #define f_check_exit f_check_msg_exit()
 
@@ -50,18 +86,17 @@ bool f_error = false;
         f_mpd_error(s); \
         exit(1); \
     } \
-} while (0); 
+} while (0)
 
 #define f_try(expr, msg) do { \
     f_error = false; \
     bool rc = (expr); \
     info("got rc %d", rc); \
     if (!rc || !f_mpd_ok()) { \
-        info("ok, caught"); \
         f_error = true; \
         f_mpd_error(msg); \
     } \
-} while (0); 
+} while (0)
  
 #define f_try_rf(expr, msg) do { \
     bool rc = (expr); \
@@ -69,7 +104,7 @@ bool f_error = false;
         f_mpd_error(msg); \
         return false; \
     } \
-} while (0); 
+} while (0)
 
 #define f_try_rv(expr, msg) do { \
     bool rc = expr; \
@@ -77,7 +112,7 @@ bool f_error = false;
         f_mpd_error(msg); \
         return; \
     } \
-} while (0); 
+} while (0)
 
 /* No while wrapper, because it's meant to be in a while. Not sure if it
  * works.
@@ -94,39 +129,6 @@ bool f_error = false;
  * Go into idle to receive updates (e.g. random).
  */
 
-struct {
-    struct mpd_connection* connection;
-    bool init;
-    vec *playlist_vec;
-    int playlist_idx;
-    int playlist_n;
-} g;
-
-#ifdef NO_NES
-bool _led_random_on() { 
-    info("random led on, teehee"); 
-    return true;
-}
-bool _led_random_off() { 
-    info("random led off, teehee"); 
-    return true;
-}
-bool _led_update_random(bool random) {
-    return random ? _led_random_on() : _led_random_off();
-}
-#else
-
-bool _led_random_on() { 
-    return led_update_random(true);
-}
-bool _led_random_off() { 
-    return led_update_random(false);
-}
-bool _led_update_random(bool random) { 
-    return led_update_random(random);
-}
-#endif
-
 bool f_mpd_ok() {
     if (g.connection) {
         enum mpd_error e = mpd_connection_get_error(g.connection);
@@ -141,23 +143,67 @@ bool f_mpd_ok() {
     }
 } 
 
-bool f_mpd_init() {
-if (g.init) 
-    mpd_connection_free(g.connection);
-    f_try_rf(
-        g.connection = mpd_connection_new (MPD_HOST, MPD_PORT, MPD_TIMEOUT_MS),
-        "Error opening connection"
-    )
-if (!g.init) {
-    info("MPD connection opened successfully.");
-
-    g.playlist_vec = vec_new();
-    g.playlist_idx = -1;
-    g.playlist_n = 0;
-    if (!reload_playlists()) 
+bool f_mpd_init_config() {
+    g.conf = flua_config_new(global.L);
+    if (!g.conf)
         pieprf;
+    flua_config_set_namespace(g.conf, CONF_NAMESPACE);
+    return true;
 }
-    g.init = true;
+
+int f_mpd_config_l() {
+    int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
+
+    /* Throws. 
+     */
+    if (! flua_config_load_config(g.conf, CONF, num_rules)) {
+        _();
+        BR("Couldn't load lua config.");
+        lua_pushstring(global.L, _s);
+        lua_error(global.L);
+    }
+    g.lua_initted = true;
+
+    return 0;
+}
+
+// XX
+bool f_mpd_init() {
+
+    if (!g.init) {
+        if (! g.lua_initted) {
+            warn("%s: forgot lua init?", CONF_NAMESPACE);
+            return false;
+        }
+    }
+
+    if (g.init) 
+        mpd_connection_free(g.connection);
+
+    f_try_rf(
+        g.connection = mpd_connection_new (conf_s(host), conf_i(port), conf_i(timeout_ms)),
+        "opening connection"
+    );
+
+    if (!g.init) {
+
+        {
+            int i = conf_i(update_on_n_ticks);
+            if (i)
+                main_register_loop_event("mpd update", i, f_mpd_update);
+        }
+
+        g.playlist_vec = vec_new();
+        g.playlist_idx = -1;
+        g.playlist_n = 0;
+
+        info("MPD connection opened successfully.");
+
+        if (have_playlists() && !reload_playlists()) 
+            pieprf;
+
+        g.init = true;
+    }
     return true;
 }
 
@@ -168,11 +214,11 @@ f_mpd_init();
     int status = get_state();
     switch(status) {
         case MPD_STATE_STOP:
-            f_try_rf( mpd_run_play(g.connection), "play" )
+            f_try_rf( mpd_run_play(g.connection), "play" );
             break;
         case MPD_STATE_PLAY:
         case MPD_STATE_PAUSE:
-            f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" )
+            f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" );
             break;
         case MPD_STATE_UNKNOWN: 
             iwarn("unknown status, skipping.");
@@ -201,7 +247,7 @@ bool f_mpd_seek(int secs) {
 
     if (seek_to < 0) 
         return true;
-    f_try_rf( mpd_run_seek_pos(g.connection, pos, seek_to), "seek position" ) // ok if overshoot
+    f_try_rf( mpd_run_seek_pos(g.connection, pos, seek_to), "seek position" ); // ok if overshoot
 
     return true;
 }
@@ -210,7 +256,7 @@ bool f_mpd_prev() {
     if (!g.init) return false;
 f_mpd_init();
 
-    f_try_rf( mpd_run_previous(g.connection), "run previous song" )
+    f_try_rf( mpd_run_previous(g.connection), "run previous song" );
     return true;
 }
 
@@ -218,7 +264,7 @@ bool f_mpd_next() {
     if (!g.init) return false;
 f_mpd_init();
 
-    f_try_rf( mpd_run_next(g.connection), "run next song" )
+    f_try_rf( mpd_run_next(g.connection), "run next song" );
     return true;
 }
 
@@ -230,7 +276,7 @@ bool f_mpd_cleanup() {
      */
     mpd_connection_free(g.connection);
 
-    if (!vec_destroy_flags(g.playlist_vec, VEC_DESTROY_DEEP))
+    if (!vec_destroy_f(g.playlist_vec, VEC_DESTROY_DEEP))
         pieprf;
 
     return true;
@@ -277,31 +323,40 @@ static int get_elapsed_time() {
     return ret;
 }
 
-// cache states? XX
-int get_random() {
+bool f_mpd_get_random(bool *r) {
     struct mpd_status* s = get_status();
-    if (s == NULL) return -1;
-    bool ret = mpd_status_get_random(s);
+    if (!s) 
+        pieprf;
+    *r = mpd_status_get_random(s); // error ? XX
     free_status(s);
-    return ret;
+    return true;
 }
 
-bool f_mpd_toggle_random() {
-    bool random = (bool) get_random();
-    return random ? f_mpd_random_off() : f_mpd_random_on();
+// r can be NULL.
+bool f_mpd_toggle_random(bool *r) {
+    bool random;
+    if (! f_mpd_get_random(&random))
+        pieprf;
+    bool ok = random ? f_mpd_random_off() : f_mpd_random_on();
+    if (ok && r) 
+        *r = !random;
+    return ok;
 }
 
-/* Leds actually lit twice, once here, and once in response to event, which
- * lags a bit.
- */
 bool f_mpd_random_off() {
     f_try_rf(mpd_run_random(g.connection, false), "random off");
-    return _led_random_off();
+    return true;
 }
 
 bool f_mpd_random_on() {
     f_try_rf(mpd_run_random(g.connection, true), "random on");
-    return _led_random_on();
+    return true;
+}
+
+/* Wrapper for loop register. */
+bool f_mpd_update_wrapper(void *p) {
+    ++p; // warnings
+    return f_mpd_update();
 }
 
 bool f_mpd_update() {
@@ -320,9 +375,9 @@ bool f_mpd_update() {
     if (res) {
         bool reload = false;
         if (res & MPD_IDLE_OPTIONS) {
-            bool random = (bool) get_random();
-            info("Random changed to %s", random ? "on" : "off");
-            _led_update_random(random);
+            bool random;
+            if (! f_mpd_get_random(&random))
+                pieprf;
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
             info("Stored playlists have been altered / created, reloading.");
@@ -335,7 +390,7 @@ bool f_mpd_update() {
 
         if (reload) {
             // warn but don't return false
-            if (!reload_playlists()) 
+            if (have_playlists() && !reload_playlists()) 
                 piep;
         }
 
@@ -351,7 +406,7 @@ bool f_mpd_update() {
             str = "the volume has been modified";
         else if (res & MPD_IDLE_OUTPUT) 
             str = "an audio output device has been enabled or disabled";
-        /* old version on pi XX
+        /* Only in the newer version.
         else if (res & MPD_IDLE_STICKER) 
             str = "a sticker has been modified.";
         else if (res & MPD_IDLE_SUBSCRIPTION) 
@@ -403,32 +458,38 @@ static bool load_playlist(int idx) {
     info("Loading playlist [%s -> %s]", _s, _t);
 
     // void
-    mpd_connection_set_timeout(g.connection, MPD_TIMEOUT_PLAYLIST_MS);
+    mpd_connection_set_timeout(g.connection, conf_i(timeout_playlist_ms));
     f_try_rf(mpd_run_load(g.connection, path), "load playlist");
-    mpd_connection_set_timeout(g.connection, MPD_TIMEOUT_MS);
+    mpd_connection_set_timeout(g.connection, conf_i(timeout_ms));
 
-    if (MPD_PLAY_ON_LOAD_PLAYLIST) 
+    if (conf_b(play_on_load_playlist)) 
         f_try_rf(mpd_run_play(g.connection), "play");
 
 
     return true;
 }
 
+static bool have_playlists() {
+    return conf_s(playlist_path) ? true : false;
+}
+
+/* Check have_playlists() before calling this.
+ */
 static bool reload_playlists() {
     vec *v = g.playlist_vec;
     {
         int s = vec_size(v);
-        if (s == -1) {
+        if (s == -1) 
             pieprf;
-        }
-        else if (s) {
+        else if (s) 
             vec_clear(v);
-        }
     }
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
-    f_try_rf(mpd_send_list_meta(g.connection, PL_PATH), "send list meta");
+    char *playlist_path = conf_s(playlist_path);
+
+    f_try_rf(mpd_send_list_meta(g.connection, playlist_path), "send list meta");
 
     /* Can receive either pair or entity from mpd. 
      * Entity can give a playlist object, but you can't do too much with it
@@ -459,8 +520,8 @@ static bool reload_playlists() {
             strcpy(path, _path);
 
             char *regex_spr = "^ %s / (.+) \\.m3u $";
-            char *regex = str(1 + strlen(regex_spr) - 2 + strlen(MPD_PLAYLIST_DIR));
-            sprintf(regex, regex_spr, MPD_PLAYLIST_DIR);
+            char *regex = str(1 + strlen(regex_spr) - 2 + strlen(playlist_path));
+            sprintf(regex, regex_spr, playlist_path);
 
             if (!match_matches(path, regex, matches)) {
                 iwarn("Got unexpected path: %s", path);
@@ -503,4 +564,90 @@ static bool reload_playlists() {
     }
     free(matches);
     return true;
+}
+
+/* Lua versions. 
+ * These all 'throw'.
+ */
+int f_mpd_toggle_play_l() {
+    if (! f_mpd_toggle_play()) {
+        lua_pushstring(global.L, "Couldn't toggle play.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_prev_l() {
+    if (! f_mpd_prev()) {
+        lua_pushstring(global.L, "Couldn't go to prev song.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_next_l() {
+    if (! f_mpd_next()) {
+        lua_pushstring(global.L, "Couldn't go to next song.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_get_random_l() {
+    bool r;
+    if (! f_mpd_get_random(&r)) {
+        lua_pushstring(global.L, "Couldn't get random.");
+        lua_error(global.L);
+    }
+    lua_pushboolean(global.L, r);
+    return 1;
+}
+int f_mpd_toggle_random_l() {
+    bool r;
+    if (! f_mpd_toggle_random(&r)) {
+        lua_pushstring(global.L, "Couldn't toggle random.");
+        lua_error(global.L);
+    }
+    lua_pushboolean(global.L, r);
+    return 1;
+}
+int f_mpd_random_off_l() {
+    if (! f_mpd_random_off()) {
+        lua_pushstring(global.L, "Couldn't turn random off.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_random_on_l() {
+    if (! f_mpd_random_on()) {
+        lua_pushstring(global.L, "Couldn't turn random on.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_update_l() {
+    if (! f_mpd_update()) {
+        lua_pushstring(global.L, "Couldn't update mpd.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_next_playlist_l() {
+    if (! f_mpd_next_playlist()) {
+        lua_pushstring(global.L, "Couldn't go to next playlist.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_prev_playlist_l() {
+    if (! f_mpd_prev_playlist()) {
+        lua_pushstring(global.L, "Couldn't go to prev playlist.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_seek_l(/* int secs */) {
+    lua_Number seek = luaL_checknumber(global.L, -1);
+    if (! f_mpd_seek((int) seek)) {
+        lua_pushstring(global.L, "Couldn't seek.");
+        lua_error(global.L);
+    }
+    return 0;
 }

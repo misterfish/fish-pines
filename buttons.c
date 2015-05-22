@@ -1,35 +1,181 @@
 #define _GNU_SOURCE
 
-#include "buttons.h"
-#include "ctl-custom.h"
+#include <lua.h>
+#include <lauxlib.h> // luaL_ functions..h>
+
+#include "const.h"
 #include "mode.h"
 
-#define new_rule(vec, buttons, kill_multiple, cb) { \
-    bool rc = rule(vec, buttons, kill_multiple, cb); \
-    if (!rc) \
-        pieprf; \
-};
+#include "buttons.h"
 
-/* Mapping from our standard order to their N_ order.
+#define BUTTONS_PRESS 0
+#define BUTTONS_RELEASE 1
+
+/* vector of vector of vectors.
+ * [ mode => [ {_PRESS|_RELEASE} => [ button_rule_t *rule, ...] ] ]
  */
+static struct {
+    vec *rules;
+} g;
 
-static vec *rules_music; // members: struct button_rule *
-static vec *rules_general; // members: struct button_rule *
+/* Return pointer to our global vector-in-a-vector. */
+static vec *get_rules_for_event(short mode, short event);
 
-static bool rule(vec *vec, unsigned int buttons, bool kill_multiple, bool (*cb)()) {
-    struct button_rule *rule = malloc(sizeof(struct button_rule));
+/* Fill in the given vector. */
+static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret);
+
+// add checks for combos / single logic.
+
+/* Throws.
+ */
+int buttons_add_rule_l() {
+    lua_State *L = global.L;
+    lua_pushnil(L); // init iter
+    short buttons = 0;
+    short mode = -1;
+    short event = -1;
+
+    struct button_rule_t *rule = f_mallocv(*rule);
+    memset(rule, '\0', sizeof *rule);
+    while (lua_next(L, -2)) {
+        const char *luatype = lua_typename(L, lua_type(L, -2));
+        // plain table entry, i.e. button name.
+        if (! strcmp(luatype, "number")) {
+            const char *value = luaL_checkstring(L, -1);
+            if (! strcmp(value, "a")) 
+                buttons |= N_A;
+            else if (! strcmp(value, "b"))
+                buttons |= N_B;
+            else if (! strcmp(value, "select"))
+                buttons |= N_SELECT;
+            else if (! strcmp(value, "start"))
+                buttons |= N_START;
+            else if (! strcmp(value, "up"))
+                buttons |= N_UP;
+            else if (! strcmp(value, "down"))
+                buttons |= N_DOWN;
+            else if (! strcmp(value, "left"))
+                buttons |= N_LEFT;
+            else if (! strcmp(value, "right"))
+                buttons |= N_RIGHT;
+        }
+        else {
+            const char *key = luaL_checkstring(L, -2);
+            if (! strcmp(key, "once")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->once = value;
+            }
+            if (! strcmp(key, "chain")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->chain = value;
+            }
+            else if (! strcmp(key, "mode")) {
+                lua_Number val = luaL_checknumber(L, -1);
+                mode = (short) val;
+            }
+            else if (! strcmp(key, "event")) {
+                const char *value = luaL_checkstring(L, -1);
+                if (! strcmp(value, "press"))
+                    event = BUTTONS_PRESS;
+                else if (! strcmp(value, "release"))
+                    event = BUTTONS_RELEASE;
+                else {
+                    lua_pushstring(global.L, ("Unknown event type %s."));
+                    lua_error(global.L);
+                }
+            }
+            /* Note that a nil handler will never even show up here (can't
+             * have nil as value in a table).
+             */
+            else if (! strcmp(key, "handler")) {
+                if (strcmp(lua_typename(L, lua_type(L, -1)), "function"))
+                    piep;
+                else {
+                    int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops
+                    rule->has_handler = true;
+                    rule->handler = reg_index;
+                    continue;
+                }
+            }
+        }
+        lua_pop(L, 1);
+    }
+
+    if (mode == -1) {
+        lua_pushstring(global.L, "Need mode for rule.");
+        lua_error(global.L);
+    }
+
+    if (event == -1) {
+        lua_pushstring(global.L, "Need event for rule.");
+        lua_error(global.L);
+    }
+
+    if (! buttons) {
+        lua_pushstring(global.L, "Need buttons for rule.");
+        lua_error(global.L);
+    }
 
     rule->buttons = buttons;
-    rule->kill_multiple = kill_multiple;
-    rule->press_event = cb;
+    rule->event = event;
 
-    if (!vec_add(vec, rule))
+    vec *rules = get_rules_for_event(mode, event);
+
+    if (! rules) 
+        piepr0;
+    else 
+        vec_add(rules, rule);
+
+    return 0;
+}
+
+static vec *get_rules_for_event(short mode, short event) {
+    vec *rules_for_mode = vec_get(g.rules, mode);
+    if (!rules_for_mode) 
+        pieprnull;
+    vec *rules_for_event = vec_get(rules_for_mode, event);
+    if (!rules_for_event) 
+        pieprnull;
+    return rules_for_event;
+}
+
+static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret) {
+    vec *rules_for_event = get_rules_for_event(mode, event);
+    if (!rules_for_event)
         pieprf;
+    int i, l;
+    for (i = 0, l = vec_size(rules_for_event); i < l; i++) {
+        // ok to cast NULL
+        struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules_for_event, i);
+        if (! rule) 
+            pieprf;
 
+        short rule_buttons = rule->buttons;
+        if ((read & rule_buttons) == rule_buttons) {
+            // got it.
+            if ( !vec_add(rules_ret, rule)) 
+                pieprf;
+        }
+    }
     return true;
 }
 
 bool buttons_init() {
+    g.rules = vec_new();
+
+    short modes = mode_get_num_modes();
+
+    for (int i = 0; i < modes; i++) {
+        vec *rules_for_mode = vec_new();
+        vec_add(g.rules, rules_for_mode);
+
+        for (int event = 0; event < 2; event++) {
+            vec *rules_for_event = vec_new();
+            vec_add(rules_for_mode, rules_for_event);
+        }
+    }
+
+#if 0
     /* Put rules in order -- first matching rule wins.
  */
 
@@ -90,55 +236,20 @@ bool buttons_init() {
         (      N_START), false, ctl_custom_start                // poweroff, with hold down
     )
 
+#endif
     return true;
 }
 
-struct button_rule *buttons_get_rule(unsigned int read) {
-    vec *vec;
-    int cnt;
+bool buttons_get_rules_press(short mode, short read, vec *rules_ret) {
+    return get_rules_for_read(mode, BUTTONS_PRESS, read, rules_ret);
+}
 
-    if (mode_music()) {
-        vec = rules_music;
-    }
-    else if (mode_general()) {
-        vec = rules_general;
-    }
-    else 
-        pieprf;
-
-    cnt = vec_size(vec);
-
-    /* Stop on first matching rule.
-     */
-    for (int i = 0; i < cnt; i++) {
-        // ok to cast NULL
-        struct button_rule *rule = (struct button_rule *) vec_get(vec, i);
-        if (rule == NULL) {
-            piep;
-            continue;
-        }
-
-        unsigned int mask = rule->buttons;
-        if ((read & mask) == mask) {
-#ifdef DEBUG
-            info("kill multiple: %d", rule->kill_multiple);
-#endif
-            return rule;
-        }
-    }
-
-    return NULL;
+bool buttons_get_rules_release(short mode, short read, vec *rules_ret) {
+    return get_rules_for_read(mode, BUTTONS_RELEASE, read, rules_ret);
 }
 
 bool buttons_cleanup() {
+    // XX
     bool ok = true;
-    if (!vec_destroy_flags(rules_music, VEC_DESTROY_DEEP)) {
-        piep;
-        ok = false;
-    }
-    if (!vec_destroy_flags(rules_general, VEC_DESTROY_DEEP)) {
-        piep;
-        ok = false;
-    }
     return ok;
 }
