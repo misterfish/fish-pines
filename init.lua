@@ -1,4 +1,5 @@
-util          = require 'util'
+posix           = require 'posix'
+util            = require 'util'
 
 -- export everything from util
 setmetatable(_G, {__index = function(tbl, varname, val)

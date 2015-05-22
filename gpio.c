@@ -96,7 +96,7 @@ static int phys_to_gpio(int pin_phys) {
         _();
         spr("%d", pin_phys);
         R(_s);
-        warn("-p not between 1 and %d (%s)", MAX_GPIO - 1, _t);
+        warn("Physical pin not between 1 and %d (%s)", MAX_GPIO - 1, _t);
         return -1;
     }
 
@@ -439,6 +439,7 @@ void gpio_get_phys_pins(int **ary, int *num_used, int *num_total) {
 int gpio_pin_read_l(/*int pin_gpio*/) {
     //int pin_phys = (int) luaL_checknumber(global.L, -1);
     int pin_gpio = (int) luaL_checknumber(global.L, -1);
+    lua_pop(global.L, 1);
     int state;
     //if (! gpio_pin_read(pin_phys, &state)) {
     if (! gpio_pin_read(pin_gpio, &state)) {
@@ -449,38 +450,64 @@ int gpio_pin_read_l(/*int pin_gpio*/) {
     return 1;
 }
 
-int gpio_pin_on_l(/*int pin_gpio, ['force']*/) {
+static int gpio_pin_on_L(lua_State *L) {
     //int pin_phys, flags = 0;
     int pin_gpio, flags = 0;
-    int numargs = lua_gettop(global.L);
+    int numargs = lua_gettop(L);
     if (numargs == 2) {
-        const char *flag = luaL_checkstring(global.L, -1);
+        const char *flag = luaL_checkstring(L, -1);
+        lua_pop(L, 1);
         if (! strcmp(flag, "force"))
             flags |= F_PIN_FORCE;
         else
             piepr0;
-        lua_pop(global.L, 1);
+        lua_pop(L, 1);
     }
-    pin_gpio = (int) luaL_checknumber(global.L, -1);
+
+    pin_gpio = (int) luaL_checknumber(L, -1);
+    lua_pop(L, 1);
     if (! gpio_pin_on_f(pin_gpio, flags)) 
         piep;
     return 0;
 }
 
-int gpio_pin_off_l(/*int pin_phys, ['force']*/) {
-    //int pin_phys, flags = 0;
+/* Version to be called from within a coroutine. */
+int gpio_pin_on_lco(/*int pin_gpio, ['force']*/) {
+    lua_State *continuationL = lua_tothread(global.L, -1);
+    return gpio_pin_on_L(continuationL);
+}
+
+int gpio_pin_on_l(/*int pin_gpio, ['force']*/) {
+    return gpio_pin_on_L(global.L);
+}
+
+static int gpio_pin_off_L(lua_State *L) {
     int pin_gpio, flags = 0;
-    int numargs = lua_gettop(global.L);
+    int numargs = lua_gettop(L);
     if (numargs == 2) {
-        const char *flag = luaL_checkstring(global.L, -1);
+        const char *flag = luaL_checkstring(L, -1);
+        lua_pop(L, 1);
         if (! strcmp(flag, "force"))
             flags |= F_PIN_FORCE;
         else
             piepr0;
-        lua_pop(global.L, 1);
+        lua_pop(L, 1);
     }
-    pin_gpio = (int) luaL_checknumber(global.L, -1);
+    pin_gpio = (int) luaL_checknumber(L, -1);
+    lua_pop(L, 1);
     if (! gpio_pin_off_f(pin_gpio, flags)) 
         piep;
     return 0;
 }
+
+/* Version to be called from within a coroutine. */
+int gpio_pin_off_lco(/*int pin_gpio, ['force']*/) {
+    lua_State *continuationL = lua_tothread(global.L, -1);
+    return gpio_pin_off_L(continuationL);
+}
+
+int gpio_pin_off_l(/*int pin_gpio, ['force']*/) {
+    return gpio_pin_off_L(global.L);
+}
+
+

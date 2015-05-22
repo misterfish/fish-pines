@@ -209,8 +209,8 @@ int main() {
 
     g.button_print = f_malloc(get_max_button_print_size() * sizeof(char));
 
-    f_sig(SIGTERM, sighandler_term);
-    f_sig(SIGINT, sighandler_term);
+    //f_sig(SIGTERM, sighandler_term);
+    //f_sig(SIGINT, sighandler_term);
 
     /* Main loop.
      */
@@ -579,7 +579,7 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) f_mpd_random_on_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "mpd_update");
+    lua_pushstring(L, "update");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_update_l);
     lua_rawset(L, -3);
 
@@ -610,8 +610,16 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) gpio_pin_on_l);
     lua_rawset(L, -3);  
 
+    lua_pushstring(L, "on_co");
+    lua_pushcfunction(L, (lua_CFunction) gpio_pin_on_lco);
+    lua_rawset(L, -3);  
+
     lua_pushstring(L, "off");
     lua_pushcfunction(L, (lua_CFunction) gpio_pin_off_l);
+    lua_rawset(L, -3);  
+
+    lua_pushstring(L, "off_co");
+    lua_pushcfunction(L, (lua_CFunction) gpio_pin_off_lco);
     lua_rawset(L, -3);  
 
     lua_rawset(L, -3);

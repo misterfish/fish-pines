@@ -6,3 +6,5 @@ tags
 TAGS
 *.swo
 *.swp
+
+*core*

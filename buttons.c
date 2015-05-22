@@ -30,7 +30,7 @@ static vec *get_rules_for_event(short mode, short event);
 /* Fill in the given vector. */
 static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret);
 
-/* Check for no combos in release XX */
+/* Check for stack consistency -- pop after check ? XX */
 
 /* Throws.
  */

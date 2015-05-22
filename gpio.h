@@ -15,5 +15,7 @@ void gpio_get_phys_pins(int **ary, int *num_used, int *num_total);
 
 int gpio_pin_read_l(/*int pin_gpio, int *state*/);
 int gpio_pin_on_l(/*int pin_gpio*/);
+int gpio_pin_on_lco(/*int pin_gpio, ['force']*/);
 int gpio_pin_off_l(/*int pin_gpio*/);
+int gpio_pin_off_lco(/*int pin_gpio*/);
 
