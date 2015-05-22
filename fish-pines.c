@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#define VERBOSE
+#define VERBOSE 0
 
 #include <stdio.h>
 #include <errno.h>
@@ -26,6 +26,7 @@
 #include "const.h"
 #include "global.h"
 #include "buttons.h"
+#include "gpio.h"
 #include "mpd.h"
 #include "mode.h"
 #include "vol.h"
@@ -155,6 +156,11 @@ int main() {
 
     if (! mode_init_config())
         ierr("Couldn't init mode config");
+
+    /* Before lua, so init.lua can set leds.
+     */
+    if (! gpio_init(VERBOSE)) 
+        ierr("Couldn't init gpio");
 
     flua_config_set_verbose(true);
 
@@ -576,21 +582,40 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) f_mpd_random_on_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "mpd update");
+    lua_pushstring(L, "mpd_update");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_update_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "next playlist");
+    lua_pushstring(L, "next_playlist");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_next_playlist_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "prev playlist");
+    lua_pushstring(L, "prev_playlist");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_prev_playlist_l);
     lua_rawset(L, -3);
 
     lua_pushstring(L, "seek");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_seek_l);
     lua_rawset(L, -3);
+
+    lua_rawset(L, -3);
+    // } 
+
+    // capi.gpio = {
+    lua_pushstring(L, "gpio");
+    lua_newtable(L);
+
+    lua_pushstring(L, "read");
+    lua_pushcfunction(L, (lua_CFunction) gpio_pin_read_l);
+    lua_rawset(L, -3);  
+
+    lua_pushstring(L, "on");
+    lua_pushcfunction(L, (lua_CFunction) gpio_pin_on_l);
+    lua_rawset(L, -3);  
+
+    lua_pushstring(L, "off");
+    lua_pushcfunction(L, (lua_CFunction) gpio_pin_off_l);
+    lua_rawset(L, -3);  
 
     lua_rawset(L, -3);
     // } 

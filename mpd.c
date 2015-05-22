@@ -13,7 +13,6 @@
 #include <fish-utils.h>
 
 #include "fish-pines.h"
-//#include <fish-pigpio.h> // works also on no_nes but why XX
 #include "global.h"
 #include "const.h"
 #include "flua_config.h"

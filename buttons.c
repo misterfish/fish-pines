@@ -163,8 +163,6 @@ static bool get_rules_for_read(short mode, short event, short read, vec *rules_r
 bool buttons_init() {
     g.rules = vec_new();
 
-info("modes %d", mode_get_num_modes());
-
     short modes = mode_get_num_modes();
 
     for (int i = 0; i < modes; i++) {

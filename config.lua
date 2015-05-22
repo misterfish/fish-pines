@@ -1,4 +1,4 @@
-config = {
+return {
     nes = {
         -- Using Broadcom gpio numbering.
         dpin = 25, --yellow
@@ -22,19 +22,3 @@ config = {
         },
     }
 }
-
-configlocal = {
-    mpd = {
-        seek = 5, -- secs
-    },
-    shutdown_secs = 1.3,
-}
-
---[[
-#define LED_ORANGE 12
-#define LED_BLUE 10
-
-#define LED_MODE LED_ORANGE
-#define LED_RANDOM LED_BLUE
-#define LED_REMAKE_PLAYLIST LED_BLUE
-]]

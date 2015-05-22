@@ -1,6 +1,8 @@
+./custom.lua
 ./mode.c
 ./buttons.h
 ./README.md
+./shutdown.lua
 ./init.lua
 ./README
 ./const.h
@@ -8,6 +10,7 @@
 ./Makefile
 ./config.lua
 ./nes.h
+./util.lua
 ./vol.h
 ./mpd.h
 ./fish-lib-util/README.md
@@ -38,3 +41,4 @@
 ./fish-pines.h
 ./vol.c
 ./mode.h
+./configlua.lua
