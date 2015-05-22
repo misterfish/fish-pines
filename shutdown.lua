@@ -3,19 +3,24 @@ local time_down = {
     usecs = nil,
 }
 
+local disabled = false
+
 local function go () 
     say "Shutting down!"
     util.sys(configlua.shutdown.cmd)
+    disabled = true
 end
 
 local function start_pressed () 
-    time_down.secs, time_down.usecs = capi.util.get_clock()
-end
-
-local function start_released ()
-    if time_down.secs == -1 or time_down.usecs == -1 then
-        return warn "start_released called before start_pressed."
+    if disabled then 
+        return 
     end
+
+    if not time_down.secs and not time_down.usecs then
+        time_down.secs, time_down.usecs = capi.util.get_clock()
+        return
+    end
+
     local toen = {}
     local now = {}
     now.secs, now.usecs = capi.util.get_clock()
@@ -28,12 +33,13 @@ local function start_released ()
 
     if now.combined - toen.combined > configlua.shutdown.secs then
         go()
-    else 
-        time_down.secs = nil
-        time_down.usecs = nil
     end
 end
 
+local function start_released ()
+    time_down.secs = nil
+    time_down.usecs = nil
+end
 
 return {
     start_pressed = start_pressed,

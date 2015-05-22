@@ -73,6 +73,8 @@ exact:                      <optional, true>
 
 ]]
 
+-- exact XX
+
 local rules = {
     -- mode = music
     music = {
@@ -94,7 +96,7 @@ local rules = {
     general = {
         press = {
             { 'select',     once = true, handler = mode.next_mode  },
-            { 'start',      once = true, handler = shutdown.start_pressed  },
+            { 'start',      handler = shutdown.start_pressed  },
             { 'b',          once = true, handler = custom.switch_to_wired },
             { 'a',          once = true, handler = custom.switch_to_wireless },
         },

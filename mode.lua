@@ -24,6 +24,7 @@ local function next_mode()
         col = CY
         led.on('mode')
     end
+    sayf("Switching to mode %s", col(mode_name))
 end
 
 return {
