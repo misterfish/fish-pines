@@ -14,6 +14,7 @@ return {
     leds = {
         -- BCM numbering.
         random = 15,
+        update = 15,
         mode = 18,
     },
     vol = {

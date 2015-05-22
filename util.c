@@ -14,6 +14,7 @@
 #include "util.h"
 
 #define SOCKET_LENGTH_DEFAULT 100
+#define ERROR_BUF_SIZE 500
 
 struct termios save_attr_cooked;
 bool saved;
@@ -116,11 +117,10 @@ bool f_terminal_normal() {
  */
 
 void check_lua_err(int rc, char *format, ...) {
-    int SIZE = 100;
-    char buf[SIZE];
+    char buf[ERROR_BUF_SIZE];
     va_list arglist;
     va_start(arglist, format);
-    if (SIZE == vsnprintf(buf, SIZE, format, arglist)) 
+    if (ERROR_BUF_SIZE <= vsnprintf(buf, ERROR_BUF_SIZE, format, arglist)) 
         fprintf(stderr, "(warning truncated)");
     va_end(arglist);
 

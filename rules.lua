@@ -2,113 +2,53 @@ local _, i, k, v
 
 function test () 
 
-    -- if e.g. this fails in C, a lua error is displayed, and execution of
-    -- this stack stops. 
-    -- so we don't need to check for errors at every step.
-    --capi.mpd.update()
-
-    local slept = -1
-    local state = nil
-    local function update_state () 
-        if state then
-            led.off('random', { coroutine = true })
-            state = nil
-        else
-            led.on('random', { coroutine = true })
-            state = 1
-        end
-    end
-
-    --local 
-    flashco = coroutine.create (function() 
-        while true do 
-            slept = (slept + 1) % 5
-            if slept == 0 then
-                update_state()
-            end
-            posix.nanosleep(0, 200e6)
-            coroutine.yield()
-        end
-    end)
-
-    --opts XX
-    local verbose_ok = true
-
-    local pid, errmsg = posix.fork ()
-    if not pid then
-        error 'hop'
-    elseif pid == 0 then
-        -- kind
-        cmd = 'find /etc >/dev/null'
-        local ok, str, int = os.execute(cmd)
-        local okstr
-        if not ok then
-            okstr = BR('not ok') 
-        else 
-            okstr = G('ok')
-        end
-
-        local msg
-        if str == 'signal' then
-            msg = spr("killed by signal «%s»", BR(int))
-        elseif str == 'exit' then
-            if int ~= 0 then
-                msg = spr("exited with status «%s»", BR(int))
-            else
-                msg = nil
-            end
-        else
-            msg = "[lua unexpected str]" --XX
-        end
-        if ok and verbose_ok then
-            infof("Cmd done, %s.", G('ok'))
-        elseif not ok then
-            infof("Error with cmd «%s»: %s.", BR(cmd), msg)
-        end
-        posix._exit(int)
-    else
-        -- papa
-        while true do
-            local cpid, str, int = posix.wait(pid, posix.WNOHANG)
-            if not cpid then
-                local errmsg, errnum = str, int
-                warn("Reap: " .. errmsg)
-                break
-            elseif cpid == 0 then
+    local function update_cmdbc (onw8, onsucc, onfail) 
+        util.fork_wait('find /usr >/dev/null', { 
+            onsuccess = function () 
+                info 'success!'
+                onsucc()
+            end,
+            onwait = function ()
                 info 'waiting'
-            else
-                local how, status = str, int
-                local msg
-                if str == 'killed' then
-                    msg = spr("killed by signal «%s»", BR(int))
-                elseif str == 'stopped' then
-                    msg = spr("stopped by signal «%s»", BR(int))
-                elseif str == 'exited' then
-                    if int ~= 0 then
-                        msg = spr("exited with status «%s»", BR(int))
-                    else
-                        msg = nil
-                    end
-                else
-                    msg = "[lua unexpected str]"
-                end
-
-                local prnt
-                local ok
-                if int ~= 0 then
-                    prnt = true
-                    ok = BR('not ok')
-                elseif verbose_ok then
-                    prnt = true
-                    ok = G('ok')
-                end
-                if prnt then infof("Child %s done, %s.", Y(cpid), join(': ', ok, msg)) end
-                break
-            end
-            coroutine.resume (flashco)
-        end
-
+                onw8()
+            end,
+            onfailure = function ()
+                warn 'disaster!'
+                onfail()
+            end,
+            verbose_ok = true,
+        })
     end
+
+    local function update_cmd ()
+        local isok = false
+        util.fork_wait('find /usr/lib >/dev/null', { 
+            onsuccess = function () 
+                -- we're done, don't yield, just return from the function.
+                isok = true
+            end,
+            onwait = function ()
+                coroutine.yield {}
+            end,
+            onfailure = function ()
+                -- same here.
+                isok = false -- not nil
+            end,
+            --verbose_ok = true,
+        })
+        return { ok = isok }
+    end
+
+    led.flash ('update', {
+        verbose = true,
+        tasks = {
+            update_cmd,
+            update_cmd,
+            update_cmd,
+            update_cmd,
+        }
+    })
+
 end
 
 --[[ 

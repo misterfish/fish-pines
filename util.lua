@@ -98,7 +98,7 @@ local function imap (map_fn, itable)
     return result
 end
 
-local function sys (cmd, opts) 
+local function sys (cmd, args) 
     -- os.execute(cmd), like 'system'
     -- os.popen(cmd), pipe open. Doesn't exist in 5.1
     -- also os.execute gives different values depending on lua version.
@@ -169,6 +169,106 @@ local function BM (s) return color(95, s) end
 local function CY (s) return color(36, s) end 
 local function BCY (s) return color(96, s) end 
 
+local function fork_wait(cmd, args) 
+    if not cmd then error "fork_wait: missing cmd" end
+    args = args or {}
+
+    local onsuccess = args.onsuccess or nil
+    local onwait = args.onwait or nil
+    local onfailure = args.onfailure or nil
+
+    local verbose_ok = args.verbose_ok or false
+
+    local killoutput = true --future? XX
+
+    if killoutput then cmd = cmd .. ' 2>/dev/null ' end
+
+    local pid, errmsg = posix.fork ()
+    if not pid then
+        error("fork_wait: can't fork: " .. errmsg)
+    -- kindje
+    elseif pid == 0 then
+        local ok, str, int = os.execute(cmd)
+        local okstr
+        if not ok then
+            okstr = BR('not ok') 
+        else 
+            okstr = G('ok')
+        end
+        local msg
+        if str == 'signal' then
+            msg = spr("killed by signal «%s»", BR(int))
+        elseif str == 'exit' then
+            if int ~= 0 then
+                msg = spr("exited with status «%s»", BR(int))
+            else
+                msg = nil
+            end
+        else
+            error("fork_wait: unexpected string: " .. str)
+        end
+        if ok and verbose_ok then
+            infof("Cmd done, %s.", G('ok'))
+        elseif not ok then
+            infof("Error with cmd «%s»: %s.", BR(cmd), msg)
+        end
+        posix._exit(int)
+    -- papaatje
+    else
+        while true do
+            local cpid, str, int = posix.wait(pid, posix.WNOHANG)
+            if not cpid then
+                local errmsg, errnum = str, int
+                error ("Error on wait: " .. errmsg)
+            elseif cpid == 0 then
+                -- still waiting, call onwait() cb
+                if onwait then 
+                    onwait() 
+                end
+                --coroutine.resume (flashco)
+            else
+                local how, status = str, int
+                local msg
+                if str == 'killed' then
+                    msg = spr("killed by signal «%s»", BR(int))
+                elseif str == 'stopped' then
+                    msg = spr("stopped by signal «%s»", BR(int))
+                elseif str == 'exited' then
+                    if int ~= 0 then
+                        msg = spr("exited with status «%s»", BR(int))
+                    else
+                        msg = nil
+                    end
+                else
+                    error("fork_wait: unexpected string: " .. str)
+                end
+                local prnt = "Child " .. Y(cpid) .. " done, %s."
+                --local okstr
+                if int ~= 0 then
+                    --okstr = BR 'not ok' 
+                    warnf(prnt, join(': ', BR 'not ok', msg))
+                    -- make sure this is the last instruction in the
+                    -- function.
+                    if onfailure then
+                        onfailure()
+                    end
+                else
+                    if verbose_ok then
+                        infof(prnt, G 'ok')
+                    end
+                    -- make sure this is the last instruction in the
+                    -- function.
+                    if onsuccess then
+                        onsuccess()
+                    end
+                end
+                break
+            end -- end if wait results
+            --coroutine.resume (flashco)
+        end -- end wait loop
+    end -- end papa
+end
+
 return {
     sayf = sayf,
     say = say, 
@@ -198,4 +298,5 @@ return {
     BM = BM,
     CY = CY,
     BCY = BCY,
+    fork_wait = fork_wait,
 }
