@@ -80,12 +80,12 @@ local rules = {
     -- mode = music
     music = {
         press = {
+            {      'right', once = true, handler = function() capi.mpd.next_song() end },
+            {      'left',  once = true, handler = function() capi.mpd.prev_song() end },
             { 'b', 'right', handler = function() capi.mpd.seek(configlua.mpd.seek) end },
             { 'b', 'left',  handler = function() capi.mpd.seek(configlua.mpd.seek * -1) end },
-            {      'right', handler = function() capi.mpd.next_song() end },
-            {      'left',  handler = function() capi.mpd.prev_song() end },
-            { 'b', 'up',    handler = function() capi.mpd.next_playlist() end },
-            { 'b', 'down',  handler = function() capi.mpd.prev_playlist() end },
+            { 'b', 'up',    once = true, handler = function() capi.mpd.next_playlist() end },
+            { 'b', 'down',  once = true, handler = function() capi.mpd.prev_playlist() end },
             {      'down',  handler = function() vol.down() end },
             { 'up',         handler = function() vol.up() end },
             { 'a',          once = true, handler = toggle_random },

@@ -11,6 +11,10 @@
 #define BUTTONS_PRESS 0
 #define BUTTONS_RELEASE 1
 
+#define DEFAULT_EXACT   true
+#define DEFAULT_ONCE    false
+#define DEFAULT_CHAIN   false
+
 /* vector of vector of vectors.
  * [ mode => [ {_PRESS|_RELEASE} => [ button_rule_t *rule, ...] ] ]
  */
@@ -24,7 +28,7 @@ static vec *get_rules_for_event(short mode, short event);
 /* Fill in the given vector. */
 static bool get_rules_for_read(short mode, short event, short read, vec *rules_ret);
 
-// add checks for combos / single logic.
+/* Check for no combos in release XX */
 
 /* Throws.
  */
@@ -37,6 +41,10 @@ int buttons_add_rule_l() {
 
     struct button_rule_t *rule = f_mallocv(*rule);
     memset(rule, '\0', sizeof *rule);
+    rule->exact = DEFAULT_EXACT;
+    rule->once = DEFAULT_ONCE;
+    rule->chain = DEFAULT_CHAIN;
+
     while (lua_next(L, -2)) {
         const char *luatype = lua_typename(L, lua_type(L, -2));
         // plain table entry, i.e. button name.
@@ -65,9 +73,13 @@ int buttons_add_rule_l() {
                 const bool value = lua_toboolean(L, -1);
                 rule->once = value;
             }
-            if (! strcmp(key, "chain")) {
+            else if (! strcmp(key, "chain")) {
                 const bool value = lua_toboolean(L, -1);
                 rule->chain = value;
+            }
+            else if (! strcmp(key, "exact")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->exact = value;
             }
             else if (! strcmp(key, "mode")) {
                 lua_Number val = luaL_checknumber(L, -1);
@@ -150,9 +162,17 @@ static bool get_rules_for_read(short mode, short event, short read, vec *rules_r
         if (! rule) 
             pieprf;
 
+        bool exact = rule->exact;
         short rule_buttons = rule->buttons;
-        if ((read & rule_buttons) == rule_buttons) {
-            // got it.
+        bool trigger = false;
+        if (exact) 
+            /* Has to be exactly this. */
+            trigger = read == rule_buttons;
+        else 
+            /* Can be a combination containing us. */
+            trigger = (read & rule_buttons) == rule_buttons;
+        if (trigger) {
+            /* Got it. */
             if ( !vec_add(rules_ret, rule)) 
                 pieprf;
         }

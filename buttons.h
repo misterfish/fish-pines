@@ -7,19 +7,19 @@
 
 #include "global.h"
 
-// default is don't kill
-//#define BUTTONS_KILL_MULTIPLE_DEFAULT false
-
 /* Rules for button press and button release. 
- * kill_multiple only applies to press.
+ * 'once' only applies to press events.
+ * See defines in *.c for defaults.
  */
 struct button_rule_t {
     short buttons;
-    bool once;
-    bool chain; // when false, stop after first matching rule.
     short event;
+
+    bool once; // don't trigger repeatedly on hold (only applies to press of course) (default false)
+    bool chain; // when false, stop after first matching rule. (only applies to press; we could easily allow it to apply to release as well but that doesn't seem useful) (default false)
+    bool exact; // require exact match to trigger (only applies to press) (default true)
     
-    /* Allow a rule to have no handler, for now.
+    /* A rule is allowed to have no handler.
      * The only use I can think of where this might be handy is for example
      * a rule whose only purpose is to cancel further rules.
      */
@@ -46,11 +46,6 @@ bool buttons_init();
 bool buttons_cleanup();
 
 int buttons_add_rule_l();
-
-/*
-struct button_rule_t *buttons_get_rule_press(short mode, short read);
-struct button_rule_t *buttons_get_rule_release(short mode, short read);
-*/
 
 bool buttons_get_rules_press(short mode, short read, vec *rules_ret);
 bool buttons_get_rules_release(short mode, short read, vec *rules_ret);

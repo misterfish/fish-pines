@@ -29,6 +29,8 @@
 
 #define NUM_FAILURES_REINIT 5
 
+#define TEST_FORCE_REINIT false
+
 static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(timeout_ms, integer, CONF_DEFAULT_TIMEOUT_MS)
     flua_conf_default(host, string, CONF_DEFAULT_HOST)
@@ -67,6 +69,7 @@ static struct {
     int playlist_n;
 
     short failures;
+    bool force_reinit;
 } g;
 
 bool f_error = false;
@@ -95,24 +98,13 @@ bool f_error = false;
 } while (0)
 
 static bool check_reinit() {
-fprintf(stderr, "a0");
-    //return true;
-    if (g.failures >= NUM_FAILURES_REINIT) {
-fprintf(stderr, "a1");
-        //_();
-fprintf(stderr, "a2");
-        //spr("%d", NUM_FAILURES_REINIT);
-fprintf(stderr, "a3");
-        //BR(_s);
-fprintf(stderr, "a4");
-        //info("Too many mpd failures ( >= %s ), reestablishing connection.", _t);
-fprintf(stderr, "a5");
-        //info("hi");
-fprintf(stderr, "a6");
-        if (! f_mpd_init_f(F_MPD_FORCE_INIT)){
-fprintf(stderr, "a7");
+    if (g.failures >= NUM_FAILURES_REINIT || g.force_reinit) {
+        _();
+        spr("%d", NUM_FAILURES_REINIT);
+        BR(_s);
+        info("Too many mpd failures ( >= %s ), reestablishing connection.", _t);
+        if (! f_mpd_init_f(F_MPD_FORCE_INIT))
             pieprf;
-        }
         else
             g.failures = 0;
     }
@@ -280,7 +272,7 @@ bool f_mpd_toggle_play() {
         warn("f_mpd_toggle_play: mpd not initted.");
         return false;
     }
-//f_mpd_init();
+if (TEST_FORCE_REINIT) g.force_reinit = true;
     if (! check_reinit()) 
         pieprf;
 
@@ -335,7 +327,7 @@ bool f_mpd_prev() {
     }
     if (! check_reinit())
         pieprf;
-//f_mpd_init();
+if (TEST_FORCE_REINIT) g.force_reinit = true;
 
     f_try_rf( mpd_run_previous(g.connection), "run previous song" );
     return true;
@@ -348,12 +340,15 @@ bool f_mpd_next() {
     }
     if (! check_reinit())
         pieprf;
-//f_mpd_init();
+if (TEST_FORCE_REINIT) g.force_reinit = true;
 
     f_try_rf( mpd_run_next(g.connection), "run next song" );
     return true;
 }
 
+/* We die with memory corruption if mpd is restarted. My hunch is that it's
+ * here. XX
+ */
 bool f_mpd_update() {
     if (!g.init) {
         warn("f_mpd_update: mpd not initted.");
@@ -477,7 +472,7 @@ bool f_mpd_cleanup() {
  */
 
 static struct mpd_status *get_status() {
-//f_mpd_init();
+if (TEST_FORCE_REINIT) g.force_reinit = true;
     struct mpd_status* s = mpd_run_status(g.connection);
     if (s == NULL) {
         _();

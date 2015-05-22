@@ -339,6 +339,7 @@ static bool process_read(short read, char *button_print) {
     short mode = mode_get_mode();
 
     if (read) {
+        /* This is where ->exact gets applied. */
         if (! buttons_get_rules_press(mode, read, rules_press))
             pieprf;
     }
@@ -355,7 +356,7 @@ static bool process_read(short read, char *button_print) {
      * the buttons will generate a release event for that button (followed
      * by a press event for the (n-1) combination.
      *
-     * Also, 'once' only applies to press events.
+     * Also, 'once', 'chain' and 'exact' only apply to press events.
      */
 
     bool ok = true;
@@ -405,11 +406,7 @@ static bool process_read(short read, char *button_print) {
     if (! read) 
         goto END;
 
-    /*
-     * Then do the event matching the combination.
-     *
-     * by a combo-event for the two remaining.
-     */
+    /* Then do the event matching the combination. */
     int j = 0, l = vec_size(rules_press);
 
     if (l == 0) 
