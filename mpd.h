@@ -3,14 +3,11 @@
  * keep it on user mpd, and chgrp audio and chmd g+w on the playlist dir.
  */
 
-// static not necessary -- it's just a namespace.
-struct pl {
-    char *name;
-    char *path;
-};
+#define F_MPD_FORCE_INIT    0x1
 
 bool f_mpd_init_config();
 bool f_mpd_init();
+bool f_mpd_init_f(short flags);
 
 bool f_mpd_toggle_play();
 bool f_mpd_seek(int);
