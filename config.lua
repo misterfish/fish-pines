@@ -8,6 +8,8 @@ return {
     mpd = {
         host = 'localhost',
         port = 6600,
+        verbose = true,
+        verbose_events = false,
         timeout_ms = 6000,
         timeout_playlist_ms = 15000, 
         play_on_load_playlist = true,

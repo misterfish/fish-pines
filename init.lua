@@ -38,6 +38,15 @@ for _, v in pairs (conf) do
 end
 
 capi.main.add_listener('random', mpd.listen_random)
+capi.main.add_listener('playlists-changed', mpd.listen_playlists)
+capi.main.add_listener('update-started-or-finished', mpd.listen_update)
+capi.main.add_listener('database-updated', mpd.listen_database_updated)
+capi.main.add_listener('player-state-changed', mpd.listen_player_state)
+capi.main.add_listener('volume-altered', mpd.listen_volume)
+capi.main.add_listener('device-state-changed', mpd.listen_device)
+capi.main.add_listener('sticker-modified', mpd.listen_sticker)
+capi.main.add_listener('client-channel-subscription-altered', mpd.listen_subscription)
+capi.main.add_listener('subscribed-channel-message-received', mpd.listen_message)
 
 -- called by C after init.
 function start () 

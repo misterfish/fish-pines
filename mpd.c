@@ -36,6 +36,8 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(timeout_ms, integer, CONF_DEFAULT_TIMEOUT_MS)
     flua_conf_default(host, string, CONF_DEFAULT_HOST)
 
+    flua_conf_default(verbose, boolean, false)
+    flua_conf_default(verbose_events, boolean, false)
     flua_conf_default(port, integer, CONF_DEFAULT_PORT)
     flua_conf_default(timeout_playlist_ms, integer, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
     flua_conf_default(play_on_load_playlist, boolean, false)
@@ -61,6 +63,9 @@ struct pl {
 };
 
 static struct {
+    bool verbose;
+    bool verbose_events;
+
     struct flua_config_conf_t *conf;
     bool lua_initted;
 
@@ -105,7 +110,7 @@ static bool check_reinit() {
         _();
         spr("%d", NUM_FAILURES_REINIT);
         BR(_s);
-        info("Too many mpd failures ( >= %s ), reestablishing connection.", _t);
+        warn("Too many mpd failures ( >= %s ), reestablishing connection.", _t);
         if (! f_mpd_init_f(F_MPD_FORCE_INIT))
             pieprf;
         else
@@ -152,6 +157,9 @@ int f_mpd_config_l(lua_State *L) {
         lua_error(L);
     }
     g.lua_initted = true;
+
+    g.verbose = conf_b(verbose);
+    g.verbose_events = conf_b(verbose_events);
 
     return 0;
 }
@@ -210,7 +218,8 @@ bool f_mpd_init_f(short flags) {
         g.playlist_idx = -1;
         g.playlist_n = 0;
 
-        info("MPD connection opened successfully.");
+        if (g.verbose) 
+            info("MPD connection opened successfully.");
 
         if (have_playlists() && !reload_playlists()) 
             pieprf;
@@ -392,7 +401,15 @@ bool f_mpd_update() {
     enum mpd_idle res = mpd_recv_idle(g.connection, disable_timeout);
 
     if (res) {
-        bool reload = false;
+
+        vec *strvec;
+        if (g.verbose_events) 
+            strvec = vec_new();
+
+        /* Event names are hard-coded here. 
+         * Should match EVENTS in main.
+         */
+        char *reload = NULL;
         if (res & MPD_IDLE_OPTIONS) {
             /* We swallow successive 'random' events if the final state is
              * the same as it was at the last update. 
@@ -411,18 +428,29 @@ bool f_mpd_update() {
             }
             prev_random = random;
             if (fire && ! main_fire_event("random", GINT_TO_POINTER(random)))
-                    pieprf;
+                pieprf;
+            if (g.verbose_events) 
+                vec_add(strvec, Y_("random changed"));
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
-            info("Stored playlists have been altered / created, reloading.");
-            reload = true;
+            if (g.verbose_events) 
+                vec_add(strvec, Y_("stored playlists have been altered / created"));
+            reload = "playlist";
+            if (! main_fire_event("playlists-changed", NULL))
+                pieprf;
         }
         if (res & MPD_IDLE_UPDATE) {
-            info("Update started or finished, reloading playlists.");
-            reload = true;
+            if (g.verbose_events) 
+                vec_add(strvec, G_("update started or finished"));
+            reload = "update";
+            if (! main_fire_event("update-started-or-finished", NULL))
+                pieprf;
         }
 
         if (reload) {
+            if (g.verbose)
+                info("mpd_update: reloading playlists in response to %s event.", reload);
+
             // warn but don't return false
             if (have_playlists() && !reload_playlists()) 
                 piep;
@@ -432,36 +460,59 @@ bool f_mpd_update() {
         res &= ~(MPD_IDLE_OPTIONS | MPD_IDLE_STORED_PLAYLIST | MPD_IDLE_UPDATE);
         */
 
-        vec *strvec = vec_new();
-        if (! strvec) 
-            pieprf;
-
-        _();
-        if (res & MPD_IDLE_DATABASE) 
-            vec_add(strvec, "song database has been updated");
-        if (res & MPD_IDLE_PLAYER) 
-            vec_add(strvec, "the player state has changed: play, stop, pause, seek, ...");
-        if (res & MPD_IDLE_MIXER) 
-            vec_add(strvec, "the volume has been modified");
-        if (res & MPD_IDLE_OUTPUT) 
-            vec_add(strvec, "an audio output device has been enabled or disabled");
-        /* Only in the newer version.
-        else if (res & MPD_IDLE_STICKER) 
-            vec_add(strvec, "a sticker has been modified.");
-        else if (res & MPD_IDLE_SUBSCRIPTION) 
-            vec_add(strvec, "a client has subscribed to or unsubscribed from a channel");
-        else if (res & MPD_IDLE_MESSAGE) 
-            vec_add(strvec, "a message on a subscribed channel was received");
-            */
-        for (int i = 0, l = vec_size(strvec); i < l; i++) {
-            char *str = (char *) vec_get(strvec, i);
-            BB(str);
-            say("");
-            info("Mpd event: [%s] (ignoring)", _s);
+        if (res & MPD_IDLE_DATABASE) {
+            if (g.verbose_events) 
+                vec_add(strvec, BB_("song database has been updated"));
+            if (! main_fire_event("database-updated", NULL))
+                pieprf;
         }
-
-        if (! vec_destroy(strvec))
-            pieprf;
+        if (res & MPD_IDLE_PLAYER) {
+            if (g.verbose_events) 
+                vec_add(strvec, M_("the player state has changed: play, stop, pause, seek, ..."));
+            if (! main_fire_event("player-state-changed", NULL))
+                pieprf;
+        }
+        if (res & MPD_IDLE_MIXER) {
+            if (! main_fire_event("volume-altered", NULL))
+                pieprf;
+            if (g.verbose_events) 
+                vec_add(strvec, CY_("the volume has been altered"));
+        }
+        if (res & MPD_IDLE_OUTPUT) {
+            if (g.verbose_events) 
+                vec_add(strvec, CY_("an audio output device has been enabled or disabled"));
+            if (! main_fire_event("device-state-changed", NULL))
+                pieprf;
+        }
+        /* Only in the newer version.
+        else if (res & MPD_IDLE_STICKER) {
+            if (g.verbose_events) 
+                vec_add(strvec, CY_("a sticker has been modified."));
+            if (! main_fire_event("sticker-modified", NULL))
+                pieprf;
+        }
+        else if (res & MPD_IDLE_SUBSCRIPTION) {
+            if (g.verbose_events) 
+                vec_add(strvec, CY_("a client has subscribed to or unsubscribed from a channel"));
+            if (! main_fire_event("client-channel-subscription-altered", NULL))
+                pieprf;
+        }
+        else if (res & MPD_IDLE_MESSAGE) {
+            if (g.verbose_events) 
+                vec_add(strvec, CY_("a message on a subscribed channel was received"));
+            if (! main_fire_event("subscribed-channel-message-received", NULL))
+                pieprf;
+        }
+        */
+        if (g.verbose_events) {
+            for (int i = 0, l = vec_size(strvec); i < l; i++) {
+                char *str = (char *) vec_get(strvec, i);
+                say("");
+                info("mpd update: got event %s.", str);
+            }
+            if (! vec_destroy_deep(strvec))
+                pieprf;
+        }
     }
     return true;
 }
@@ -643,7 +694,8 @@ static bool load_playlist(int idx) {
     _();
     G(name);
     Y(path);
-    info("Loading playlist [%s -> %s]", _s, _t);
+    if (g.verbose)
+        info("Loading playlist [%s -> %s]", _s, _t);
 
     // void
     mpd_connection_set_timeout(g.connection, conf_i(timeout_playlist_ms));
@@ -713,7 +765,7 @@ static bool reload_playlists() {
             char *regex = str(1 + strlen(regex_spr) - 2 + strlen(playlist_path));
             sprintf(regex, regex_spr, playlist_path);
 
-            if (!match_matches(path, regex, matches)) {
+            if (! match_matches(path, regex, matches)) {
                 iwarn("Got unexpected path: %s", path);
                 _break = true;
             }
@@ -722,7 +774,8 @@ static bool reload_playlists() {
             _();
             G(matches[1]);
 
-            info("Got playlist [%s]", _s);
+            if (g.verbose) 
+                info("Got playlist [%s]", _s);
 
             struct pl *_pl = f_mallocv(*_pl);
             if (! _pl)
@@ -734,10 +787,7 @@ static bool reload_playlists() {
             _pl->name = name;
             _pl->path = path;
 
-            if (!vec_add(v, _pl)) {
-                piep;
-                _break = true;
-            }
+            vec_add(v, _pl);
             idx++;
 
             /* Note, this will clobber.*/

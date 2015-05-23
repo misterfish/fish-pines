@@ -46,7 +46,16 @@
 #define MAIN_EVENT_RANDOM   0x01
 
 const char *EVENTS[] = {
-    "random"
+    "random",
+    "playlists-changed",
+    "update-started-or-finished",
+    "database-updated",
+    "player-state-changed",
+    "volume-altered",
+    "device-state-changed",
+    "sticker-modified",
+    "client-channel-subscription-altered",
+    "subscribed-channel-message-received"
 };
 
 /* inlined in const.h */

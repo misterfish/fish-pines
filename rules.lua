@@ -132,8 +132,7 @@ return {
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      once = true, handler = function () capi.mpd.toggle_play () end },
 
-            --{ 'b', 'a',     once = true, handler = function () update_playlists () end },
-            { 'b', 'a',     once = true, handler = function () test () end },
+            { 'b', 'a',     once = true, handler = function () update_playlists () end },
         },
         release = {
         }
