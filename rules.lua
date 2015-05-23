@@ -116,12 +116,6 @@ exact:                      <optional, true>
 
 ]]
 
-function toggle_random () 
-    local rand = capi.mpd.toggle_random () 
-    if rand then led.on 'random' else led.off 'random' end
-    sayf ("Random set to %s", CY (rand))
-end
-
 return {
     -- mode = music
     music = {
@@ -134,7 +128,7 @@ return {
             { 'b', 'down',  once = true, handler = function () capi.mpd.prev_playlist () end },
             {      'down',  handler = function () vol.down () end },
             { 'up',         handler = function () vol.up () end },
-            { 'a',          once = true, handler = toggle_random },
+            { 'a',          once = true, handler = mpd.toggle_random },
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      once = true, handler = function () capi.mpd.toggle_play () end },
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <glib.h>
 /* libmpdclient */
 #include <mpd/client.h>
 
@@ -201,7 +202,7 @@ bool f_mpd_init_f(short flags) {
         g.playlist_by_name = g_hash_table_new_full(
             g_str_hash,
             g_str_equal,
-            /* vals are dup'ed string -- destroy. */
+            /* keys are dup'ed string -- destroy. */
             playlist_by_name_destroy_key,
             /* vals are ints-as-pointers -- do not destroy. */
             NULL
@@ -373,6 +374,9 @@ bool f_mpd_update() {
 
     bool disable_timeout = true; // blocks forever on recv
 
+    static bool first = true;
+    static bool prev_random;
+
     /* Enter idle momentarily.
      */
     f_try_rf(mpd_send_idle(g.connection), "enter idle");
@@ -390,9 +394,24 @@ bool f_mpd_update() {
     if (res) {
         bool reload = false;
         if (res & MPD_IDLE_OPTIONS) {
+            /* We swallow successive 'random' events if the final state is
+             * the same as it was at the last update. 
+             */
             bool random;
+            bool fire = false;
             if (! f_mpd_get_random(&random))
                 pieprf;
+            if (first) {
+                first = false;
+                fire = true;
+            }
+            else {
+                if (random != prev_random) 
+                    fire = true;
+            }
+            prev_random = random;
+            if (fire && ! main_fire_event("random", GINT_TO_POINTER(random)))
+                    pieprf;
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
             info("Stored playlists have been altered / created, reloading.");
@@ -413,29 +432,36 @@ bool f_mpd_update() {
         res &= ~(MPD_IDLE_OPTIONS | MPD_IDLE_STORED_PLAYLIST | MPD_IDLE_UPDATE);
         */
 
-        char *str = NULL;
+        vec *strvec = vec_new();
+        if (! strvec) 
+            pieprf;
+
         _();
         if (res & MPD_IDLE_DATABASE) 
-            str = "song database has been updated";
-        else if (res & MPD_IDLE_PLAYER) 
-            str = "the player state has changed: play, stop, pause, seek, ...";
-        else if (res & MPD_IDLE_MIXER) 
-            str = "the volume has been modified";
-        else if (res & MPD_IDLE_OUTPUT) 
-            str = "an audio output device has been enabled or disabled";
+            vec_add(strvec, "song database has been updated");
+        if (res & MPD_IDLE_PLAYER) 
+            vec_add(strvec, "the player state has changed: play, stop, pause, seek, ...");
+        if (res & MPD_IDLE_MIXER) 
+            vec_add(strvec, "the volume has been modified");
+        if (res & MPD_IDLE_OUTPUT) 
+            vec_add(strvec, "an audio output device has been enabled or disabled");
         /* Only in the newer version.
         else if (res & MPD_IDLE_STICKER) 
-            str = "a sticker has been modified.";
+            vec_add(strvec, "a sticker has been modified.");
         else if (res & MPD_IDLE_SUBSCRIPTION) 
-            str = "a client has subscribed to or unsubscribed from a channel";
+            vec_add(strvec, "a client has subscribed to or unsubscribed from a channel");
         else if (res & MPD_IDLE_MESSAGE) 
-            str = "a message on a subscribed channel was received";
+            vec_add(strvec, "a message on a subscribed channel was received");
             */
-        if (str) {
+        for (int i = 0, l = vec_size(strvec); i < l; i++) {
+            char *str = (char *) vec_get(strvec, i);
             BB(str);
             say("");
             info("Mpd event: [%s] (ignoring)", _s);
         }
+
+        if (! vec_destroy(strvec))
+            pieprf;
     }
     return true;
 }
@@ -523,7 +549,7 @@ bool f_mpd_load_playlist_by_name(char *name) {
         warn("No playlist found with name %s", _s);
         return false; // not overkill, good to trigger lua error.
     }
-    return load_playlist((int) ptr);
+    return load_playlist(GPOINTER_TO_INT(ptr));
 }
 
 static void playlist_by_name_destroy_key(gpointer ptr) {
@@ -716,8 +742,8 @@ static bool reload_playlists() {
 
             /* Note, this will clobber.*/
 
-            /* _replace will destroy the key and value, while _insert will
-             * only destroy the value, i believe .*/
+            /* If the key exists, _replace will destroy the key and value,
+             * while _insert will only destroy the value, i believe .*/
             g_hash_table_replace(g.playlist_by_name, g_strdup(name), GINT_TO_POINTER(idx));
         }
 

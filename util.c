@@ -245,10 +245,9 @@ int util_write_fd_to_dev_null_l(lua_State *L) {
     }
     ERR:
     if (errn) {
-        int SIZE = 500;
-        char buf[500];
+        char buf[ERROR_BUF_SIZE];
         const char *err = strerror(errn);
-        snprintf(buf, 500, "Error on %s: %s", errs, err);
+        snprintf(buf, ERROR_BUF_SIZE, "Error on %s: %s", errs, err);
         lua_pushstring(L, buf);
         lua_error(L);
     }

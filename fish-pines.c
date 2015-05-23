@@ -15,6 +15,7 @@
 
 #include <signal.h>
 
+#include <glib.h>
 #include <lua.h>
 #include <lauxlib.h> // luaL_ functions.
 #include <lualib.h> // luaL_ functions.
@@ -40,6 +41,14 @@
 
 #include "fish-pines.h"
 
+#define ERROR_BUF_SIZE      500
+
+#define MAIN_EVENT_RANDOM   0x01
+
+const char *EVENTS[] = {
+    "random"
+};
+
 /* inlined in const.h */
 extern short BUTTONS(short);
 
@@ -57,11 +66,13 @@ static bool do_read(short cur_read);
 static bool process_read(short read, char *button_print);
 static int get_max_button_print_size();
 
+static int add_listener_l(lua_State *L);
+
 static bool init_globals();
 static void init_state();
 
 static bool lua_init();
-static bool lua_buttons_config();
+static bool lua_start();
 
 static int get_max_button_print_size();
 #ifdef DEBUG
@@ -85,6 +96,8 @@ static struct {
      */
     vec *loop_events;
     int num_loop_events;
+
+    GHashTable *events;
 
 #ifdef DEBUG
     char *debug_read_s;
@@ -197,8 +210,8 @@ int main() {
     if (! f_mpd_init()) 
         err("Couldn't init mpd.");
 
-    if (! lua_buttons_config()) 
-        err("Can't init lua buttons.");
+    if (! lua_start()) 
+        err("Can't call lua start().");
 
     int first = 1;
     unsigned int cur_read = 0;
@@ -458,10 +471,15 @@ static void cleanup() {
     fish_util_cleanup();
     fish_utils_cleanup();
 
-    if (!f_mpd_cleanup())
+    if (! f_mpd_cleanup())
         piep;
-    if (!buttons_cleanup()) 
+    if (! buttons_cleanup()) 
         piep;
+
+    if (! vec_destroy(g.loop_events))
+        piep;
+            
+    g_hash_table_destroy(g.events);
 
     char **button_name_ptr = (char**) (&g.button_names);
     for (int i = 0; i < 8; i++) {
@@ -542,6 +560,17 @@ static bool lua_init() {
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);  // buttons
+
+    // capi.main = {
+    lua_pushstring(L, "main");
+    lua_newtable(L);
+
+    lua_pushstring(L, "add_listener");
+    lua_pushcfunction(L, (lua_CFunction) add_listener_l);
+    lua_rawset(L, -3);
+
+    lua_rawset(L, -3);
+    // } 
 
     // capi.mpd = {
     lua_pushstring(L, "mpd");
@@ -696,21 +725,38 @@ static bool lua_init() {
     return true;
 }
 
-static bool lua_buttons_config() {
+static bool lua_start() {
     lua_State *L = global.L;
-    lua_getglobal(L, "buttons_config");
+    lua_getglobal(L, "start");
     int rc;
     if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
         const char *err = luaL_checkstring(L, -1);
-        check_lua_err(rc, "Failed to run buttons_config: %s", err);
+        check_lua_err(rc, "Failed to run start: %s", err);
         return false;
     }
     return true;
 }
 
+static void events_destroy_val(gpointer ptr) {
+    if (! vec_destroy((vec *) ptr))
+        piep;
+}
+
 static void init_state() {
     g.loop_events = vec_new();
-    f_track_heap(g.loop_events);
+
+    g.events = g_hash_table_new_full(
+        g_str_hash,
+        g_str_equal,
+        /* keys are static strings */
+        NULL,
+        /* vals are malloc'd vectors, destroy */
+        events_destroy_val
+    );
+
+    for (int i = 0, l = (sizeof EVENTS) / sizeof EVENTS[0]; i < l; i++) {
+        g_hash_table_insert(g.events, (char *) EVENTS[i], (gpointer) vec_new());
+    }
 
     g.button_names.left = G_("left");
     g.button_names.right = G_("right");
@@ -816,3 +862,55 @@ static void print_multiple_indicator(short s) {
     }
 }
 
+static int add_listener_l(lua_State *L) {
+    char *errs = NULL;
+    const char *event = luaL_checkstring(L, -2);
+    if (strcmp(lua_typename(L, lua_type(L, -1)), "function")) {
+        errs = "add_listener_l(): need func at -1";
+        goto ERR;
+    }
+    int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops
+    vec *lvec = (vec *) g_hash_table_lookup(g.events, event);
+    if (! lvec) {
+        _();
+        BR(event);
+        spr("No matching event for %s", _s);
+        errs = _t;
+    }
+    vec_add(lvec, GINT_TO_POINTER(reg_index));
+    ERR:
+    if (errs) {
+        lua_pushstring(L, errs);
+        lua_error(L);
+    }
+    return 0;
+}
+
+bool main_fire_event(char *event, gpointer data) {
+    vec *lvec = (vec *) g_hash_table_lookup(g.events, event);
+    if (! lvec) {
+        _();
+        BR(event);
+        iwarn("No matching event for %s", _s);
+        return false;
+    }
+    for (int i = 0, l = vec_size(lvec); i < l; i++) {
+        int args = 0;
+        int reg_idx = GPOINTER_TO_INT(vec_get(lvec, i));
+        lua_rawgeti(global.L, LUA_REGISTRYINDEX, reg_idx);
+        if (! strcmp(event, "random")) {
+            lua_pushboolean(global.L, (bool) GPOINTER_TO_INT(data));
+            args = 1;
+        }
+        /* Don't set ok to false -- not serious enough. */
+        int rc;
+        if ((rc = lua_pcall(global.L, args, 0, 0))) {
+            const char *err = luaL_checkstring(global.L, -1);
+            _();
+            BR(event);
+            check_lua_err(rc, "Lua error on event %s: %s", _s, err);
+            continue;
+        }
+    }
+    return true;
+}

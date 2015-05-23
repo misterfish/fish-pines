@@ -62,7 +62,7 @@ local function printf (format, ...)
     io.write (string.format (format, ...))
 end
 
---local BULLETS = {'꣐', '⩕', '٭', '᳅', '�', '�', '�', '�', '�'}
+--local BULLETS = { '꣐', '⩕', '٭', '᳅', '𝇚', '𝄢', '𝄓', '𝄋', '𝁐' }
 local BULLETS = {'꣐', '⩕', '٭', '᳅'}
 
 local function bullet () 

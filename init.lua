@@ -1,6 +1,10 @@
 local _, k, v
 
+-- extern --
+
 posix           = require 'posix'
+
+-- intern --
 
 needs           = require 'needs'
 
@@ -16,6 +20,7 @@ configlua       = require 'configlua'
 
 shutdown        = require 'shutdown'
 vol             = require 'vol'
+mpd             = require 'mpd'
 led             = require 'led'
 custom          = require 'custom'
 mode            = require 'mode'
@@ -32,8 +37,11 @@ for _, v in pairs (conf) do
     capi[v].config (config[v])
 end
 
+capi.main.add_listener('random', mpd.listen_random)
+
 -- called by C after init.
-function buttons_config () 
+function start () 
+    led.init()
     for modename, t in pairs (rules) do
         local mode_idx = mode.idx_for_name (modename) 
         if not mode_idx then

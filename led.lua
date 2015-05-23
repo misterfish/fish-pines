@@ -1,12 +1,22 @@
-needs ({ me = 'led' }, 'configlua', 'capi', '__imported_util')
+needs ({ me = 'led' }, 'configlua', 'capi', '__imported_util', 'mpd')
 
-local function on (which) 
+local on, off
+
+local function init ()
+    if mpd.random() then
+        on 'random'
+    else
+        off 'random'
+    end
+end
+
+on = function (which) 
     local pin = configlua.leds[which]
     if not pin then return warnf ("Can't find led for %s", BR (which)) end
     capi.gpio.on (pin)
 end
 
-local function off (which) 
+off = function (which) 
     local pin = configlua.leds[which]
     if not pin then return warnf ("Can't find led for %s", BR (which)) end
     capi.gpio.off (pin)
@@ -51,6 +61,7 @@ local function flashco (which)
 end
 
 return {
+    init = init,
     on = on,
     off = off,
     get = get,
