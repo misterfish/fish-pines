@@ -28,4 +28,5 @@ return {
     -- switch down and up for changing the volume.
     -- useful for bugging the bartender.
     anton_mode = true,
+    default_playlist = 'all',
 }

@@ -1,23 +1,23 @@
 local function on (which, opts) 
     local pin = configlua.leds[which]
     opts = opts or {}
-    if not pin then return warnf("Can't find led for %s", BR(which)) end
+    if not pin then return warnf ("Can't find led for %s", BR (which)) end
     local fn = opts.coroutine and capi.gpio.on_co or capi.gpio.on
-    fn(pin)
+    fn (pin)
 end
 
 local function off (which, opts) 
     local pin = configlua.leds[which]
     opts = opts or {}
-    if not pin then return warnf("Can't find led for %s", BR(which)) end
+    if not pin then return warnf ("Can't find led for %s", BR (which)) end
     local fn = opts.coroutine and capi.gpio.off_co or capi.gpio.off
-    fn(pin)
+    fn (pin)
 end
 
 local function get (which)
     local pin = configlua.leds[which]
-    if not pin then return warnf("Can't find led for %s", BR(which)) end
-    return capi.gpio.read(pin)
+    if not pin then return warnf ("Can't find led for %s", BR (which)) end
+    return capi.gpio.read (pin)
 end
 
 -- need arg:
@@ -27,38 +27,39 @@ end
 
 local function flash (which, args)
     local pin = configlua.leds[which]
-    if not pin then return warnf("Can't find led for %s", BR(which)) end
+    if not pin then return warnf ("Can't find led for %s", BR (which)) end
 
     local tasks = args.tasks or 
         error "flash: need tasks"
     local verbose = args.verbose or false
+    local done_cb = args.done or nil
 
     local flashco = (function () 
         local slept = -1
         local state = nil
         local function update_state () 
             if state then
-                led.off('random', { coroutine = true })
+                led.off ('random', { coroutine = true })
                 state = nil
             else
-                led.on('random', { coroutine = true })
+                led.on ('random', { coroutine = true })
                 state = 1
             end
         end
 
-        local flashco = coroutine.create (function() 
+        local flashco = coroutine.create (function () 
             while true do 
                 slept = (slept + 1) % 5
                 if slept == 0 then
-                    update_state()
+                    update_state ()
                 end
-                posix.nanosleep(0, 200e6)
-                coroutine.yield()
+                posix.nanosleep (0, 200e6)
+                coroutine.yield ()
             end
         end)
 
         return flashco
-    end)()
+    end) ()
 
     local cos, numtasks = (function ()
         local taskidx = 0
@@ -70,13 +71,13 @@ local function flash (which, args)
             taskidx = taskidx + 1
             numtasks = numtasks + 1
 
-            local co = coroutine.create(task)
+            local co = coroutine.create (task)
 
             cos[taskidx] = co
         end
 
         return cos, numtasks
-    end)()
+    end) ()
 
     local idx
     local done = {}
@@ -119,6 +120,8 @@ local function flash (which, args)
         coroutine.resume (flashco)
     end
     ::done::
+
+    if done_cb then done_cb() end
 end
 
 return {

@@ -3,7 +3,7 @@
 
 # fish-util remake should trigger a remake of us XX
 
-cc 		= gcc -ggdb
+cc 		= gcc #-ggdb
 CC 		= $(cc) 
 
 ifeq ($(NO_NES), 1)

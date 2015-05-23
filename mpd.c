@@ -52,6 +52,7 @@ static bool have_playlists();
 static bool reload_playlists();
 static struct mpd_status *get_status();
 static void free_status(struct mpd_status* s);
+static void playlist_by_name_destroy_key(gpointer ptr);
 
 struct pl {
     char *name;
@@ -65,6 +66,7 @@ static struct {
     struct mpd_connection *connection;
     bool init;
     vec *playlist_vec;
+    GHashTable *playlist_by_name;
     int playlist_idx;
     int playlist_n;
 
@@ -124,7 +126,7 @@ bool f_mpd_ok() {
             return false;
     }
     else {
-        warn("No connection.");
+        warn("f_mpd_ok: no connection.");
         return false;
     }
 } 
@@ -162,9 +164,7 @@ bool f_mpd_init_f(short flags) {
     if (g.init) {
         if (force) {
             g.init = false;
-fprintf(stderr, "freeing");
             mpd_connection_free(g.connection);
-fprintf(stderr, "freeeeed");
         }
         else {
             warn("f_mpd_init: already initted.");
@@ -191,10 +191,21 @@ fprintf(stderr, "freeeeed");
         {
             int i = conf_i(update_on_n_ticks);
             if (i)
+                /* This used to be update_wrapper; maybe htat's the cause of
+                 * the crash when mpd is restarted? XX
+                 */
                 main_register_loop_event("mpd update", i, f_mpd_update);
         }
 
         g.playlist_vec = vec_new();
+        g.playlist_by_name = g_hash_table_new_full(
+            g_str_hash,
+            g_str_equal,
+            /* vals are dup'ed string -- destroy. */
+            playlist_by_name_destroy_key,
+            /* vals are ints-as-pointers -- do not destroy. */
+            NULL
+        );
         g.playlist_idx = -1;
         g.playlist_n = 0;
 
@@ -346,7 +357,10 @@ if (TEST_FORCE_REINIT) g.force_reinit = true;
     return true;
 }
 
-/* We die with memory corruption if mpd is restarted. My hunch is that it's
+/* This is *not* the update metadata function of mpd, but our own function
+ * for updating the status of mpd.
+ *
+ * We die with memory corruption if mpd is restarted. My hunch is that it's
  * here. XX
  */
 bool f_mpd_update() {
@@ -369,7 +383,10 @@ bool f_mpd_update() {
      * If events occur during no idle, first you enter idle again, then
      * this receives them, too.
      */
-    enum mpd_idle res = mpd_recv_idle(g.connection, disable_timeout); 
+
+    /* Don't use f_try_rf -- this is allowed to be 0. */
+    enum mpd_idle res = mpd_recv_idle(g.connection, disable_timeout);
+
     if (res) {
         bool reload = false;
         if (res & MPD_IDLE_OPTIONS) {
@@ -392,7 +409,9 @@ bool f_mpd_update() {
                 piep;
         }
 
+        /* Can cancel bits we don't need (but not doing it).
         res &= ~(MPD_IDLE_OPTIONS | MPD_IDLE_STORED_PLAYLIST | MPD_IDLE_UPDATE);
+        */
 
         char *str = NULL;
         _();
@@ -418,6 +437,42 @@ bool f_mpd_update() {
             info("Mpd event: [%s] (ignoring)", _s);
         }
     }
+    return true;
+}
+
+bool f_mpd_database_update() {
+    if (!g.init) {
+        warn("f_mpd_database_update: mpd not initted.");
+        return false;
+    }
+    if (! check_reinit())
+        pieprf;
+    const char *path = NULL;
+    f_try_rf(mpd_run_update(g.connection, path), "send database update");
+    return true;
+}
+
+bool f_mpd_is_updating(bool *u) {
+    if (!g.init) {
+        warn("f_mpd_is_updating: mpd not initted.");
+        return false;
+    }
+    if (! check_reinit())
+        pieprf;
+
+    /*
+        MPD_IDLE_UPDATE     
+            a database update has started or finished.
+
+        So it will also return true when it's just finished.
+    */
+
+    struct mpd_status *st = get_status();
+    if (!st) // let get_status do the whining
+        return false;
+    if (u)
+        *u = mpd_status_get_update_id(st);
+
     return true;
 }
 
@@ -453,6 +508,29 @@ bool f_mpd_prev_playlist() {
     return load_playlist(g.playlist_idx);
 }
 
+bool f_mpd_load_playlist_by_name(char *name) {
+    if (!g.init) {
+        warn("f_mpd_load_playlist: mpd not initted.");
+        return false;
+    }
+    if (! check_reinit())
+        pieprf;
+
+    gpointer ptr = g_hash_table_lookup(g.playlist_by_name, (gpointer) name);
+    if (!ptr) {
+        _();
+        BR(name);
+        warn("No playlist found with name %s", _s);
+        return false; // not overkill, good to trigger lua error.
+    }
+info("got idx: %d", (int) ptr);
+    return load_playlist((int) ptr);
+}
+
+static void playlist_by_name_destroy_key(gpointer ptr) {
+    free(ptr);
+}
+
 bool f_mpd_cleanup() {
     if (!g.init) {
         warn("f_mpd_cleanup: mpd not initted.");
@@ -464,6 +542,8 @@ bool f_mpd_cleanup() {
 
     if (!vec_destroy_f(g.playlist_vec, VEC_DESTROY_DEEP))
         pieprf;
+
+    g_hash_table_destroy(g.playlist_by_name);
 
     return true;
 }
@@ -516,11 +596,13 @@ static int get_elapsed_time() {
     return ret;
 }
 
+#if 0
 /* Wrapper for loop register. */
 bool f_mpd_update_wrapper(void *p) {
     ++p; // warnings
     return f_mpd_update();
 }
+#endif
 
 static bool load_playlist(int idx) {
     struct pl *pl = (struct pl *) vec_get(g.playlist_vec, idx);
@@ -563,7 +645,8 @@ static bool reload_playlists() {
         if (s == -1) 
             pieprf;
         else if (s) 
-            vec_clear(v);
+            if (! vec_clear_f(v, VEC_CLEAR_DEEP))
+                pieprf;
     }
     g.playlist_idx = -1;
     g.playlist_n = 0;
@@ -581,6 +664,7 @@ static bool reload_playlists() {
     if (!matches) 
         ierr_perr("");
 
+    int idx = -1;
     while (1) {
         bool _break = false;
         struct mpd_pair *p = mpd_recv_pair_named(g.connection, "playlist");
@@ -614,21 +698,28 @@ static bool reload_playlists() {
             G(matches[1]);
             info("Got playlist [%s]", _s);
 
-            struct pl *_pl = malloc(sizeof(struct pl));
+            struct pl *_pl = f_mallocv(*_pl);
             if (! _pl)
                 ierr_perr("");
 
             char *name = str(strlen(matches[1]) + 1);
-            f_track_heap(name);
+            // don't track -- let vector deep clear kill it.
+            //f_track_heap(name);
             strcpy(name, matches[1]);
 
             _pl->name = name;
             _pl->path = path;
 
-            if (!vec_add(v, (void*) _pl)) {
+            if (!vec_add(v, _pl)) {
                 piep;
                 _break = true;
             }
+            idx++;
+
+            /* if two playlists have the same name, this will clobber. */
+            /* replace will destroy the key and value, while insert will
+             * only destroy the value, i believe .*/
+            g_hash_table_replace(g.playlist_by_name, g_strdup(name), GINT_TO_POINTER(idx));
         }
 
         if (p) mpd_return_pair(g.connection, p);
@@ -703,12 +794,40 @@ int f_mpd_random_on_l() {
     }
     return 0;
 }
-int f_mpd_update_l() {
-    if (! f_mpd_update()) {
-        lua_pushstring(global.L, "Couldn't update mpd.");
-        lua_error(global.L);
+
+static int database_update_L(lua_State *L) {
+    if (! f_mpd_database_update()) {
+        lua_pushstring(L, "Couldn't update mpd.");
+        lua_error(L);
     }
     return 0;
+}
+
+int f_mpd_database_update_l() {
+    return database_update_L(global.L);
+}
+int f_mpd_database_update_lco() {
+    lua_State *continuationL = lua_tothread(global.L, -1);
+    return database_update_L(continuationL);
+}
+
+static int is_updating_L(lua_State *L) {
+    bool u;
+    if (! f_mpd_is_updating(&u)) {
+        lua_pushstring(L, "Couldn't get is_updating status.");
+        lua_error(L);
+    }
+    lua_pushboolean(L, u);
+    return 1;
+}
+
+int f_mpd_is_updating_l() {
+    return is_updating_L(global.L);
+}
+/* Version to be called from within a coroutine. */
+int f_mpd_is_updating_lco() {
+    lua_State *continuationL = lua_tothread(global.L, -1);
+    return is_updating_L(continuationL);
 }
 int f_mpd_next_playlist_l() {
     if (! f_mpd_next_playlist()) {
@@ -720,6 +839,14 @@ int f_mpd_next_playlist_l() {
 int f_mpd_prev_playlist_l() {
     if (! f_mpd_prev_playlist()) {
         lua_pushstring(global.L, "Couldn't go to prev playlist.");
+        lua_error(global.L);
+    }
+    return 0;
+}
+int f_mpd_load_playlist_by_name_l() {
+    const char *name = luaL_checkstring(global.L, -1);
+    if (! f_mpd_load_playlist_by_name((char *) name)) {
+        lua_pushstring(global.L, "Couldn't load playlist by name.");
         lua_error(global.L);
     }
     return 0;

@@ -579,8 +579,20 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) f_mpd_random_on_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "update");
-    lua_pushcfunction(L, (lua_CFunction) f_mpd_update_l);
+    lua_pushstring(L, "database_update");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_database_update_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "database_update_co");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_database_update_lco);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "is_updating");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_is_updating_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "is_updating_co");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_is_updating_lco);
     lua_rawset(L, -3);
 
     lua_pushstring(L, "next_playlist");
@@ -589,6 +601,10 @@ static bool lua_init() {
 
     lua_pushstring(L, "prev_playlist");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_prev_playlist_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "load_playlist_by_name");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_load_playlist_by_name_l);
     lua_rawset(L, -3);
 
     lua_pushstring(L, "seek");

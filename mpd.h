@@ -23,6 +23,7 @@ bool f_mpd_random_on();
 
 bool f_mpd_prev_playlist();
 bool f_mpd_next_playlist();
+bool f_mpd_load_playlist_by_name();
 
 /* Lua functions. 
  * These 'throw'.
@@ -35,8 +36,12 @@ int f_mpd_toggle_random_l();
 int f_mpd_get_random_l();
 int f_mpd_random_off_l();
 int f_mpd_random_on_l();
-int f_mpd_update_l();
+int f_mpd_database_update_l();
+int f_mpd_database_update_lco();
 int f_mpd_next_playlist_l();
 int f_mpd_prev_playlist_l();
+int f_mpd_load_playlist_by_name_l();
 int f_mpd_seek_l(/* int secs */);
+int f_mpd_is_updating_l();
+int f_mpd_is_updating_lco();
 

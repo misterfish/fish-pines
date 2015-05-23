@@ -51,18 +51,18 @@ struct flua_config_conf_t *flua_config_new_f(lua_State *l, int flags) {
     conf->conf = g_hash_table_new_full(
         g_str_hash,
         g_str_equal,
-        // keys are static strings: don't destroy.
+        /* keys are static strings: don't destroy. */
         NULL,
-        // vals are static structs: don't destroy.
+        /* vals are static structs: don't destroy. */
         NULL 
     );
     conf->required_keys = g_hash_table_new_full(
         g_str_hash,
         g_str_equal,
-        // keys are static strings: don't destroy.
+        /* keys are static strings: don't destroy. */
         NULL,
-        // vals are malloc'd integers-as-pointers: destroy.
-        required_keys_value_destroy
+        /* vals are malloc'd integers-as-pointers: don't destroy. */
+        NULL
     );
 
     conf->quiet = flags & FLUA_CONFIG_QUIET;

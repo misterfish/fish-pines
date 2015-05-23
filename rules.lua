@@ -1,59 +1,66 @@
 local _, i, k, v
 
-function test () 
-
-    local function update_cmdbc (onw8, onsucc, onfail) 
-        util.fork_wait('find /usr >/dev/null', { 
-            onsuccess = function () 
-                info 'success!'
-                onsucc()
-            end,
-            onwait = function ()
-                info 'waiting'
-                onw8()
-            end,
-            onfailure = function ()
-                warn 'disaster!'
-                onfail()
-            end,
-            verbose_ok = true,
-        })
+function update_playlists () 
+    -- might be useful later in this factory form.
+    -- for now, not so much.
+    local function make_update_function (cmd)
+        return function ()
+            local isok = false
+            util.fork_wait (cmd, {
+                onsuccess = function () 
+                    -- we're done, don't yield, just return from the function.
+                    isok = true
+                end,
+                onwait = function ()
+                    coroutine.yield {}
+                end,
+                onfailure = function ()
+                    -- same here.
+                    isok = false -- not nil
+                end,
+                --verbose_ok = true,
+            })
+            return { ok = isok }
+        end
     end
 
-    local function update_cmd ()
-        local isok = false
-        util.fork_wait('find /usr/lib >/dev/null', { 
-            onsuccess = function () 
-                -- we're done, don't yield, just return from the function.
-                isok = true
-            end,
-            onwait = function ()
+    local function mpd_update ()
+        capi.mpd.database_update_co ()
+        while true do
+            if capi.mpd.is_updating_co () then
                 coroutine.yield {}
-            end,
-            onfailure = function ()
-                -- same here.
-                isok = false -- not nil
-            end,
-            --verbose_ok = true,
-        })
-        return { ok = isok }
+            else 
+                break
+            end
+        end
+        return { ok = true }
     end
 
+    -- fish-pines will notice on the next round of mpd_update that an update
+    -- happened, and reload all the playlists.
+    -- there are probably some race conditions in which the update finishes,
+    -- but doesn't show all.m3u as a playlist.
+
+    local function all_done ()
+        info 'alldon!'
+        -- coro version necessary?? XX
+        capi.mpd.load_playlist_by_name(configlua.default_playlist)
+    end
+
+    -- run tasks cooperatively and flash the led.
     led.flash ('update', {
         verbose = true,
+        done = all_done,
         tasks = {
-            update_cmd,
-            update_cmd,
-            update_cmd,
-            update_cmd,
-        }
+            --make_update_function('make-playlist-all >/dev/null'),
+            mpd_update,         }
     })
 
 end
 
 --[[ 
 
-Rules passed to capi.buttons.add_rule() look like this:
+Rules passed to capi.buttons.add_rule () look like this:
 
 { 'b', 'right', mode = , event = , once = , handler = , chain = , exact = }
 
@@ -92,28 +99,30 @@ exact:                      <optional, true>
 
 ]]
 
-function toggle_random() 
-    local rand = capi.mpd.toggle_random() 
+function toggle_random () 
+    local rand = capi.mpd.toggle_random () 
     if rand then led.on 'random' else led.off 'random' end
-    sayf("Random set to %s", CY(rand))
+    sayf ("Random set to %s", CY (rand))
 end
 
 return {
     -- mode = music
     music = {
         press = {
-            {      'right', once = true, handler = function() capi.mpd.next_song() end },
-            {      'left',  once = true, handler = function() capi.mpd.prev_song() end },
-            { 'b', 'right', handler = function() capi.mpd.seek(configlua.mpd.seek) end },
-            { 'b', 'left',  handler = function() capi.mpd.seek(configlua.mpd.seek * -1) end },
-            { 'b', 'up',    once = true, handler = function() capi.mpd.next_playlist() end },
-            { 'b', 'down',  once = true, handler = function() capi.mpd.prev_playlist() end },
-            {      'down',  handler = function() vol.down() end },
-            { 'up',         handler = function() vol.up() end },
+            {      'right', once = true, handler = function () capi.mpd.next_song () end },
+            {      'left',  once = true, handler = function () capi.mpd.prev_song () end },
+            { 'b', 'right', handler = function () capi.mpd.seek (configlua.mpd.seek) end },
+            { 'b', 'left',  handler = function () capi.mpd.seek (configlua.mpd.seek * -1) end },
+            { 'b', 'up',    once = true, handler = function () capi.mpd.next_playlist () end },
+            { 'b', 'down',  once = true, handler = function () capi.mpd.prev_playlist () end },
+            {      'down',  handler = function () vol.down () end },
+            { 'up',         handler = function () vol.up () end },
             { 'a',          once = true, handler = toggle_random },
             { 'select',     once = true, handler = mode.next_mode  },
-            { 'start',      once = true, handler = function() capi.mpd.toggle_play() end },
-            { 'b', 'a',     once = true, handler = function() test() end },
+            { 'start',      once = true, handler = function () capi.mpd.toggle_play () end },
+            { 'b', 'a',     once = true, handler = function () update_playlists () end },
+
+            --{ 'b', 'a', 'select',    once = true, handler = function () capi.mpd.database_update () end },
         },
         release = {
         }

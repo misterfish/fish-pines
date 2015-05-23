@@ -481,7 +481,7 @@ int gpio_pin_on_l(/*int pin_gpio, ['force']*/) {
     return gpio_pin_on_L(global.L);
 }
 
-static int gpio_pin_off_L(lua_State *L) {
+static int pin_off_L(lua_State *L) {
     int pin_gpio, flags = 0;
     int numargs = lua_gettop(L);
     if (numargs == 2) {
@@ -503,11 +503,11 @@ static int gpio_pin_off_L(lua_State *L) {
 /* Version to be called from within a coroutine. */
 int gpio_pin_off_lco(/*int pin_gpio, ['force']*/) {
     lua_State *continuationL = lua_tothread(global.L, -1);
-    return gpio_pin_off_L(continuationL);
+    return pin_off_L(continuationL);
 }
 
 int gpio_pin_off_l(/*int pin_gpio, ['force']*/) {
-    return gpio_pin_off_L(global.L);
+    return pin_off_L(global.L);
 }
 
 
