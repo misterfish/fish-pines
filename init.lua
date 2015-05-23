@@ -22,20 +22,20 @@ local no_nes = os.getenv ("NO_NES") == '1'
 local conf = {'mpd', 'mode'}
 if not no_nes then push (conf, 'nes') end
 
-for _,v in pairs (conf) do
+for _, v in pairs (conf) do
     capi[v].config (config[v])
 end
 
 -- called by C after init.
 function buttons_config () 
-    for modename,t in pairs (rules) do
+    for modename, t in pairs (rules) do
         local mode_idx = mode.idx_for_name (modename) 
         if not mode_idx then
-            warn ("ABC") -- XX
+            warn "XX" -- XX
             break
         end
-        for event,u in pairs (t) do
-            for _,rule in ipairs (u) do
+        for event, u in pairs (t) do
+            for _, rule in ipairs (u) do
                 rule.mode = mode_idx - 1
                 rule.event = event
                 capi.buttons.add_rule (rule)

@@ -94,7 +94,7 @@ local function ipush (tbl, ...)
 end
 
 local function push (tbl, ...)
-    for _,v in ipairs { select (1, ...) } do
+    for _, v in ipairs { select (1, ...) } do
         tbl[table.maxn (tbl) + 1] = v
     end
     return tbl
@@ -117,7 +117,7 @@ local function sys (cmd, args)
     -- os.execute (cmd), like 'system'
     -- os.popen (cmd), pipe open. Doesn't exist in 5.1
     -- also os.execute gives different values depending on lua version.
-    if _VERSION == "Lua 5.1" then
+    if _VERSION == "Lua 5.1" then -- deprecated
         local c = cmd .. "> /dev/null"
         local code = os.execute (c)
         if code ~= 0 then
@@ -128,10 +128,11 @@ local function sys (cmd, args)
         local fh = os.popen (cmd) 
         if fh then
             if not fh:read ('*a') then
-                print "bad read (shouldn't happen, also not on bad cmd)" --iwarn XX
+                -- even an invalid command should give a valid read
+                error "bad read from os.popen" 
             end
         else
-            print " (shouldn't happen)" --iwarn XX
+            error "got nil filehandle from os.popen"
         end
         local ok, how, value = fh:close ()
         if not ok then
@@ -193,16 +194,16 @@ local function fork_wait (cmd, args)
     local onfailure = args.onfailure or nil
 
     local verbose_ok = args.verbose_ok or false
-
-    local killoutput = true --future? XX
-
-    if killoutput then cmd = cmd .. ' 2>/dev/null ' end
+    local killoutput = args.killoutput or true
 
     local pid, errmsg = posix.fork ()
     if not pid then
         error ("fork_wait: can't fork: " .. errmsg)
     -- kindje
     elseif pid == 0 then
+        if killoutput then
+            util.close_stdout()
+        end
         local ok, str, int = os.execute (cmd)
         local okstr
         if not ok then
@@ -284,6 +285,12 @@ local function fork_wait (cmd, args)
     end -- end papa
 end
 
+-- requires capi.util.redirect_write_to_dev_null
+-- use this to circumvent lua difficulties with closing stdout.
+local function close_stdout () 
+    capi.util.redirect_write_to_dev_null(posix.fileno(io.stdout))
+end
+
 return {
     import = import,
     sayf = sayf,
@@ -315,4 +322,5 @@ return {
     CY = CY,
     BCY = BCY,
     fork_wait = fork_wait,
+    close_stdout = close_stdout,
 }

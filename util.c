@@ -4,6 +4,13 @@
 #include <unistd.h> // _exit
 //#include <time.h>
 #include <sys/time.h>
+#include <error.h>
+#include <errno.h>
+
+/* open */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -205,4 +212,41 @@ int util_socket_unix_message_l(lua_State *L) {
     }
     lua_pushstring(L, f_strdup(response));
     return 1;
+}
+
+int util_close_fd_l(lua_State *L) {
+    int fd = (int) luaL_checknumber(L, -1);
+    if (close(fd)) {
+        const char *err = strerror(errno);
+        lua_pushstring(L, err);
+        lua_error(L);
+    }
+    return 0;
+}
+
+int util_write_fd_to_dev_null_l(lua_State *L) {
+    int oldfd = (int) luaL_checknumber(L, -1);
+    char mode = 'a'; // doesn't seem to work if it's 'w'
+    const char *path = "/dev/null";
+    int newfd = open(path, mode);
+    int errn = 0;
+    if (newfd == -1) {
+        errn = errno;
+        //errs = "open";
+        fprintf(stderr, "err1");
+        goto ERR;
+    }
+    if (-1 == dup2(newfd, oldfd)) {
+        errn = errno;
+        //errs = "dup2";
+        fprintf(stderr, "err2");
+        goto ERR;
+    }
+    ERR:
+    if (errn) {
+        const char *err = strerror(errn);
+        lua_pushstring(L, err);
+        lua_error(L);
+    }
+    return 0;
 }

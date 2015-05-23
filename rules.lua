@@ -3,6 +3,9 @@ local _, i, k, v
 local FORK_WAIT_VERBOSE_OK = false
 
 local function test () 
+    util.fork_wait ('ls -l', {
+        verbose_ok = true,
+    })
 end
 
 local function update_playlists () 
@@ -133,7 +136,8 @@ return {
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      once = true, handler = function () capi.mpd.toggle_play () end },
 
-            { 'b', 'a',     once = true, handler = function () update_playlists () end },
+            --{ 'b', 'a',     once = true, handler = function () update_playlists () end },
+            { 'b', 'a',     once = true, handler = function () test () end },
         },
         release = {
         }

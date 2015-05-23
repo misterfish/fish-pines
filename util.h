@@ -38,6 +38,8 @@ bool util_get_clock(time_t *secs, long *nanosecs);
 
 int util_get_clock_l(lua_State *L);
 int util_socket_unix_message_l(lua_State *L);
+int util_close_fd_l(lua_State *L);
+int util_write_fd_to_dev_null_l(lua_State *L /* char mode */);
 
 
 

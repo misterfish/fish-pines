@@ -650,6 +650,14 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) util_get_clock_l);
     lua_rawset(L, -3);  
 
+    lua_pushstring(L, "close_fd");
+    lua_pushcfunction(L, (lua_CFunction) util_close_fd_l);
+    lua_rawset(L, -3);  
+
+    lua_pushstring(L, "redirect_write_to_dev_null");
+    lua_pushcfunction(L, (lua_CFunction) util_write_fd_to_dev_null_l);
+    lua_rawset(L, -3);  
+
     lua_pushstring(L, "socket_unix_message");
     lua_pushcfunction(L, (lua_CFunction) util_socket_unix_message_l);
     lua_rawset(L, -3);  

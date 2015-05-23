@@ -26,7 +26,7 @@ local function start_pressed ()
     now.secs, now.usecs = capi.util.get_clock ()
     toen.secs, toen.usecs = time_down.secs, time_down.usecs
 
-    for _,v in pairs {now, toen} do
+    for _, v in pairs {now, toen} do
         -- v.secs is about 30 bits. Won't overflow double.
         v.combined = v.secs + v.usecs * 1e-6
     end
