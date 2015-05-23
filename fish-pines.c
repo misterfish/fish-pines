@@ -189,6 +189,7 @@ int main() {
     if (! lua_init()) 
         err("Can't init lua.");
 
+    say("");
 #ifndef NO_NES
     info("Setting up wiringPi+nes.");
 
@@ -215,7 +216,7 @@ int main() {
     if (! vol_init()) 
         ierr("Couldn't init vol");
 
-    info("setting up ctl + mpd");
+    info("Setting up mpd.");
     if (! f_mpd_init()) 
         err("Couldn't init mpd.");
 

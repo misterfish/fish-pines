@@ -57,6 +57,10 @@ static struct mpd_status *get_status();
 static void free_status(struct mpd_status* s);
 static void playlist_by_name_destroy_key(gpointer ptr);
 
+static bool is_even(int i) {
+    return ! (i % 2);
+}
+
 struct pl {
     char *name;
     char *path;
@@ -451,8 +455,8 @@ bool f_mpd_update() {
             if (g.verbose)
                 info("mpd_update: reloading playlists in response to %s event.", reload);
 
-            // warn but don't return false
-            if (have_playlists() && !reload_playlists()) 
+            /* Warn but don't return false. */
+            if (have_playlists() && ! reload_playlists()) 
                 piep;
         }
 
@@ -616,8 +620,16 @@ bool f_mpd_cleanup() {
     /* void */
     mpd_connection_free(g.connection);
 
-    if (!vec_destroy_f(g.playlist_vec, VEC_DESTROY_DEEP))
-        pieprf;
+    vec *v = g.playlist_vec;
+    if (v) {
+        for (int i = 0, l = vec_size(v); i < l; i++) {
+            struct pl *p = (struct pl *) vec_get(v, i);
+            if (p->name) free(p->name);
+            if (p->path) free(p->path);
+            free(p);
+        }
+    }
+    vec_destroy(g.playlist_vec);
 
     g_hash_table_destroy(g.playlist_by_name);
 
@@ -716,13 +728,13 @@ static bool have_playlists() {
 /* Check have_playlists() before calling this.
  */
 static bool reload_playlists() {
-    vec *v = g.playlist_vec;
+    vec *plvec = g.playlist_vec;
     {
-        int s = vec_size(v);
+        int s = vec_size(plvec);
         if (s == -1) 
             pieprf;
         else if (s) 
-            if (! vec_clear_f(v, VEC_CLEAR_DEEP))
+            if (! vec_clear_f(plvec, VEC_CLEAR_DEEP))
                 pieprf;
     }
     g.playlist_idx = -1;
@@ -746,19 +758,19 @@ static bool reload_playlists() {
         bool _break = false;
         struct mpd_pair *p = mpd_recv_pair_named(g.connection, "playlist");
 
-        if (!p) {
-            // no more pairs
+        /* no more pairs. */
+        if (!p) 
             _break = true;
-        }
         else if (!f_mpd_ok()) {
             f_mpd_error("Couldn't receive named pair for playlist");
             _break = true;
         }
         else {
+            bool _err = false;
+
             char *_path = (char*) p->value; // discard const
 
             char *path = str((strlen(_path) + 1) * sizeof(char));
-            f_track_heap(path);
             strcpy(path, _path);
 
             char *regex_spr = "^ %s / (.+) \\.m3u $";
@@ -767,27 +779,46 @@ static bool reload_playlists() {
 
             if (! match_matches(path, regex, matches)) {
                 iwarn("Got unexpected path: %s", path);
-                _break = true;
+                _err = true;
             }
             free(regex);
 
-            _();
-            G(matches[1]);
+            if (_err) {
+                free(path);
+                _break = true;
+                goto ERR;
+            }
 
-            if (g.verbose) 
-                info("Got playlist [%s]", _s);
+            static short line = 0;
+
+            if (g.verbose) {
+                _();
+                if (idx == -1) {
+                    say("");
+                    info("Got playlists:");
+                }
+                is_even(line) ? Y(matches[1]) : CY(matches[1]);
+                if (! is_even(idx)) {
+                    BB(get_bullet());
+                    printf("%s    %s ", _t, _s);
+                }
+                else {
+                    say("«» %s", _s);
+                    line++;
+                }
+            }
 
             struct pl *_pl = f_mallocv(*_pl);
-            if (! _pl)
-                ierr_perr("");
+            memset(_pl, 0, sizeof(*_pl));
 
             char *name = str(strlen(matches[1]) + 1);
             strcpy(name, matches[1]);
 
+            /* Both malloc'd and deep destroyed with vector on cleanup. */
             _pl->name = name;
             _pl->path = path;
 
-            vec_add(v, _pl);
+            vec_add(plvec, _pl);
             idx++;
 
             /* Note, this will clobber.*/
@@ -795,6 +826,10 @@ static bool reload_playlists() {
             /* If the key exists, _replace will destroy the key and value,
              * while _insert will only destroy the value, i believe .*/
             g_hash_table_replace(g.playlist_by_name, g_strdup(name), GINT_TO_POINTER(idx));
+
+            ERR:
+            _err = _err;
+
         }
 
         if (p) mpd_return_pair(g.connection, p);
@@ -802,13 +837,18 @@ static bool reload_playlists() {
         if (_break) break;
     }
 
-    {
-        int s = vec_size(v);
-        if (s == -1) 
-            pieprf;
+    /* No playlists added. */
+    int s = vec_size(plvec);
+    if (s == -1) 
+        pieprf;
 
-        g.playlist_n = s;
+    g.playlist_n = s;
+
+    if (g.verbose) {
+        say("");
+        say("");
     }
+
     free(matches);
     return true;
 }

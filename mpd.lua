@@ -16,7 +16,7 @@ local function toggle_random ()
 end
 
 local function listen_xxx (msg, col)
-    infof('« %s | %s )', CY('mpd listener'), col(msg))
+    infof(' %s | %s', CY('mpd listener'), col(msg))
 end
 
 -- our listener will also harmlessly trigger if we set random via a button, with a
