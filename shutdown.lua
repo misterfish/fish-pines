@@ -1,3 +1,5 @@
+needs ({ me = 'shutdown' }, '__imported_util', 'capi', 'configlua')
+
 local time_down = {
     secs = nil,
     usecs = nil,
@@ -7,7 +9,7 @@ local disabled = false
 
 local function go () 
     info "Shutting down!"
-    util.sys (configlua.shutdown.cmd)
+    sys (configlua.shutdown.cmd)
     disabled = true
 end
 

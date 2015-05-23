@@ -1,3 +1,5 @@
+needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua')
+
 local _, i, k, v
 
 local FORK_WAIT_VERBOSE_OK = false

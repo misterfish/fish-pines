@@ -1,3 +1,5 @@
+needs ({ me = 'mode' }, '__imported_util', 'capi')
+
 local mode_names = imap (function (v, i) 
     return v, i
 end, config.mode.modes)

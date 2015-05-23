@@ -228,24 +228,28 @@ int util_write_fd_to_dev_null_l(lua_State *L) {
     int oldfd = (int) luaL_checknumber(L, -1);
     char mode = 'a'; // doesn't seem to work if it's 'w'
     const char *path = "/dev/null";
+    char *errs = "";
     int newfd = open(path, mode);
     int errn = 0;
     if (newfd == -1) {
         errn = errno;
-        //errs = "open";
+        errs = "open";
         fprintf(stderr, "err1");
         goto ERR;
     }
     if (-1 == dup2(newfd, oldfd)) {
         errn = errno;
-        //errs = "dup2";
+        errs = "dup2";
         fprintf(stderr, "err2");
         goto ERR;
     }
     ERR:
     if (errn) {
+        int SIZE = 500;
+        char buf[500];
         const char *err = strerror(errn);
-        lua_pushstring(L, err);
+        snprintf(buf, 500, "Error on %s: %s", errs, err);
+        lua_pushstring(L, buf);
         lua_error(L);
     }
     return 0;

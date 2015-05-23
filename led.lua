@@ -1,3 +1,5 @@
+needs ({ me = 'led' }, 'configlua', 'capi', '__imported_util')
+
 local function on (which) 
     local pin = configlua.leds[which]
     if not pin then return warnf ("Can't find led for %s", BR (which)) end

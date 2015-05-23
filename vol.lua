@@ -1,3 +1,5 @@
+needs ({ me = 'vol' }, '__imported_util', 'capi', 'configlua')
+
 local function vol (str)
     local response = capi.util.socket_unix_message (configlua.vol.sock, str)
     if response then

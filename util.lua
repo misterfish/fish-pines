@@ -1,3 +1,5 @@
+needs ({ me = 'util' }, 'posix', 'capi')
+
 -- import everything from module into the given namespace. 
 -- do it via metatable.
 local function import (into, module) 
@@ -292,6 +294,8 @@ local function close_stdout ()
 end
 
 return {
+    __imported_util = true,
+
     import = import,
     sayf = sayf,
     say = say, 

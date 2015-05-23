@@ -1,9 +1,15 @@
+local _, k, v
+
 posix           = require 'posix'
+
+needs           = require 'needs'
+
 util            = require 'util'
-coro            = require 'coro'
 
 -- get everything from util (via metatable)
 util.import (_G, util)
+
+coro            = require 'coro'
 
 config          = require 'config'
 configlua       = require 'configlua'

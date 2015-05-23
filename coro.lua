@@ -1,3 +1,5 @@
+needs ({ me = 'coro' }, '__imported_util')
+
 local _, k, v
 
 -- resume coroutines sequentially until they all finish.
