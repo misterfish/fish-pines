@@ -3,7 +3,6 @@
 
 #include <fish-util.h>
 
-#include "global.h"
 #include "gpio.h"
 
 #define DIR_OUT 0x01
@@ -436,22 +435,20 @@ void gpio_get_phys_pins(int **ary, int *num_used, int *num_total) {
 /* Lua.
  */
 
-int gpio_pin_read_l(/*int pin_gpio*/) {
-    //int pin_phys = (int) luaL_checknumber(global.L, -1);
-    int pin_gpio = (int) luaL_checknumber(global.L, -1);
-    lua_pop(global.L, 1);
+int gpio_pin_read_l(lua_State *L /*int pin_gpio*/) {
+    int pin_gpio = (int) luaL_checknumber(L, -1);
+    lua_pop(L, 1);
     int state;
     //if (! gpio_pin_read(pin_phys, &state)) {
     if (! gpio_pin_read(pin_gpio, &state)) {
         piep;
         return 0;
     }
-    lua_pushnumber(global.L, state);
+    lua_pushnumber(L, state);
     return 1;
 }
 
-static int gpio_pin_on_L(lua_State *L) {
-    //int pin_phys, flags = 0;
+int gpio_pin_on_l(lua_State *L) {
     int pin_gpio, flags = 0;
     int numargs = lua_gettop(L);
     if (numargs == 2) {
@@ -471,17 +468,7 @@ static int gpio_pin_on_L(lua_State *L) {
     return 0;
 }
 
-/* Version to be called from within a coroutine. */
-int gpio_pin_on_lco(/*int pin_gpio, ['force']*/) {
-    lua_State *continuationL = lua_tothread(global.L, -1);
-    return gpio_pin_on_L(continuationL);
-}
-
-int gpio_pin_on_l(/*int pin_gpio, ['force']*/) {
-    return gpio_pin_on_L(global.L);
-}
-
-static int pin_off_L(lua_State *L) {
+int gpio_pin_off_l(lua_State *L) {
     int pin_gpio, flags = 0;
     int numargs = lua_gettop(L);
     if (numargs == 2) {
@@ -498,16 +485,6 @@ static int pin_off_L(lua_State *L) {
     if (! gpio_pin_off_f(pin_gpio, flags)) 
         piep;
     return 0;
-}
-
-/* Version to be called from within a coroutine. */
-int gpio_pin_off_lco(/*int pin_gpio, ['force']*/) {
-    lua_State *continuationL = lua_tothread(global.L, -1);
-    return pin_off_L(continuationL);
-}
-
-int gpio_pin_off_l(/*int pin_gpio, ['force']*/) {
-    return pin_off_L(global.L);
 }
 
 

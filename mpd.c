@@ -139,7 +139,7 @@ bool f_mpd_init_config() {
     return true;
 }
 
-int f_mpd_config_l() {
+int f_mpd_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
@@ -147,8 +147,8 @@ int f_mpd_config_l() {
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
         BR("Couldn't load lua config.");
-        lua_pushstring(global.L, _s);
-        lua_error(global.L);
+        lua_pushstring(L, _s);
+        lua_error(L);
     }
     g.lua_initted = true;
 
@@ -523,7 +523,6 @@ bool f_mpd_load_playlist_by_name(char *name) {
         warn("No playlist found with name %s", _s);
         return false; // not overkill, good to trigger lua error.
     }
-info("got idx: %d", (int) ptr);
     return load_playlist((int) ptr);
 }
 
@@ -696,6 +695,7 @@ static bool reload_playlists() {
 
             _();
             G(matches[1]);
+
             info("Got playlist [%s]", _s);
 
             struct pl *_pl = f_mallocv(*_pl);
@@ -703,8 +703,6 @@ static bool reload_playlists() {
                 ierr_perr("");
 
             char *name = str(strlen(matches[1]) + 1);
-            // don't track -- let vector deep clear kill it.
-            //f_track_heap(name);
             strcpy(name, matches[1]);
 
             _pl->name = name;
@@ -716,8 +714,9 @@ static bool reload_playlists() {
             }
             idx++;
 
-            /* if two playlists have the same name, this will clobber. */
-            /* replace will destroy the key and value, while insert will
+            /* Note, this will clobber.*/
+
+            /* _replace will destroy the key and value, while _insert will
              * only destroy the value, i believe .*/
             g_hash_table_replace(g.playlist_by_name, g_strdup(name), GINT_TO_POINTER(idx));
         }
@@ -741,61 +740,61 @@ static bool reload_playlists() {
 /* Lua versions. 
  * These all 'throw'.
  */
-int f_mpd_toggle_play_l() {
+int f_mpd_toggle_play_l(lua_State *L) {
     if (! f_mpd_toggle_play()) {
-        lua_pushstring(global.L, "Couldn't toggle play.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't toggle play.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_prev_l() {
+int f_mpd_prev_l(lua_State *L) {
     if (! f_mpd_prev()) {
-        lua_pushstring(global.L, "Couldn't go to prev song.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't go to prev song.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_next_l() {
+int f_mpd_next_l(lua_State *L) {
     if (! f_mpd_next()) {
-        lua_pushstring(global.L, "Couldn't go to next song.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't go to next song.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_get_random_l() {
+int f_mpd_get_random_l(lua_State *L) {
     bool r;
     if (! f_mpd_get_random(&r)) {
-        lua_pushstring(global.L, "Couldn't get random.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't get random.");
+        lua_error(L);
     }
-    lua_pushboolean(global.L, r);
+    lua_pushboolean(L, r);
     return 1;
 }
-int f_mpd_toggle_random_l() {
+int f_mpd_toggle_random_l(lua_State *L) {
     bool r;
     if (! f_mpd_toggle_random(&r)) {
-        lua_pushstring(global.L, "Couldn't toggle random.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't toggle random.");
+        lua_error(L);
     }
-    lua_pushboolean(global.L, r);
+    lua_pushboolean(L, r);
     return 1;
 }
-int f_mpd_random_off_l() {
+int f_mpd_random_off_l(lua_State *L) {
     if (! f_mpd_random_off()) {
-        lua_pushstring(global.L, "Couldn't turn random off.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't turn random off.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_random_on_l() {
+int f_mpd_random_on_l(lua_State *L) {
     if (! f_mpd_random_on()) {
-        lua_pushstring(global.L, "Couldn't turn random on.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't turn random on.");
+        lua_error(L);
     }
     return 0;
 }
 
-static int database_update_L(lua_State *L) {
+int f_mpd_database_update_l(lua_State *L) {
     if (! f_mpd_database_update()) {
         lua_pushstring(L, "Couldn't update mpd.");
         lua_error(L);
@@ -803,15 +802,7 @@ static int database_update_L(lua_State *L) {
     return 0;
 }
 
-int f_mpd_database_update_l() {
-    return database_update_L(global.L);
-}
-int f_mpd_database_update_lco() {
-    lua_State *continuationL = lua_tothread(global.L, -1);
-    return database_update_L(continuationL);
-}
-
-static int is_updating_L(lua_State *L) {
+int f_mpd_is_updating_l(lua_State *L) {
     bool u;
     if (! f_mpd_is_updating(&u)) {
         lua_pushstring(L, "Couldn't get is_updating status.");
@@ -821,41 +812,33 @@ static int is_updating_L(lua_State *L) {
     return 1;
 }
 
-int f_mpd_is_updating_l() {
-    return is_updating_L(global.L);
-}
-/* Version to be called from within a coroutine. */
-int f_mpd_is_updating_lco() {
-    lua_State *continuationL = lua_tothread(global.L, -1);
-    return is_updating_L(continuationL);
-}
-int f_mpd_next_playlist_l() {
+int f_mpd_next_playlist_l(lua_State *L) {
     if (! f_mpd_next_playlist()) {
-        lua_pushstring(global.L, "Couldn't go to next playlist.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't go to next playlist.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_prev_playlist_l() {
+int f_mpd_prev_playlist_l(lua_State *L) {
     if (! f_mpd_prev_playlist()) {
-        lua_pushstring(global.L, "Couldn't go to prev playlist.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't go to prev playlist.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_load_playlist_by_name_l() {
-    const char *name = luaL_checkstring(global.L, -1);
+int f_mpd_load_playlist_by_name_l(lua_State *L) {
+    const char *name = luaL_checkstring(L, -1);
     if (! f_mpd_load_playlist_by_name((char *) name)) {
-        lua_pushstring(global.L, "Couldn't load playlist by name.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't load playlist by name.");
+        lua_error(L);
     }
     return 0;
 }
-int f_mpd_seek_l(/* int secs */) {
-    lua_Number seek = luaL_checknumber(global.L, -1);
+int f_mpd_seek_l(lua_State *L /* int secs */) {
+    lua_Number seek = luaL_checknumber(L, -1);
     if (! f_mpd_seek((int) seek)) {
-        lua_pushstring(global.L, "Couldn't seek.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't seek.");
+        lua_error(L);
     }
     return 0;
 }

@@ -6,8 +6,8 @@ local time_down = {
 local disabled = false
 
 local function go () 
-    say "Shutting down!"
-    util.sys(configlua.shutdown.cmd)
+    info "Shutting down!"
+    util.sys (configlua.shutdown.cmd)
     disabled = true
 end
 
@@ -17,13 +17,13 @@ local function start_pressed ()
     end
 
     if not time_down.secs and not time_down.usecs then
-        time_down.secs, time_down.usecs = capi.util.get_clock()
+        time_down.secs, time_down.usecs = capi.util.get_clock ()
         return
     end
 
     local toen = {}
     local now = {}
-    now.secs, now.usecs = capi.util.get_clock()
+    now.secs, now.usecs = capi.util.get_clock ()
     toen.secs, toen.usecs = time_down.secs, time_down.usecs
 
     for _,v in pairs {now, toen} do
@@ -32,7 +32,7 @@ local function start_pressed ()
     end
 
     if now.combined - toen.combined > configlua.shutdown.secs then
-        go()
+        go ()
     end
 end
 

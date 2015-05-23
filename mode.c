@@ -41,7 +41,7 @@ bool mode_init_config() {
     return true;
 }
 
-int mode_config_l() {
+int mode_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
     /* Throws. 
@@ -49,8 +49,8 @@ int mode_config_l() {
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
         BR("Couldn't load lua config.");
-        lua_pushstring(global.L, _s);
-        lua_error(global.L);
+        lua_pushstring(L, _s);
+        lua_error(L);
     }
     g.lua_initted = true;
 
@@ -120,17 +120,17 @@ bool mode_next_mode() {
     return mode_set_mode(s);
 }
 
-int mode_next_mode_l() {
+int mode_next_mode_l(lua_State *L) {
     if (!mode_next_mode()) {
-        lua_pushstring(global.L, "Couldn't switch to next mode.");
-        lua_error(global.L);
+        lua_pushstring(L, "Couldn't switch to next mode.");
+        lua_error(L);
     }
     return 0;
 }
 
-int mode_get_mode_name_l() {
+int mode_get_mode_name_l(lua_State *L) {
     char *mode = mode_get_mode_name();
-    lua_pushstring(global.L, mode);
+    lua_pushstring(L, mode);
     return 1;
 }
 

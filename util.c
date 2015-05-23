@@ -10,7 +10,6 @@
 
 #include <fish-util.h>
 
-#include "global.h"
 #include "util.h"
 
 #define SOCKET_LENGTH_DEFAULT 100
@@ -181,29 +180,29 @@ bool util_get_clock(time_t *secs, long *nanosecs) {
     return true;
 }
 
-int util_get_clock_l() {
+int util_get_clock_l(lua_State *L) {
     time_t secs = {0};
     //long nanosecs;
     suseconds_t usecs = {0};
     if (! util_get_clock(&secs, &usecs)) {
-        lua_pushstring(global.L, "Can't get clock.");
-        lua_error(global.L);
+        lua_pushstring(L, "Can't get clock.");
+        lua_error(L);
         return 0;
     }
-    lua_pushnumber(global.L, secs);
-    lua_pushnumber(global.L, usecs);
+    lua_pushnumber(L, secs);
+    lua_pushnumber(L, usecs);
 
     return 2;
 }
 
-int util_socket_unix_message() {
-    const char *filename = luaL_checkstring(global.L, -2);
-    const char *msg = luaL_checkstring(global.L, -1);
+int util_socket_unix_message_l(lua_State *L) {
+    const char *filename = luaL_checkstring(L, -2);
+    const char *msg = luaL_checkstring(L, -1);
     char response[SOCKET_LENGTH_DEFAULT];
     if (! f_socket_unix_message_f(filename, msg, response, SOCKET_LENGTH_DEFAULT)) {
         warn("Couldn't send message to socket.");
         return 0;
     }
-    lua_pushstring(global.L, f_strdup(response));
+    lua_pushstring(L, f_strdup(response));
     return 1;
 }

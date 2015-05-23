@@ -28,20 +28,18 @@ bool f_mpd_load_playlist_by_name();
 /* Lua functions. 
  * These 'throw'.
  */
-int f_mpd_config_l();
-int f_mpd_toggle_play_l();
-int f_mpd_prev_l();
-int f_mpd_next_l();
-int f_mpd_toggle_random_l();
-int f_mpd_get_random_l();
-int f_mpd_random_off_l();
-int f_mpd_random_on_l();
-int f_mpd_database_update_l();
-int f_mpd_database_update_lco();
-int f_mpd_next_playlist_l();
-int f_mpd_prev_playlist_l();
-int f_mpd_load_playlist_by_name_l();
-int f_mpd_seek_l(/* int secs */);
-int f_mpd_is_updating_l();
-int f_mpd_is_updating_lco();
+int f_mpd_config_l(lua_State *L);
+int f_mpd_toggle_play_l(lua_State *L);
+int f_mpd_prev_l(lua_State *L);
+int f_mpd_next_l(lua_State *L);
+int f_mpd_toggle_random_l(lua_State *L);
+int f_mpd_get_random_l(lua_State *L);
+int f_mpd_random_off_l(lua_State *L);
+int f_mpd_random_on_l(lua_State *L);
+int f_mpd_database_update_l(lua_State *L);
+int f_mpd_next_playlist_l(lua_State *L);
+int f_mpd_prev_playlist_l(lua_State *L);
+int f_mpd_load_playlist_by_name_l(lua_State *L);
+int f_mpd_seek_l(lua_State *L /* int secs */);
+int f_mpd_is_updating_l(lua_State *L);
 

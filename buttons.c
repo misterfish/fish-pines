@@ -34,8 +34,7 @@ static bool get_rules_for_read(short mode, short event, short read, vec *rules_r
 
 /* Throws.
  */
-int buttons_add_rule_l() {
-    lua_State *L = global.L;
+int buttons_add_rule_l(lua_State *L) {
     lua_pushnil(L); // init iter
     short buttons = 0;
     short mode = -1;
@@ -94,8 +93,8 @@ int buttons_add_rule_l() {
                 else if (! strcmp(value, "release"))
                     event = BUTTONS_RELEASE;
                 else {
-                    lua_pushstring(global.L, "Unknown event type");
-                    lua_error(global.L);
+                    lua_pushstring(L, "Unknown event type");
+                    lua_error(L);
                 }
             }
             /* Note that a nil handler will never even show up here (can't
@@ -123,38 +122,38 @@ int buttons_add_rule_l() {
         if (event == BUTTONS_RELEASE) {
             float power = log(buttons) / log(2);
             if (power != (int) power) {
-                lua_pushstring(global.L, "Release events can not be applied to combinations.");
-                lua_error(global.L);
+                lua_pushstring(L, "Release events can not be applied to combinations.");
+                lua_error(L);
             }
             if (rule->once != DEFAULT_ONCE) {
-                lua_pushstring(global.L, "Attribute 'once' not writeable for release events.");
-                lua_error(global.L);
+                lua_pushstring(L, "Attribute 'once' not writeable for release events.");
+                lua_error(L);
             }
             if (rule->exact != DEFAULT_EXACT) {
-                lua_pushstring(global.L, "Attribute 'exact' not writeable for release events.");
-                lua_error(global.L);
+                lua_pushstring(L, "Attribute 'exact' not writeable for release events.");
+                lua_error(L);
             }
             if (rule->chain != DEFAULT_CHAIN) {
-                lua_pushstring(global.L, "Attribute 'chain' not writeable for release events.");
-                lua_error(global.L);
+                lua_pushstring(L, "Attribute 'chain' not writeable for release events.");
+                lua_error(L);
             }
         }
         lua_pop(L, 1);
     }
 
     if (mode == -1) {
-        lua_pushstring(global.L, "Need mode for rule.");
-        lua_error(global.L);
+        lua_pushstring(L, "Need mode for rule.");
+        lua_error(L);
     }
 
     if (event == -1) {
-        lua_pushstring(global.L, "Need event for rule.");
-        lua_error(global.L);
+        lua_pushstring(L, "Need event for rule.");
+        lua_error(L);
     }
 
     if (! buttons) {
-        lua_pushstring(global.L, "Need buttons for rule.");
-        lua_error(global.L);
+        lua_pushstring(L, "Need buttons for rule.");
+        lua_error(L);
     }
 
     rule->buttons = buttons;

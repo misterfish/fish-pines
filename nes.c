@@ -39,15 +39,15 @@ bool nes_init_config() {
     return true;
 }
 
-int nes_config_l() {
+int nes_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
     /* Throws.
      */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
         BR("Couldn't load lua config.");
-        lua_pushstring(global.L, _s);
-        lua_error(global.L);
+        lua_pushstring(L, _s);
+        lua_error(L);
     }
     g.lua_initted = true;
 

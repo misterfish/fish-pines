@@ -45,7 +45,7 @@ struct button_name_s {
 bool buttons_init();
 bool buttons_cleanup();
 
-int buttons_add_rule_l();
+int buttons_add_rule_l(lua_State *L);
 
 bool buttons_get_rules_press(short mode, short read, vec *rules_ret);
 bool buttons_get_rules_release(short mode, short read, vec *rules_ret);

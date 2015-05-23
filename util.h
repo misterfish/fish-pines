@@ -34,10 +34,11 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second);
 bool f_terminal_normal();
 void check_lua_err(int rc, char *format, ...);
 
-//bool util_get_clock(time_t *secs, long *nanosecs);
 bool util_get_clock(time_t *secs, long *nanosecs);
 
-int util_get_clock_l();
-int util_socket_unix_message();
+int util_get_clock_l(lua_State *L);
+int util_socket_unix_message_l(lua_State *L);
+
+
 
 #endif

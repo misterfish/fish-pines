@@ -1,6 +1,11 @@
 local _, i, k, v
 
-function update_playlists () 
+local FORK_WAIT_VERBOSE_OK = false
+
+local function test () 
+end
+
+local function update_playlists () 
     -- might be useful later in this factory form.
     -- for now, not so much.
     local function make_update_function (cmd)
@@ -18,16 +23,16 @@ function update_playlists ()
                     -- same here.
                     isok = false -- not nil
                 end,
-                --verbose_ok = true,
+                verbose_ok = FORK_WAIT_VERBOSE_OK,
             })
             return { ok = isok }
         end
     end
 
     local function mpd_update ()
-        capi.mpd.database_update_co ()
+        capi.mpd.database_update ()
         while true do
-            if capi.mpd.is_updating_co () then
+            if capi.mpd.is_updating () then
                 coroutine.yield {}
             else 
                 break
@@ -42,19 +47,26 @@ function update_playlists ()
     -- but doesn't show all.m3u as a playlist.
 
     local function all_done ()
-        info 'alldon!'
-        -- coro version necessary?? XX
-        capi.mpd.load_playlist_by_name(configlua.default_playlist)
+        info '… done!'
+        -- coro version not necessary
+        capi.mpd.load_playlist_by_name (configlua.default_playlist)
     end
 
+    local flashco = led.flashco 'update'
+
+    info 'Starting database update and playlist remake …'
+
     -- run tasks cooperatively and flash the led.
-    led.flash ('update', {
-        verbose = true,
+    coro.pool {
+        verbose = configlua.update_playlist_verbose_tasks,
         done = all_done,
         tasks = {
-            --make_update_function('make-playlist-all >/dev/null'),
-            mpd_update,         }
-    })
+            { master = true, flashco },
+
+            { hashooks = true, coroutine.create (mpd_update) },
+            { hashooks = true, coroutine.create (make_update_function ('make-playlist-all >/dev/null')) },
+        }
+    }
 
 end
 
@@ -120,9 +132,8 @@ return {
             { 'a',          once = true, handler = toggle_random },
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      once = true, handler = function () capi.mpd.toggle_play () end },
-            { 'b', 'a',     once = true, handler = function () update_playlists () end },
 
-            --{ 'b', 'a', 'select',    once = true, handler = function () capi.mpd.database_update () end },
+            { 'b', 'a',     once = true, handler = function () update_playlists () end },
         },
         release = {
         }

@@ -8,7 +8,7 @@ return {
     mpd = {
         host = 'localhost',
         port = 6600,
-        timeout_ms = 3000,
+        timeout_ms = 6000,
         timeout_playlist_ms = 15000, 
         play_on_load_playlist = true,
         playlist_path = "mpd-playlists", -- relative to root

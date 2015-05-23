@@ -24,9 +24,9 @@ bool mode_set_mode(short s);
 bool mode_next_mode();
 char *mode_get_mode_name();
 
-int mode_config_l();
-int mode_next_mode_l();
-int mode_get_mode_name_l();
+int mode_config_l(lua_State *L);
+int mode_next_mode_l(lua_State *L);
+int mode_get_mode_name_l(lua_State *L);
 
 short mode_get_num_modes();
 

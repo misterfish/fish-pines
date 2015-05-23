@@ -16,11 +16,16 @@ return {
         random = 15,
         update = 15,
         mode = 18,
+        flash = {
+            -- yield every <sleep> secs, flash every n times
+            sleep = { secs = 0, msecs = 200 },
+            ntimes = 3,
+        },
     },
     vol = {
         upamount = 5,
         downamount = 5,
-        sock = os.getenv('HOME') .. '/.local/share/fish-vol/socket'
+        sock = os.getenv ('HOME') .. '/.local/share/fish-vol/socket'
     },
     verbose = {
         sockets = false,
@@ -29,4 +34,5 @@ return {
     -- useful for bugging the bartender.
     anton_mode = true,
     default_playlist = 'all',
+    update_playlist_verbose_tasks = false,
 }
