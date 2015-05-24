@@ -114,6 +114,9 @@ exact:                      <optional, true>
                             event (except probably briefly, while the
                             buttons are being pressed)
 
+hold_indicator:             <optional, true>
+                            Print a little graphic when a key is held.
+
 ]]
 
 return {
@@ -141,7 +144,7 @@ return {
     general = {
         press = {
             { 'select',     once = true, handler = mode.next_mode  },
-            { 'start',      handler = shutdown.start_pressed  },
+            { 'start',      hold_indicator = false, handler = shutdown.start_pressed  },
             { 'b',          once = true, handler = custom.switch_to_wired },
             { 'a',          once = true, handler = custom.switch_to_wireless },
         },

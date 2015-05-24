@@ -126,7 +126,7 @@ local function sys (cmd, args)
             warnf ("Couldn't execute cmd «%s», code was «%s»", BR (cmd), Y (code))
         end
     --assume newer
-    else
+    elseif os.popen then
         local fh = os.popen (cmd) 
         if fh then
             if not fh:read ('*a') then
@@ -149,7 +149,11 @@ local function sys (cmd, args)
             end
             warn (str)
         end
+    else 
+        os.execute(cmd)  -- XX
+        return true
     end
+
 end
 
 -- takes table as input, and map_fn (v, k)

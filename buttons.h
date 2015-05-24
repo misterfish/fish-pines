@@ -18,6 +18,8 @@ struct button_rule_t {
     bool once; // don't trigger repeatedly on hold (only applies to press of course) (default false)
     bool chain; // when false, stop after first matching rule. (only applies to press; we could easily allow it to apply to release as well but that doesn't seem useful) (default false)
     bool exact; // require exact match to trigger (only applies to press) (default true)
+
+    bool hold_indicator; // print a little graphic when a button is held (default true)
     
     /* A rule is allowed to have no handler.
      * The only use I can think of where this might be handy is for example

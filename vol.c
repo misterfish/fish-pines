@@ -89,8 +89,7 @@ bool vol_init() {
 bool vol_rel(int delta_perc) {
     for (int i = 0; i < g.num_cards; i++) {
         for (int j = 0; j < g.num_elems[i]; j++) {
-            if (! fasound_set_rel(i, j, delta_perc) || 
-            ! fasound_update(i, j, NULL)) {
+            if (! fasound_set_rel(i, j, delta_perc) || ! fasound_update(i, j, NULL)) {
                 _();
                 spr("%d", i);
                 spr("%d", j);

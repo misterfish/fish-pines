@@ -4,8 +4,10 @@ return {
     },
     shutdown = {
         secs = 1.3,
-        --cmd = 'sudo shutdown',
-        cmd = 'sudo ls',
+        cmd = 'sudo shutdown',
+
+        --secs = 4,
+        --cmd = 'sudo ls',
     },
     cmds = {
         switch_to_wireless = 'switch-to-internet-wireless',

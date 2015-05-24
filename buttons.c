@@ -16,6 +16,7 @@
 #define DEFAULT_EXACT   true
 #define DEFAULT_ONCE    false
 #define DEFAULT_CHAIN   false
+#define DEFAULT_HOLD_INDICATOR   true
 
 /* vector of vector of vectors.
  * [ mode => [ {_PRESS|_RELEASE} => [ button_rule_t *rule, ...] ] ]
@@ -45,6 +46,7 @@ int buttons_add_rule_l(lua_State *L) {
     rule->exact = DEFAULT_EXACT;
     rule->once = DEFAULT_ONCE;
     rule->chain = DEFAULT_CHAIN;
+    rule->hold_indicator = DEFAULT_HOLD_INDICATOR;
 
     while (lua_next(L, -2)) {
         const char *luatype = lua_typename(L, lua_type(L, -2));
@@ -82,6 +84,10 @@ int buttons_add_rule_l(lua_State *L) {
                 const bool value = lua_toboolean(L, -1);
                 rule->exact = value;
             }
+            else if (! strcmp(key, "hold_indicator")) {
+                const bool value = lua_toboolean(L, -1);
+                rule->hold_indicator = value;
+            }
             else if (! strcmp(key, "mode")) {
                 lua_Number val = luaL_checknumber(L, -1);
                 mode = (short) val;
@@ -115,7 +121,7 @@ int buttons_add_rule_l(lua_State *L) {
          * that the button flag is a pure power of 2 (probably a faster
          * way).
          *
-         * Also disallow setting of 'once', 'exact', or 'chain'
+         * Also disallow setting of 'once', 'exact', 'hold_indicator', or 'chain'
          * (specifically, disallow setting it to a value other than the
          * default).
          */
@@ -135,6 +141,10 @@ int buttons_add_rule_l(lua_State *L) {
             }
             if (rule->chain != DEFAULT_CHAIN) {
                 lua_pushstring(L, "Attribute 'chain' not writeable for release events.");
+                lua_error(L);
+            }
+            if (rule->hold_indicator != DEFAULT_HOLD_INDICATOR) {
+                lua_pushstring(L, "Attribute 'hold_indicator' not writeable for release events.");
                 lua_error(L);
             }
         }

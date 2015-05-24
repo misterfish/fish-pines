@@ -66,7 +66,7 @@ static char *debug_read_init();
 static void debug_read(unsigned int read_canonical, char *ret);
 #endif
 
-static void print_multiple_indicator(short s);
+static void print_hold_indicator(short s);
 static void cleanup();
 
 static bool do_read(short cur_read);
@@ -372,7 +372,8 @@ static bool process_read(short read, char *button_print) {
     }
 
     if ((prev_read != read) && button_print) {
-        print_multiple_indicator(0); 
+        /* reset it */
+        print_hold_indicator(0); 
         printf("[ %s ] ", button_print);
     }
 
@@ -437,7 +438,8 @@ static bool process_read(short read, char *button_print) {
     int j = 0, l = vec_size(rules_press);
 
     if (l == 0) 
-        print_multiple_indicator(1);
+        print_hold_indicator(1);
+    // 'else'
 
     for (; j < l; j++) {
         struct button_rule_t *rule_press = (struct button_rule_t *) vec_get(rules_press, j);
@@ -454,8 +456,8 @@ static bool process_read(short read, char *button_print) {
                 continue;
         }
 
-        if (prev_read == read)
-            print_multiple_indicator(1);
+        if (prev_read == read && rule_press->hold_indicator)
+            print_hold_indicator(1);
 
         if (rule_press->has_handler) {
             int reg_idx = rule_press->handler;
@@ -853,7 +855,7 @@ static int get_max_button_print_size() {
  * ..•.
  * .•..
  */
-static void print_multiple_indicator(short s) {
+static void print_hold_indicator(short s) {
     static short DELAY = 2; // how many times to stay on the same pos
     static short NUM = 5;
     static short last_state = 0;
