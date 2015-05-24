@@ -1,5 +1,16 @@
 needs ({ me = 'vol' }, '__imported_util', 'capi', 'configlua')
 
+local function up (amount) 
+    if not amount then amount = configlua.vol.downamount end
+    capi.vol.set_rel(amount)
+end
+
+local function down (amount) 
+    if not amount then amount = configlua.vol.downamount end
+    capi.vol.set_rel(-1 * amount)
+end
+
+--[[ fish vol version
 local function vol (str)
     local response = capi.util.socket_unix_message (configlua.vol.sock, str)
     if response then
@@ -20,6 +31,7 @@ local function down (amount)
     if not amount then amount = configlua.vol.downamount end
     return vol ('rel all all ' .. (-1 * amount)) -- .. ok with num
 end
+]]
 
 return {
     up = configlua.anton_mode and down or up,

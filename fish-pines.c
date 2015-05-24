@@ -649,12 +649,16 @@ static bool lua_init() {
     lua_rawset(L, -3);
     // } 
 
-    // capi.mpd = {
+    // capi.vol = {
     lua_pushstring(L, "vol");
     lua_newtable(L);
 
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) vol_config_l);
+    lua_rawset(L, -3);  
+
+    lua_pushstring(L, "set_rel");
+    lua_pushcfunction(L, (lua_CFunction) vol_rel_l);
     lua_rawset(L, -3);  
 
     lua_rawset(L, -3);

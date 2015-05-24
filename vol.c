@@ -28,6 +28,9 @@ static struct {
     const char *card_names_hw[FASOUND_MAX_SOUND_CARDS];
     const char *ctl_names[FASOUND_MAX_SOUND_CARDS][FASOUND_MAX_ELEMS];
     int fds[FASOUND_MAX_SOUND_CARDS][FASOUND_MAX_FDS];
+
+    int num_cards;
+    int num_elems[FASOUND_MAX_FDS];
 } g;
 
 bool vol_init_config() {
@@ -41,23 +44,18 @@ bool vol_init_config() {
 int vol_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-fprintf(stderr, "trying 10, %d rules", num_rules);
     /* Throws. 
      */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
-fprintf(stderr, "trying 20");
         _();
         BR("Couldn't load lua config.");
         lua_pushstring(L, _s);
         lua_error(L);
     }
-fprintf(stderr, "trying 30");
     g.lua_initted = true;
-fprintf(stderr, "trying 40");
 
     return 0;
 }
-
 
 bool vol_init() {
     if (! g.lua_initted) {
@@ -76,17 +74,45 @@ bool vol_init() {
         const char *name = g.card_names_string[i];
         if (!name) 
             continue;
-        info("Got card: %s", name);
+        g.num_cards++;
+        //info("Got card: %s", name);
+        for (int j = 0; j < FASOUND_MAX_ELEMS; j++) {
+            if (! g.ctl_names[i][j]) 
+                continue;
+            g.num_elems[i]++;
+        }
     }
 
     return true;
 }
-bool vol_down() {
+
+bool vol_rel(int delta_perc) {
+    for (int i = 0; i < g.num_cards; i++) {
+        for (int j = 0; j < g.num_elems[i]; j++) {
+            if (! fasound_set_rel(i, j, delta_perc) || 
+            ! fasound_update(i, j, NULL)) {
+                _();
+                spr("%d", i);
+                spr("%d", j);
+                spr("%d", delta_perc);
+                BR(_s);
+                BR(_t);
+                BR(_u);
+                warn("Couldn't set card %s ctl %s -> %s", _v, _w, _x);
+                continue;
+            }
+        }
+    }
     return true;
 }
 
-bool vol_up() {
-    return true;
+int vol_rel_l(lua_State *L) {
+    int delta_perc = (int) luaL_checknumber(L, -1);
+    if (! vol_rel(delta_perc)) {
+        lua_pushstring(L, "Couldn't set volume.");
+        lua_error(L);
+    }
+    return 0;
 }
 
 #if 0  // fish vol version

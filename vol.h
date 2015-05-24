@@ -5,9 +5,9 @@
 
 bool vol_init_config();
 bool vol_init();
-bool vol_up();
-bool vol_down();
+bool vol_rel(int delta_perc);
 
 int vol_config_l(lua_State *L);
+int vol_rel_l(lua_State *L);
 
 #endif
