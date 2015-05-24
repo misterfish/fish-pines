@@ -123,12 +123,7 @@ inline short BCM2WIRINGPI(short b) {
 #define POLL_MS     40
 #endif
 
-#define SHUTDOWN_HOLD_SECS 0
-
-/* Switch down and up keys for volume control.
- * Useful for bugging the bartender.
- */
-#define ANTON_MODE true
+#define ERROR_BUF_SIZE  500 // used for various buffers
 
 #define VOLD_SOCK           "/tmp/.vold-simple-socket"
 #define FISH_VOL_SOCK       "%s/.local/share/fish-vol/socket"

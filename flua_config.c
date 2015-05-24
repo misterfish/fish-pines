@@ -10,6 +10,8 @@
 
 #include "flua_config.h"
 
+#define ERROR_BUF_SIZE 500
+
 /* Simple way to load values from a lua table into C data structure.
  *
  * Not thread-safe.
@@ -30,9 +32,6 @@ static void got_required_key(struct flua_config_conf_t *conf, gpointer key);
 static GList *get_required_keys(struct flua_config_conf_t *conf);
 static void flua_config_insert(struct flua_config_conf_t *conf, gpointer key, gpointer val);
 static void flua_config_add_required_key(struct flua_config_conf_t *conf, gpointer key);
-
-//static void conf_value_destroy(gpointer value);
-static void required_keys_value_destroy(gpointer value);
 
 void flua_config_destroy(struct flua_config_conf_t *conf) {
     g_hash_table_destroy(conf->conf);
@@ -83,6 +82,9 @@ void flua_config_set_namespace(struct flua_config_conf_t *conf, char *ns) {
  */
 
 bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config_conf_item_t confary[], int num_rules) {
+    char errprefix[ERROR_BUF_SIZE];
+    snprintf(errprefix, ERROR_BUF_SIZE, "flua_config_load_config(): namespace %s:", (conf->namespace ? conf->namespace : "<none>"));
+
     for (int i = 0; i < num_rules; i++) {
         struct flua_config_conf_item_t *confitem = &confary[i];
         flua_config_insert(conf, (gpointer) confitem->key, (gpointer) confitem); 
@@ -97,7 +99,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
     }
 
     bool first = true;
-    //luaH_checktable(conf->L, -1); XX
+    if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
+        char buf[ERROR_BUF_SIZE];
+        snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1", errprefix);
+        lua_pushstring(conf->L, buf);
+        lua_error(conf->L);
+    }
     lua_pushnil(conf->L); // first key
     while (
         first ? (first = false) : lua_pop(conf->L, 1), // pop val, keep key for iter
@@ -189,7 +196,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
          */
         else if (!strcmp(type, "stringlist")) {
             char *type = NULL;
-            // checktable XX
+            if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
+                char buf[ERROR_BUF_SIZE];
+                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for stringlist", errprefix);
+                lua_pushstring(conf->L, buf);
+                lua_error(conf->L);
+            }
             lua_pushnil(conf->L); // first key
             bool ok = true;
             lookup->value.stringlist = vec_new();
@@ -232,7 +244,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         }
         else if (!strcmp(type, "integerlist")) {
             char *type = NULL;
-            // checktable XX
+            if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
+                char buf[ERROR_BUF_SIZE];
+                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for integerlist", errprefix);
+                lua_pushstring(conf->L, buf);
+                lua_error(conf->L);
+            }
             lua_pushnil(conf->L); // first key
             bool ok = true;
             lookup->value.integerlist = vec_new();
@@ -276,7 +293,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         }
         else if (!strcmp(type, "booleanlist")) {
             char *type = NULL;
-            // checktable XX
+            if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
+                char buf[ERROR_BUF_SIZE];
+                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for booleanlist", errprefix);
+                lua_pushstring(conf->L, buf);
+                lua_error(conf->L);
+            }
             lua_pushnil(conf->L); // first key
             bool ok = true;
             lookup->value.booleanlist = vec_new();
@@ -320,7 +342,12 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         }
         else if (!strcmp(type, "reallist")) {
             char *type = NULL;
-            // checktable XX
+            if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
+                char buf[ERROR_BUF_SIZE];
+                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for reallist", errprefix);
+                lua_pushstring(conf->L, buf);
+                lua_error(conf->L);
+            }
             lua_pushnil(conf->L); // first key
             bool ok = true;
             lookup->value.reallist = vec_new();
@@ -492,12 +519,6 @@ vec *flua_config_get_reallist(struct flua_config_conf_t *conf, gpointer key) {
     if ((item = lookup_key(conf, key)))
         return item->value.reallist;
     return NULL;
-}
-
-static void required_keys_value_destroy(gpointer value) {
-    /* val is a malloc'd integer-as-pointer.
-     */
-    free(value);
 }
 
 void flua_config_set_verbose(bool v) {

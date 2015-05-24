@@ -21,17 +21,23 @@ main		= fish-pines
 
 # Will be looped over to put <module>_cflags, <module>_ldflags into CFLAGS
 # and LDFLAGS.
-modules_manual 		= fishutil fishutils wiringPi
+modules_manual 		= fishutil fishutils fishasound wiringPi
 modules_pkgconfig	= libmpdclient lua5.2 glib-2.0
 # Subdirectories (will be make -C'ed).
 # wiringPi
-submodules		= fish-lib-util
+submodules		= fish-lib-util fish-lib-asound
 
 fishutil_dir		= fish-lib-util
+
 fishutil_cflags		= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-util)
 fishutil_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-util)
 fishutils_cflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --cflags fish-utils)
 fishutils_ldflags	= $(shell PKG_CONFIG_PATH=$(fishutil_dir)/pkg-config/static pkg-config --static --libs fish-utils)
+
+fishasound_dir 		= fish-lib-asound
+
+fishasound_cflags	= $(shell PKG_CONFIG_PATH=$(fishasound_dir)/pkg-config/static pkg-config --cflags fish-lib-asound)
+fishasound_ldflags	= $(shell PKG_CONFIG_PATH=$(fishasound_dir)/pkg-config/static pkg-config --static --libs fish-lib-asound)
 
 wiringPi_cflags		= -IwiringPi/devLib -IwiringPi/wiringPi 
 wiringPi_ldflags	=
@@ -65,7 +71,7 @@ endif
 all: submodules $(main)
 
 submodules: 
-	@for i in "$(submodules)"; do \
+	@for i in $(submodules); do \
 	    make -C "$$i"; \
 	done
 

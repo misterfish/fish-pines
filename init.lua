@@ -30,23 +30,14 @@ local capi = capi
 
 local no_nes = os.getenv ("NO_NES") == '1'
 
-local conf = {'mpd', 'mode'}
+local conf = {'mpd', 'mode', 'vol'}
 if not no_nes then push (conf, 'nes') end
 
 for _, v in pairs (conf) do
     capi[v].config (config[v])
 end
 
-capi.main.add_listener('random', mpd.listen_random)
-capi.main.add_listener('playlists-changed', mpd.listen_playlists)
-capi.main.add_listener('update-started-or-finished', mpd.listen_update)
-capi.main.add_listener('database-updated', mpd.listen_database_updated)
-capi.main.add_listener('player-state-changed', mpd.listen_player_state)
-capi.main.add_listener('volume-altered', mpd.listen_volume)
-capi.main.add_listener('device-state-changed', mpd.listen_device)
-capi.main.add_listener('sticker-modified', mpd.listen_sticker)
-capi.main.add_listener('client-channel-subscription-altered', mpd.listen_subscription)
-capi.main.add_listener('subscribed-channel-message-received', mpd.listen_message)
+mpd.init()
 
 -- called by C after init.
 function start () 

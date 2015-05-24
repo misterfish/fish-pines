@@ -2,6 +2,7 @@ needs ({ me = 'mpd' }, 'capi', '__imported_util')
 -- needs_late 'led' XX
 
 local RAND = {[true] = {col = Y, hoe = "on"}, [false] = {col = CY, hoe = "off"}}
+local _, k, v
 
 local function random ()
     return capi.mpd.get_random () 
@@ -56,18 +57,26 @@ local function listen_message ()
     listen_xxx ('subscribed-channel-message-received', CY)
 end
 
+local function init () 
+    for k, v in pairs {
+        ['random'] = listen_random,
+        ['playlists-changed'] = listen_playlists,
+        ['update-started-or-finished'] = listen_update,
+        ['database-updated'] = listen_database_updated,
+        ['player-state-changed'] = listen_player_state,
+        ['volume-altered'] = listen_volume,
+        ['device-state-changed'] = listen_device,
+        ['sticker-modified'] = listen_sticker,
+        ['client-channel-subscription-altered'] = listen_subscription,
+        ['subscribed-channel-message-received'] = listen_message,
+    } 
+    do
+        capi.main.add_listener(k, v)
+    end
+end
+
 return {
+    init = init,
     random = random,
     toggle_random = toggle_random,
-
-    listen_random = listen_random,
-    listen_playlists = listen_playlists,  
-    listen_update = listen_update,  
-    listen_database_updated = listen_database_updated,  
-    listen_player_state = listen_player_state,  
-    listen_volume = listen_volume,  
-    listen_device = listen_device,  
-    listen_sticker = listen_sticker,  
-    listen_subscription = listen_subscription,  
-    listen_message = listen_message,  
 }

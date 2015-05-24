@@ -17,10 +17,10 @@
 
 #include <fish-util.h>
 
+#include "const.h"
 #include "util.h"
 
 #define SOCKET_LENGTH_DEFAULT 100
-#define ERROR_BUF_SIZE 500
 
 struct termios save_attr_cooked;
 bool saved;

@@ -18,6 +18,10 @@ return {
         -- each main loop is about 40ms.
         update_on_n_ticks = 15,
     },
+    vol = {
+        verbose = true,
+        fasound_verbose = true,
+    },
     mode = {
         modes = {
             'music',

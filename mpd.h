@@ -1,3 +1,6 @@
+#ifndef __INCL_MPD_H
+#define __INCL_MPD_H
+
 /* For the playlist stuff to work, change mpd.conf:
  * set the absolute path setting in playlists to yes
  * keep it on user mpd, and chgrp audio and chmd g+w on the playlist dir.
@@ -43,3 +46,4 @@ int f_mpd_load_playlist_by_name_l(lua_State *L);
 int f_mpd_seek_l(lua_State *L /* int secs */);
 int f_mpd_is_updating_l(lua_State *L);
 
+#endif

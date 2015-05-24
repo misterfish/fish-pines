@@ -41,8 +41,6 @@
 
 #include "fish-pines.h"
 
-#define ERROR_BUF_SIZE      500
-
 #define MAIN_EVENT_RANDOM   0x01
 
 const char *EVENTS[] = {
@@ -179,6 +177,9 @@ int main() {
     if (! mode_init_config())
         ierr("Couldn't init mode config");
 
+    if (! vol_init_config())
+        ierr("Couldn't init mode config");
+
     /* Before lua, so init.lua can set leds.
      */
     if (! gpio_init(VERBOSE)) 
@@ -213,8 +214,11 @@ int main() {
     if (! buttons_init()) 
         ierr("Couldn't init buttons");
 
+    info("Setting up vol (fasound)");
+    say("");
     if (! vol_init()) 
         ierr("Couldn't init vol");
+    say("");
 
     info("Setting up mpd.");
     if (! f_mpd_init()) 
@@ -641,6 +645,17 @@ static bool lua_init() {
     lua_pushstring(L, "seek");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_seek_l);
     lua_rawset(L, -3);
+
+    lua_rawset(L, -3);
+    // } 
+
+    // capi.mpd = {
+    lua_pushstring(L, "vol");
+    lua_newtable(L);
+
+    lua_pushstring(L, "config");
+    lua_pushcfunction(L, (lua_CFunction) vol_config_l);
+    lua_rawset(L, -3);  
 
     lua_rawset(L, -3);
     // } 
