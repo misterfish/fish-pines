@@ -12,6 +12,9 @@ return {
     cmds = {
         switch_to_wireless = 'switch-to-internet-wireless',
         switch_to_wired    = 'switch-to-internet-wired',
+        make_playlist_all = 'make-playlist-all',
+
+        silence_out     = false,
     },
     leds = {
         -- BCM numbering.
@@ -32,9 +35,13 @@ return {
     verbose = {
         sockets = false,
     },
+
     -- switch down and up for changing the volume.
     -- useful for bugging the bartender.
     anton_mode = true,
-    default_playlist = 'all',
+
+    default_playlist = 'all', -- all.m3u
+
     update_playlist_verbose_tasks = false,
+    coroutine_pools_verbose_ok = false,
 }

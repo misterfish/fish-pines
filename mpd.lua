@@ -1,7 +1,7 @@
 needs ({ me = 'mpd' }, 'capi', '__imported_util')
 -- needs_late 'led' XX
 
-local RAND = {[true] = {col = Y, hoe = "on"}, [false] = {col = CY, hoe = "off"}}
+local RAND = {[true] = {col = G, hoe = "on"}, [false] = {col = CY, hoe = "off"}}
 local _, k, v
 
 local function random ()
@@ -10,23 +10,23 @@ end
 
 local function toggle_random () 
     local rand = capi.mpd.toggle_random () 
-    local r = RAND[rand]
+    local r = RAND [rand]
     local col, hoe = r.col, r.hoe
-    led[hoe] 'random'
+    led [hoe] 'random'
     infof ("Setting random to %s", col (hoe))
 end
 
 local function listen_xxx (msg, col)
-    infof(' %s | %s', CY('mpd listener'), col(msg))
+    infof (' %s | %s', CY ('mpd listener'), col (msg))
 end
 
 -- our listener will also harmlessly trigger if we set random via a button, with a
 -- delay which depends on the update/ticks settings for mpd_update. 
 local function listen_random (rand)
-    local r = RAND[rand]
+    local r = RAND [rand]
     local col, hoe = r.col, r.hoe
     listen_xxx (spr ("random set to %s", col (hoe)), Y)
-    led[hoe] 'random'
+    led [hoe] 'random'
 end
 
 local function listen_playlists ()

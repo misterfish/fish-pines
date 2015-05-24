@@ -90,7 +90,7 @@ local function start_pressed ()
     if not toen then
         toen = clock.new { now = true }
         doel = clock.new ()
-        doel:set_combined(toen.combined + configlua.shutdown.secs)
+        doel:set_combined (toen.combined + configlua.shutdown.secs)
         print ''
         print ''
         return

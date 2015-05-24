@@ -1,8 +1,6 @@
-needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua')
+needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua') 
 
-local _, i, k, v
-
-local FORK_WAIT_VERBOSE_OK = false
+local me, _, i, k, v
 
 local function test () 
     util.fork_wait ('ls -l', {
@@ -11,30 +9,17 @@ local function test ()
 end
 
 local function update_playlists () 
-    -- might be useful later in this factory form.
-    -- for now, not so much.
-    local function make_update_function (cmd)
-        return function ()
-            local isok = false
-            util.fork_wait (cmd, {
-                onsuccess = function () 
-                    -- we're done, don't yield, just return from the function.
-                    isok = true
-                end,
-                onwait = function ()
-                    coroutine.yield {}
-                end,
-                onfailure = function ()
-                    -- same here.
-                    isok = false -- not nil
-                end,
-                verbose_ok = FORK_WAIT_VERBOSE_OK,
-            })
-            return { ok = isok }
-        end
-    end
+    local cmd = configlua.cmds.make_playlist_all
 
-    local function mpd_update ()
+    led.flash_start ('update', 1000)
+
+    local playlists_coro = util.fork_wait_coro {
+        cmd = cmd,
+        silence_out = configlua.cmds.silence_out,
+        verbose_ok = configlua.coroutine_pools_verbose_ok,
+    }
+
+    local update_coro = coroutine.create (function ()
         capi.mpd.database_update ()
         while true do
             if capi.mpd.is_updating () then
@@ -44,35 +29,36 @@ local function update_playlists ()
             end
         end
         return { ok = true }
-    end
+    end)
 
-    -- fish-pines will notice on the next round of mpd_update that an update
-    -- happened, and reload all the playlists.
-    -- there are probably some race conditions in which the update finishes,
-    -- but doesn't show all.m3u as a playlist.
-
-    local function all_done ()
-        info '… done!'
-        -- coro version not necessary
-        capi.mpd.load_playlist_by_name (configlua.default_playlist)
-    end
-
-    local flashco = led.flashco 'update'
-
-    info 'Starting database update and playlist remake …'
-
-    -- run tasks cooperatively and flash the led.
-    coro.pool {
-        verbose = configlua.update_playlist_verbose_tasks,
-        done = all_done,
+    local pool = coro.pool.new {
         tasks = {
-            { master = true, flashco },
-
-            { hashooks = true, coroutine.create (mpd_update) },
-            { hashooks = true, coroutine.create (make_update_function ('make-playlist-all >/dev/null')) },
-        }
+            { hashooks = true, playlists_coro },
+            { hashooks = true, update_coro },
+        },
+        verbose = configlua.update_playlist_verbose_tasks,
+        done_cb = function ()
+        end,
     }
 
+    main.add_timeout {
+        ms = 500,
+        repeating = true,
+        func = function ()
+            pool:once ()
+            if pool:isdone () then
+                info 'Done with playlist update and database update.'
+                led.flash_stop 'update'
+                return false
+            end
+
+            return true
+        end
+    }
+end
+
+local function test1 () 
+    update_playlists ()
 end
 
 --[[ 
@@ -119,12 +105,12 @@ hold_indicator:             <optional, true>
 
 ]]
 
-return {
+me = {
     -- mode = music
     music = {
         press = {
-            { 'up','right', once = true, handler = function () led.test_on () end },
-            { 'up','left', once = true, handler = function () led.test_off () end },
+            { 'up','right', once = true, handler = test1 },
+            { 'up','left', once = true, handler = test2 },
 
             {      'left',  once = true, handler = function () capi.mpd.prev_song () end },
             { 'b', 'right', handler = function () capi.mpd.seek (configlua.mpd.seek) end },
@@ -156,4 +142,4 @@ return {
     }
 }
 
-
+return me

@@ -5,7 +5,7 @@ local me
 local timeout_ids = {}
 
 local function init ()
-    if mpd.random() then
+    if mpd.random () then
         me.on 'random'
     else
         me.off 'random'
@@ -44,7 +44,7 @@ local function flash_running (which)
 end
 
 local function flash_stop (which) 
-    local id = timeout_ids [which] or error2f ('%s is not flashing', BR(which))
+    local id = timeout_ids [which] or error2f ('%s is not flashing', BR (which))
     main.remove_timeout { id = id } 
     timeout_ids [which] = nil
     off (which)
@@ -67,10 +67,16 @@ local function flash_start (which, ms)
                     off (which)
                 end
                 state = not state
+            return true -- keep timeout alive
             end
         end)()
     }
     timeout_ids [which] = id
+end
+
+-- synonym for flash_start
+local function flash (...)
+    return flash_start (...)
 end
 
 -- use a coroutine to wait on some tasks and flash an led.
@@ -121,6 +127,10 @@ me = {
     off = off,
     get = get,
     flashco = flashco,
+
+    flash = flash,
+    flash_start = flash_start,
+    flash_stop = flash_stop,
 
     test_on = test_on,
     test_off = test_off,

@@ -89,12 +89,14 @@ local function info (string)
 end
 
 -- step back once in stack for error message.
-local function error2 (string) 
-    error (string, 3)
+local function error2 (str) 
+    str = string.format("[stack - %s]: ", Y(1)) .. str
+    error (str, 3)
 end
 
 -- step back once in stack for error message.
 local function error2f (format, ...) 
+    format = string.format("[stack - %s]: ", Y(1)) .. format
     error (string.format (format, ...), 3)
 end
 
@@ -210,14 +212,14 @@ local function fork_wait (cmd, args)
     local onfailure = args.onfailure or nil
 
     local verbose_ok = args.verbose_ok or false
-    local killoutput = args.killoutput or true
+    local silence_out = args.silence_out or true
 
     local pid, errmsg = posix.fork ()
     if not pid then
         error ("fork_wait: can't fork: " .. errmsg)
     -- kindje
     elseif pid == 0 then
-        if killoutput then
+        if silence_out then
             util.close_stdout()
         end
         local ok, str, int = os.execute (cmd)
@@ -301,6 +303,51 @@ local function fork_wait (cmd, args)
     end -- end papa
 end
 
+-- wrapper around fork_wait to create a coroutine for waiting on a command.
+-- it has the same callback hooks as fork_wait, and on on_wait it yields.
+-- the yields are meant to be read as:
+--
+-- local yield, how = coro.resume ()
+--
+-- see 'hashooks' in coro.pool for an example.
+
+local function fork_wait_coro (args)
+    args = args or error2 'fork_wait_coro: need args'
+    local cmd = args.cmd or error2 'fork_wait_coro: need cmd'
+    local verbose = args.verbose or false
+    local verbose_ok = args.verbose_ok or false
+    local silence_out = args.silence_out or false
+
+    local coro = coroutine.create (function ()
+        local isok = false
+        util.fork_wait (cmd, {
+            onsuccess = function () 
+                -- we're done, don't yield, just return from the function.
+                isok = true
+            end,
+            onwait = function ()
+                -- on the other side: 
+                -- local yield, how = resume; how.ok will be nil.
+                coroutine.yield {}
+            end,
+            onfailure = function ()
+                -- same here.
+                isok = false -- not nil
+            end,
+            verbose = verbose,
+            verbose_ok = verbose_ok,
+            silence_out = silence_out,
+        })
+
+        -- done waiting.
+        -- on the other side: 
+        -- local yield, how = resume; how.ok will be true or false.
+        return { ok = isok }
+    end)
+
+    return coro
+end
+
 -- requires capi.util.redirect_write_to_dev_null
 -- use this to circumvent lua difficulties with closing stdout.
 local function close_stdout () 
@@ -342,5 +389,6 @@ return {
     CY = CY,
     BCY = BCY,
     fork_wait = fork_wait,
+    fork_wait_coro = fork_wait_coro,
     close_stdout = close_stdout,
 }

@@ -147,12 +147,17 @@ static bool timeout_lua_func(gpointer ptr) {
     lua_rawgeti(L, LUA_REGISTRYINDEX, reg_index);
 
     int rc;
-    if ((rc = lua_pcall(L, 0, 0, 0))) {
+    if ((rc = lua_pcall(L, 0, 1, 0))) {
         const char *err = luaL_checkstring(global.L, -1);
         check_lua_err(rc, "Lua error on user-defined timeout: %s", err);
     }
+    bool l_return;
+    if (! strcmp(lua_typename(L, lua_type(L, -1)), "nil")) 
+        l_return = false;
+    else 
+        l_return = lua_toboolean(L, -1);
 
-    return data->repeat;
+    return l_return && data->repeat;
 }
 
 static bool add_timeout_lua_func(int ms, lua_State *L, int reg_index, bool repeat, guint *id) {
