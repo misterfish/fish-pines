@@ -88,16 +88,36 @@ local function info (string)
     return nil
 end
 
--- step back once in stack for error message.
-local function error2 (str) 
-    str = string.format("[stack - %s]: ", Y(1)) .. str
-    error (str, 3)
+-- step back n times in stack for error message.
+-- 1 is the current function. so most library calls use error2, since 2
+-- refers to the calling function.
+-- but since error2 is itself a function add 1 more, and since they route
+-- through errorn for generality, add yet 1 more.
+
+local function errorn (n, str) 
+    str = string.format("[stack - %s]: ", Y(n - 1)) .. str
+    error (str, n + 2)
 end
 
--- step back once in stack for error message.
+local function errornf (n, format, ...)
+    format = string.format("[stack - %s]: ", Y(n - 1)) .. format
+    error (string.format (format, ...), n + 2)
+end
+
+local function error2 (str) 
+    errorn (2, str)
+end
+
 local function error2f (format, ...) 
-    format = string.format("[stack - %s]: ", Y(1)) .. format
-    error (string.format (format, ...), 3)
+    errornf (2, format, ...)
+end
+
+local function error3 (str) 
+    errorn (3, str)
+end
+
+local function error3f (format, ...) 
+    errornf (3, format, ...)
 end
 
 local function ipush (tbl, ...)
@@ -370,6 +390,8 @@ return {
     info = info,
     error2 = error2,
     error2f = error2f,
+    error3 = error3,
+    error3f = error3f,
     ipush = ipush,
     push = push,
     imap = imap,

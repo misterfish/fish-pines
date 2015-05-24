@@ -30,7 +30,6 @@ return {
     vol = {
         upamount = 4, 
         downamount = 4, 
-        sock = os.getenv ('HOME') .. '/.local/share/fish-vol/socket'
     },
     verbose = {
         sockets = false,
