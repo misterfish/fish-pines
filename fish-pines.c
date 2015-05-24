@@ -137,8 +137,6 @@ static void poll_nes(gpointer data) {
     cur_read = nes_read(g.joystick);
 #endif
 
-info("i read %d", cur_read);
-
     /* Do it also if cur_read is 0 (so we can get release events). */
     do_read(cur_read);
 }
@@ -879,6 +877,7 @@ static void print_hold_indicator(short s) {
 }
 
 static int add_listener_l(lua_State *L) {
+info("listener added");
     char *errs = NULL;
     const char *event = luaL_checkstring(L, -2);
     if (strcmp(lua_typename(L, lua_type(L, -1)), "function")) {

@@ -105,7 +105,7 @@ static int init_joystick() {
     g.cpin = cpin;
     g.lpin = lpin;
 
-    if ((joystick = setupNesJoystick(dpin, cpin, lpin)) == -1) {
+    if ((joystick = setupNesJoystick(dpin_wiringpi, cpin_wiringpi, lpin_wiringpi)) == -1) {
         warn("Unable to set up joystick");
         pieprneg1;
     }
