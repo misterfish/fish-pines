@@ -8,6 +8,7 @@ local function init ()
     else
         off 'random'
     end
+    off 'mode'
 end
 
 on = function (which) 
