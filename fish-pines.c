@@ -39,6 +39,12 @@
 
 #define MAIN_EVENT_RANDOM   0x01
 
+struct timeout_lua_t {
+    lua_State *L;
+    int reg_index;
+    bool repeat;
+};
+
 const char *EVENTS[] = {
     "random",
     "playlists-changed",
@@ -70,6 +76,8 @@ static bool process_read(short read, char *button_print);
 static int get_max_button_print_size();
 
 static int add_listener_l(lua_State *L);
+static int add_timeout_l(lua_State *L);
+static int remove_timeout_l(lua_State *L);
 
 static bool init_globals();
 static bool init_main();
@@ -83,6 +91,8 @@ static int make_canonical(unsigned int read);
 static char *debug_read_init();
 static void debug_read(unsigned int read_canonical, char *ret);
 #endif
+
+static int config_l(lua_State *L);
 
 static struct {
     struct flua_config_conf_t *conf;
@@ -122,12 +132,40 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_last
 };
 
-
 static bool main_init_config() {
     g.conf = flua_config_new(global.L);
     if (!g.conf)
         pieprf;
     flua_config_set_namespace(g.conf, CONF_NAMESPACE);
+    return true;
+}
+
+static bool timeout_lua_func(gpointer ptr) {
+    struct timeout_lua_t *data = (struct timeout_lua_t *) ptr;
+    int reg_index = data->reg_index;
+    lua_State *L = data->L;
+    lua_rawgeti(L, LUA_REGISTRYINDEX, reg_index);
+
+    int rc;
+    if ((rc = lua_pcall(L, 0, 0, 0))) {
+        const char *err = luaL_checkstring(global.L, -1);
+        check_lua_err(rc, "Lua error on user-defined timeout: %s", err);
+    }
+
+    return data->repeat;
+}
+
+static bool add_timeout_lua_func(int ms, lua_State *L, int reg_index, bool repeat, guint *id) {
+    struct timeout_lua_t *data = (struct timeout_lua_t *) f_mallocv(*data);
+    memset(data, 0, sizeof(*data));
+    data->reg_index = reg_index;
+    data->L = L;
+    data->repeat = repeat;
+
+    // can't fail
+    guint tid = main_add_timeout(ms, timeout_lua_func, data);
+    if (id) 
+        *id = tid;
     return true;
 }
 
@@ -172,7 +210,18 @@ void main_register_loop_event(char *desc, int ms, bool (*cb)(void *data)) {
     (void) id;
 }
 
+/* Lua functions have a _l suffix throughout the app.
+ * They can 'throw' with lua_error, which is safe -- it will cancel the lua
+ * call and return control to the main loop.
+ *
+ * Conversely, C can call lua functions by putting them on the lua stack and
+ * using pcall. Then we have a macro which handles the error, dying if it's
+ * an OOM error, or warning about it. Then we return false to the calling C
+ * function.
+ */
+
 /* Try not to be verbose until after lua_int */
+
 int main() {
     fish_utils_init();
 
@@ -599,11 +648,19 @@ static bool lua_init() {
     lua_newtable(L);
 
     lua_pushstring(L, "config");
-    lua_pushcfunction(L, (lua_CFunction) main_config_l);
+    lua_pushcfunction(L, (lua_CFunction) config_l);
     lua_rawset(L, -3);  
 
     lua_pushstring(L, "add_listener");
     lua_pushcfunction(L, (lua_CFunction) add_listener_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "add_timeout");
+    lua_pushcfunction(L, (lua_CFunction) add_timeout_l);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "remove_timeout");
+    lua_pushcfunction(L, (lua_CFunction) remove_timeout_l);
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);
@@ -969,58 +1026,21 @@ bool main_fire_event(char *event, gpointer data) {
     return true;
 }
 
-
-
-
-
-#if 0
-
-From before glib loop.
-This struct might still be useful for tracking timeouts.
-
-struct main_loop_event_t {
-    char *desc;
-    int gong; // how many ticks per gong
-    int count; // how many ticks we're at
-    bool (*cb)(void *data); // the callback
-};
-
-
-
-
-        for (int i = 0; i < g.num_loop_events; i++) {
-            struct main_loop_event_t *ev = (struct main_loop_event_t *) vec_get(g.loop_events, i);
-            if (++ev->count == ev->gong) {
-                bool ok = (*ev->cb)(NULL);
-                if (!ok) {
-                    _();
-                    BR(ev->desc);
-                    warn("Error on loop event %s", _s);
-                }
-                ev->count = 0;
-            }
-        }
-
-/* desc is not dup'ed.
- */
-void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
-    struct main_loop_event_t *ev = f_mallocv(*ev);
-    memset(ev, '\0', sizeof *ev);
-    ev->desc = desc;
-    ev->gong = count;
-    ev->count = 0;
-    ev->cb = cb;
-
-    vec_add(g.loop_events, ev);
-    g.num_loop_events++;
+/* Can't (usefully) fail */
+void main_remove_timeout(guint id) {
+    bool always_true = g_source_remove(id);
+    (void) always_true;
 }
-#endif
 
-int main_config_l(lua_State *L) {
+/* Can't (usefully) fail */
+guint main_add_timeout(int ms, gpointer timeout_lua_func, gpointer data) {
+    guint id = g_timeout_add(ms, (GSourceFunc) timeout_lua_func, data);
+    return id;
+}
+
+int config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-    /* Throws. 
-     */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
         BR("Couldn't load lua config.");
@@ -1032,4 +1052,23 @@ int main_config_l(lua_State *L) {
     return 0;
 }
 
+static int add_timeout_l(lua_State *L) {
+    int reg_index = luaL_ref(L, LUA_REGISTRYINDEX); // also pops
+    bool repeat = lua_toboolean(L, -1);
+    int ms = (int) luaL_checknumber(L, -2);
+    guint id;
+    if (! add_timeout_lua_func(ms, L, reg_index, repeat, &id)) {
+        lua_pushstring(L, "Couldn't add user timeout.");
+        lua_error(L);
+    }
+    lua_pushnumber(L, id);
+    return 1;
+}
+
+static int remove_timeout_l(lua_State *L) {
+    int id = (int) luaL_checknumber(L, -1);
+    // can't fail
+    main_remove_timeout(id);
+    return 0;
+}
 

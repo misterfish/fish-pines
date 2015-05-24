@@ -4,9 +4,11 @@
 #include <glib.h>
 #include <lua.h>
 
-int main_config_l(lua_State *L);
 void main_set_mode(int mode);
 void main_register_loop_event(char *desc, int count, bool (*cb)(void *data));
 bool main_fire_event(char *event, gpointer data);
+
+void main_remove_timeout(guint id);
+guint main_add_timeout(int ms, gpointer timeout_lua_func, gpointer data);
 
 #endif

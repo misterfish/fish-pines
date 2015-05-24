@@ -123,7 +123,9 @@ return {
     -- mode = music
     music = {
         press = {
-            {      'right', once = true, handler = function () capi.mpd.next_song () end },
+            { 'up','right', once = true, handler = function () led.test_on () end },
+            { 'up','left', once = true, handler = function () led.test_off () end },
+
             {      'left',  once = true, handler = function () capi.mpd.prev_song () end },
             { 'b', 'right', handler = function () capi.mpd.seek (configlua.mpd.seek) end },
             { 'b', 'left',  handler = function () capi.mpd.seek (configlua.mpd.seek * -1) end },

@@ -88,6 +88,16 @@ local function info (string)
     return nil
 end
 
+-- step back once in stack for error message.
+local function error2 (string) 
+    error (string, 3)
+end
+
+-- step back once in stack for error message.
+local function error2f (format, ...) 
+    error (string.format (format, ...), 3)
+end
+
 local function ipush (tbl, ...)
     for i, v in select (1, ...) do
         tbl[#tbl + 1] = v
@@ -311,6 +321,8 @@ return {
     warn = warn,
     infof = infof,
     info = info,
+    error2 = error2,
+    error2f = error2f,
     ipush = ipush,
     push = push,
     imap = imap,

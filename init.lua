@@ -18,6 +18,7 @@ coro            = require 'coro'
 config          = require 'config'
 configlua       = require 'configlua'
 
+main            = require 'main'
 shutdown        = require 'shutdown'
 vol             = require 'vol'
 mpd             = require 'mpd'
