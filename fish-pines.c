@@ -1043,6 +1043,12 @@ guint main_add_timeout(int ms, gpointer timeout_lua_func, gpointer data) {
     return id;
 }
 
+guint main_add_fd_watch(int fd, GIOCondition cond, gpointer func, gpointer data) {
+    GIOChannel *channel = g_io_channel_unix_new(fd);
+    guint id = g_io_add_watch(channel, cond, (GIOFunc) func, data);
+    return id;
+}
+
 int config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 

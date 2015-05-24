@@ -10,5 +10,6 @@ bool main_fire_event(char *event, gpointer data);
 
 void main_remove_timeout(guint id);
 guint main_add_timeout(int ms, gpointer timeout_lua_func, gpointer data);
+guint main_add_fd_watch(int fd, GIOCondition cond, gpointer func, gpointer data);
 
 #endif
