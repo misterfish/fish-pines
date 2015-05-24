@@ -8,6 +8,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <fcntl.h> // O_RDONLY etc.
+
 
 /* rand
  */
@@ -89,6 +91,8 @@ static void debug_read(unsigned int read_canonical, char *ret);
 #endif
 
 static struct {
+    int joystick;
+
     /* Structs have named fields 'a', 'start', 'down', etc.
      */
     struct button_name_s button_names;
@@ -118,38 +122,41 @@ struct main_loop_event_t {
     bool (*cb)(void *data); // the callback
 };
 
-static bool _break = false;
-
-void sighandler_term() {
+static void sighandler_term() {
     say("");
     info("Ctl c");
-    _break = true;
 }
 
+static void poll_nes(gpointer data) {
+    unsigned int cur_read = 0;
+
+#ifdef NO_NES
+    /* readkey sleeps (check) XX */
+    cur_read = read_buttons_testing();
+#else
+    cur_read = nes_read(g.joystick);
+#endif
+
+info("i read %d", cur_read);
+
+    /* Do it also if cur_read is 0 (so we can get release events). */
+    do_read(cur_read);
+}
+
+/* For testing timeouts.
+ */
 bool ping(void *data) {
     ++data;
     info("ping.");
     return true;
 }
-
 bool ping_fail(void *data) {
     ++data;
     info("bad ping.");
     return false;
 }
 
-/* desc is not dup'ed.
- */
 void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
-    struct main_loop_event_t *ev = f_mallocv(*ev);
-    memset(ev, '\0', sizeof *ev);
-    ev->desc = desc;
-    ev->gong = count;
-    ev->count = 0;
-    ev->cb = cb;
-
-    vec_add(g.loop_events, ev);
-    g.num_loop_events++;
 }
 
 int main() {
@@ -194,8 +201,8 @@ int main() {
 #ifndef NO_NES
     info("Setting up wiringPi+nes.");
 
-    int joystick = nes_init();
-    if (joystick == -1)
+    g.joystick = nes_init();
+    if (g.joystick == -1)
         ierr("Couldn't init wiringPi/nes.");
 #else
     info("setting terminal raw");
@@ -227,9 +234,6 @@ int main() {
     if (! lua_start()) 
         err("Can't call lua start().");
 
-    int first = 1;
-    unsigned int cur_read = 0;
-
 #ifdef DEBUG
     g.debug_read_s = debug_read_init();
 #endif
@@ -239,40 +243,21 @@ int main() {
     //f_sig(SIGTERM, sighandler_term);
     //f_sig(SIGINT, sighandler_term);
 
-    /* Main loop.
+    /* Using glib as the main loop doesn't add anything useful in terms of
+     * I/O -- we still poll the pins using wiringPi each time around.
+     * But it does help in easily adding timeout functions.
      */
-    while (1) {
-        if (_break) 
-            break; // ctl c
-
-        for (int i = 0; i < g.num_loop_events; i++) {
-            struct main_loop_event_t *ev = (struct main_loop_event_t *) vec_get(g.loop_events, i);
-            if (++ev->count == ev->gong) {
-                bool ok = (*ev->cb)(NULL);
-                if (!ok) {
-                    _();
-                    BR(ev->desc);
-                    warn("Error on loop event %s", _s);
-                }
-                ev->count = 0;
-            }
-        }
-
-#ifdef NO_NES
-        /* timeout happens in readkey
-         */
-        cur_read = read_buttons_testing();
-#else
-        /* sleep here
-         */
-        first = first ? 0 : 0 * usleep (1000 * POLL_MS);
-        cur_read = nes_read(joystick);
-#endif
-
-        /* Do it also if cur_read is 0.
-         */
-        do_read(cur_read);
+  
+    GMainLoop *loop;
+    {
+        GMainContext *ctxt = NULL;
+        gboolean is_running = false;
+        loop = g_main_loop_new(ctxt, is_running);
     }
+
+    guint poll_timeout = g_timeout_add(POLL_MS, (GSourceFunc) poll_nes, NULL);
+
+    g_main_loop_run( loop );
 
     cleanup();
     exit(0);
@@ -945,3 +930,42 @@ bool main_fire_event(char *event, gpointer data) {
     }
     return true;
 }
+
+
+
+
+
+#if 0
+
+From before glib loop
+
+        for (int i = 0; i < g.num_loop_events; i++) {
+            struct main_loop_event_t *ev = (struct main_loop_event_t *) vec_get(g.loop_events, i);
+            if (++ev->count == ev->gong) {
+                bool ok = (*ev->cb)(NULL);
+                if (!ok) {
+                    _();
+                    BR(ev->desc);
+                    warn("Error on loop event %s", _s);
+                }
+                ev->count = 0;
+            }
+        }
+
+This was from before glib.
+
+/* desc is not dup'ed.
+ */
+void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
+    struct main_loop_event_t *ev = f_mallocv(*ev);
+    memset(ev, '\0', sizeof *ev);
+    ev->desc = desc;
+    ev->gong = count;
+    ev->count = 0;
+    ev->cb = cb;
+
+    vec_add(g.loop_events, ev);
+    g.num_loop_events++;
+}
+#endif
+

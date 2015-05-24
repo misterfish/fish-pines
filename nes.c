@@ -6,7 +6,10 @@
 
 #include "nes.h"
 
+/* Check exports XX */
+
 #define CONF_NAMESPACE "nes"
+#define PIN_PATH_TMPL "/sys/class/gpio/gpio%d/value"
 
 extern short BCM2WIRINGPI(short);
 
@@ -29,6 +32,10 @@ static struct flua_config_conf_item_t CONF[] = {
 static struct {
     struct flua_config_conf_t *conf;
     bool lua_initted;
+
+    short dpin;
+    short cpin;
+    short lpin;
 } g;
 
 bool nes_init_config() {
@@ -64,34 +71,39 @@ static bool init_wiringPi() {
 
 static int init_joystick() {
     int joystick;
-    short dpin_bcm = conf_i(dpin);
-    short cpin_bcm = conf_i(cpin);
-    short lpin_bcm = conf_i(lpin);
+    short dpin = conf_i(dpin);
+    short cpin = conf_i(cpin);
+    short lpin = conf_i(lpin);
 
-    short dpin = BCM2WIRINGPI(dpin_bcm);
-    short lpin = BCM2WIRINGPI(lpin_bcm);
-    short cpin = BCM2WIRINGPI(cpin_bcm);
-    if (! dpin) {
+    short dpin_wiringpi = BCM2WIRINGPI(dpin);
+    short lpin_wiringpi = BCM2WIRINGPI(lpin);
+    short cpin_wiringpi = BCM2WIRINGPI(cpin);
+
+    if (! dpin_wiringpi) {
         _();
-        spr("%d", dpin_bcm);
+        spr("%d", dpin);
         BR(_s);
         warn("Can't convert dpin (%s) to wiringPi numbering.", _t);
         return -1;
     }
-    if (! cpin) {
+    if (! cpin_wiringpi) {
         _();
-        spr("%d", cpin_bcm);
+        spr("%d", cpin);
         BR(_s);
         warn("Can't convert cpin (%s) to wiringPi numbering.", _t);
         return -1;
     }
-    if (! lpin) {
+    if (! lpin_wiringpi) {
         _();
-        spr("%d", lpin_bcm);
+        spr("%d", lpin);
         BR(_s);
         warn("Can't convert lpin (%s) to wiringPi numbering.", _t);
         return -1;
     }
+
+    g.dpin = dpin;
+    g.cpin = cpin;
+    g.lpin = lpin;
 
     if ((joystick = setupNesJoystick(dpin, cpin, lpin)) == -1) {
         warn("Unable to set up joystick");
@@ -115,3 +127,24 @@ int nes_init() {
 int nes_read(int joystick) {
     return readNesJoystick(joystick);
 }
+
+static char *get_path(short pin) {
+    int len1 = strlen(PIN_PATH_TMPL);
+    int len2 = f_int_length(pin);
+    int len = len1 - 2 + len2 + 1;
+    char *path = str(len);
+    sprintf(path, PIN_PATH_TMPL, pin);
+    return path;
+}
+
+/* Caller should free */
+char *nes_get_path_dpin() {
+    return get_path(g.dpin);
+}
+char *nes_get_path_cpin() {
+    return get_path(g.cpin);
+}
+char *nes_get_path_lpin() {
+    return get_path(g.lpin);
+}
+
