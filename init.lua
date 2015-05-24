@@ -37,11 +37,12 @@ for _, v in pairs (conf) do
     capi[v].config (config[v])
 end
 
-mpd.init()
-
 -- called by C after init.
 function start () 
+
+    mpd.init()
     led.init()
+
     for modename, t in pairs (rules) do
         local mode_idx = mode.idx_for_name (modename) 
         if not mode_idx then

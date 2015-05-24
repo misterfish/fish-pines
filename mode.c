@@ -116,7 +116,7 @@ bool mode_set_mode(short s) {
 
 bool mode_next_mode() {
     short s = g.cur_mode_idx;
-    s = ++s % g.num_modes;
+    s = (s + 1) % g.num_modes;
     return mode_set_mode(s);
 }
 

@@ -1,16 +1,11 @@
 #define _GNU_SOURCE
 
-#define VERBOSE true
-
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
-
-/* rand */
-//#include <stdlib.h>
 
 #include <signal.h>
 
@@ -210,12 +205,6 @@ int main() {
     if (! vol_init_config())
         ierr("Couldn't init mode config");
 
-    /* Before lua, so init.lua can set leds.
-     * Meaning its verbose value can't come from lua.
-     */
-    if (! gpio_init(VERBOSE)) 
-        ierr("Couldn't init gpio");
-
     flua_config_set_verbose(true);
 
     if (! lua_init()) 
@@ -225,6 +214,9 @@ int main() {
         err("%s: forgot lua init?", CONF_NAMESPACE);
 
     g.verbose = conf_b(verbose);
+
+    if (! gpio_init(g.verbose)) 
+        ierr("Couldn't init gpio");
 
     if (g.verbose) 
         say("");
@@ -903,9 +895,9 @@ static void print_hold_indicator(short s) {
             last_state = 1;
             printf("\n");
         }
-        delay_cur = ++delay_cur % (DELAY + 1);
+        delay_cur = (delay_cur + 1) % (DELAY + 1);
         if (delay_cur == DELAY) 
-            t = ++t % (2*NUM - 2);
+            t = (t + 1) % (2*NUM - 2);
         if (t < NUM) {
             printf("\r[ ");
             for (int i = 0; i < NUM; i++) {
