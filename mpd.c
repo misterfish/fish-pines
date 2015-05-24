@@ -42,7 +42,7 @@ static struct flua_config_conf_item_t CONF[] = {
     flua_conf_default(timeout_playlist_ms, integer, CONF_DEFAULT_TIMEOUT_PLAYLIST_MS)
     flua_conf_default(play_on_load_playlist, boolean, false)
     flua_conf_optional(playlist_path, string)
-    flua_conf_optional(update_on_n_ticks, integer)
+    flua_conf_optional(update_ms, integer)
 
     flua_conf_last
 };
@@ -184,52 +184,45 @@ bool f_mpd_init_f(short flags) {
             return false;
         }
     }
-    //if (!g.init) {
-        if (! g.lua_initted) {
-            warn("%s: forgot lua init?", CONF_NAMESPACE);
-            return false;
-        }
-    //}
-
-    /*
-    if (g.init) 
-        */
+    if (! g.lua_initted) {
+        warn("%s: forgot lua init?", CONF_NAMESPACE);
+        return false;
+    }
 
     f_try_rf(
         g.connection = mpd_connection_new (conf_s(host), conf_i(port), conf_i(timeout_ms)),
         "opening connection"
     );
 
-    //if (!g.init) {
-        {
-            int i = conf_i(update_on_n_ticks);
-            if (i)
-                /* This used to be update_wrapper; maybe htat's the cause of
-                 * the crash when mpd is restarted? XX
-                 */
-                main_register_loop_event("mpd update", i, f_mpd_update);
-        }
+    {
+        int i = conf_i(update_ms);
+        if (i)
+            /* This used to be update_wrapper; maybe htat's the cause of
+             * the crash when mpd is restarted? XX
+             */
+            main_register_loop_event("mpd update", i, f_mpd_update);
+    }
 
-        g.playlist_vec = vec_new();
-        g.playlist_by_name = g_hash_table_new_full(
-            g_str_hash,
-            g_str_equal,
-            /* keys are dup'ed string -- destroy. */
-            playlist_by_name_destroy_key,
-            /* vals are ints-as-pointers -- do not destroy. */
-            NULL
-        );
-        g.playlist_idx = -1;
-        g.playlist_n = 0;
+    g.playlist_vec = vec_new();
+    g.playlist_by_name = g_hash_table_new_full(
+        g_str_hash,
+        g_str_equal,
+        /* keys are dup'ed string -- destroy. */
+        playlist_by_name_destroy_key,
+        /* vals are ints-as-pointers -- do not destroy. */
+        NULL
+    );
+    g.playlist_idx = -1;
+    g.playlist_n = 0;
 
-        if (g.verbose) 
-            info("MPD connection opened successfully.");
+    if (g.verbose) 
+        info("MPD connection opened successfully.");
 
-        if (have_playlists() && !reload_playlists()) 
-            pieprf;
+    if (have_playlists() && !reload_playlists()) 
+        pieprf;
 
-        g.init = true;
-    //}
+    g.init = true;
+
     return true;
 }
 
@@ -683,14 +676,6 @@ static int get_elapsed_time() {
     free_status(s);
     return ret;
 }
-
-#if 0
-/* Wrapper for loop register. */
-bool f_mpd_update_wrapper(void *p) {
-    ++p; // warnings
-    return f_mpd_update();
-}
-#endif
 
 static bool load_playlist(int idx) {
     struct pl *pl = (struct pl *) vec_get(g.playlist_vec, idx);

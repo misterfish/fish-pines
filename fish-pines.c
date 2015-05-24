@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#define VERBOSE 0
+#define VERBOSE true
 
 #include <stdio.h>
 #include <errno.h>
@@ -8,12 +8,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <fcntl.h> // O_RDONLY etc.
 
-
-/* rand
- */
-#include <stdlib.h>
+/* rand */
+//#include <stdlib.h>
 
 #include <signal.h>
 
@@ -34,7 +31,6 @@
 #include "mode.h"
 #include "vol.h"
 #include "flua_config.h"
-//#include "mode.h"
 #include "util.h"
 
 #ifndef NO_NES
@@ -42,6 +38,9 @@
 #endif
 
 #include "fish-pines.h"
+
+#define CONF_NAMESPACE "main"
+#define CONF_DEFAULT_POLL_MS 40
 
 #define MAIN_EVENT_RANDOM   0x01
 
@@ -78,7 +77,7 @@ static int get_max_button_print_size();
 static int add_listener_l(lua_State *L);
 
 static bool init_globals();
-static void init_state();
+static bool init_main();
 
 static bool lua_init();
 static bool lua_start();
@@ -91,6 +90,12 @@ static void debug_read(unsigned int read_canonical, char *ret);
 #endif
 
 static struct {
+    struct flua_config_conf_t *conf;
+    bool lua_initted;
+
+    /* Note, can't use it until after lua_init */
+    bool verbose;
+
     int joystick;
 
     /* Structs have named fields 'a', 'start', 'down', etc.
@@ -115,12 +120,21 @@ static struct {
 #endif
 } g;
 
-struct main_loop_event_t {
-    char *desc;
-    int gong; // how many ticks per gong
-    int count; // how many ticks we're at
-    bool (*cb)(void *data); // the callback
+static struct flua_config_conf_item_t CONF[] = {
+    flua_conf_default(poll_ms, integer, CONF_DEFAULT_POLL_MS)
+    flua_conf_default(verbose, boolean, false)
+
+    flua_conf_last
 };
+
+
+static bool main_init_config() {
+    g.conf = flua_config_new(global.L);
+    if (!g.conf)
+        pieprf;
+    flua_config_set_namespace(g.conf, CONF_NAMESPACE);
+    return true;
+}
 
 static void sighandler_term() {
     say("");
@@ -128,6 +142,7 @@ static void sighandler_term() {
 }
 
 static void poll_nes(gpointer data) {
+    (void) data;
     unsigned int cur_read = 0;
 
 #ifdef NO_NES
@@ -154,9 +169,15 @@ bool ping_fail(void *data) {
     return false;
 }
 
-void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
+void main_register_loop_event(char *desc, int ms, bool (*cb)(void *data)) {
+    /* Not doing anything with the desc actually. */
+    /* Or with the timeout id. */
+    guint id = g_timeout_add(ms, (GSourceFunc) cb, NULL);
+    (void) desc;
+    (void) id;
 }
 
+/* Try not to be verbose until after lua_int */
 int main() {
     fish_utils_init();
 
@@ -165,12 +186,16 @@ int main() {
     if (! init_globals()) 
         ierr("Can't init globals.");
 
-    init_state();
-
     /* For testing.
     main_register_loop_event("ping", 50, ping);
     main_register_loop_event("ping", 150, ping_fail);
     */
+
+    if (! main_init_config())
+        ierr("Couldn't init main config");
+
+    if (! init_main()) 
+        ierr("Couldn't init main.");
 
 #ifndef NO_NES
     if (! nes_init_config())
@@ -186,6 +211,7 @@ int main() {
         ierr("Couldn't init mode config");
 
     /* Before lua, so init.lua can set leds.
+     * Meaning its verbose value can't come from lua.
      */
     if (! gpio_init(VERBOSE)) 
         ierr("Couldn't init gpio");
@@ -195,15 +221,23 @@ int main() {
     if (! lua_init()) 
         err("Can't init lua.");
 
-    say("");
+    if (! g.lua_initted) 
+        err("%s: forgot lua init?", CONF_NAMESPACE);
+
+    g.verbose = conf_b(verbose);
+
+    if (g.verbose) 
+        say("");
 #ifndef NO_NES
-    info("Setting up wiringPi+nes.");
+    if (g.verbose)
+        info("Setting up wiringPi+nes.");
 
     g.joystick = nes_init();
     if (g.joystick == -1)
         ierr("Couldn't init wiringPi/nes.");
 #else
-    info("setting terminal raw");
+    if (g.verbose)
+        info("setting terminal raw");
 
     /* Not interbyte timeout, because 'nothing' should also be a valid
      * response.
@@ -219,13 +253,19 @@ int main() {
     if (! buttons_init()) 
         ierr("Couldn't init buttons");
 
-    info("Setting up vol (fasound)");
-    say("");
+    if (g.verbose){
+        info("Setting up vol (fasound)");
+        say("");
+    }
+
     if (! vol_init()) 
         ierr("Couldn't init vol");
-    say("");
 
-    info("Setting up mpd.");
+    if (g.verbose) {
+        say("");
+        info("Setting up mpd.");
+    }
+
     if (! f_mpd_init()) 
         err("Couldn't init mpd.");
 
@@ -238,6 +278,7 @@ int main() {
 
     g.button_print = f_malloc(get_max_button_print_size() * sizeof(char));
 
+    (void) sighandler_term;
     //f_sig(SIGTERM, sighandler_term);
     //f_sig(SIGINT, sighandler_term);
 
@@ -253,7 +294,8 @@ int main() {
         loop = g_main_loop_new(ctxt, is_running);
     }
 
-    guint poll_timeout = g_timeout_add(POLL_MS, (GSourceFunc) poll_nes, NULL);
+    guint poll_timeout = g_timeout_add(conf_i(poll_ms), (GSourceFunc) poll_nes, NULL);
+    (void) poll_timeout;
 
     g_main_loop_run( loop );
 
@@ -564,6 +606,10 @@ static bool lua_init() {
     lua_pushstring(L, "main");
     lua_newtable(L);
 
+    lua_pushstring(L, "config");
+    lua_pushcfunction(L, (lua_CFunction) main_config_l);
+    lua_rawset(L, -3);  
+
     lua_pushstring(L, "add_listener");
     lua_pushcfunction(L, (lua_CFunction) add_listener_l);
     lua_rawset(L, -3);
@@ -756,7 +802,7 @@ static void events_destroy_val(gpointer ptr) {
         piep;
 }
 
-static void init_state() {
+static bool init_main() {
     g.loop_events = vec_new();
 
     g.events = g_hash_table_new_full(
@@ -789,6 +835,8 @@ static void init_state() {
     g.button_name_iter[5] = &g.button_names.start;
     g.button_name_iter[6] = &g.button_names.b;
     g.button_name_iter[7] = &g.button_names.a;
+
+    return true;
 }
 
 #ifdef DEBUG
@@ -877,7 +925,6 @@ static void print_hold_indicator(short s) {
 }
 
 static int add_listener_l(lua_State *L) {
-info("listener added");
     char *errs = NULL;
     const char *event = luaL_checkstring(L, -2);
     if (strcmp(lua_typename(L, lua_type(L, -1)), "function")) {
@@ -936,7 +983,18 @@ bool main_fire_event(char *event, gpointer data) {
 
 #if 0
 
-From before glib loop
+From before glib loop.
+This struct might still be useful for tracking timeouts.
+
+struct main_loop_event_t {
+    char *desc;
+    int gong; // how many ticks per gong
+    int count; // how many ticks we're at
+    bool (*cb)(void *data); // the callback
+};
+
+
+
 
         for (int i = 0; i < g.num_loop_events; i++) {
             struct main_loop_event_t *ev = (struct main_loop_event_t *) vec_get(g.loop_events, i);
@@ -950,8 +1008,6 @@ From before glib loop
                 ev->count = 0;
             }
         }
-
-This was from before glib.
 
 /* desc is not dup'ed.
  */
@@ -967,4 +1023,21 @@ void main_register_loop_event(char *desc, int count, bool (*cb)(void *data)) {
     g.num_loop_events++;
 }
 #endif
+
+int main_config_l(lua_State *L) {
+    int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
+
+    /* Throws. 
+     */
+    if (! flua_config_load_config(g.conf, CONF, num_rules)) {
+        _();
+        BR("Couldn't load lua config.");
+        lua_pushstring(L, _s);
+        lua_error(L);
+    }
+    g.lua_initted = true;
+
+    return 0;
+}
+
 

@@ -119,8 +119,6 @@ inline short BCM2WIRINGPI(short b) {
 
 #ifdef NO_NES
 #define POLL_TENTHS_OF_A_SECOND 1
-#else
-#define POLL_MS     40
 #endif
 
 #define ERROR_BUF_SIZE  500 // used for various buffers

@@ -30,7 +30,7 @@ local capi = capi
 
 local no_nes = os.getenv ("NO_NES") == '1'
 
-local conf = {'mpd', 'mode', 'vol'}
+local conf = { 'main', 'mpd', 'mode', 'vol' }
 if not no_nes then push (conf, 'nes') end
 
 for _, v in pairs (conf) do
