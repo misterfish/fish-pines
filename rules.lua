@@ -107,6 +107,7 @@ me = {
             { 'down', 'left',  handler = vol.down_left },
 
             {      'left',     once = true, handler = function () capi.mpd.prev_song () end },
+            {      'right',    once = true, handler = function () capi.mpd.next_song () end },
             { 'b', 'right',    handler = function () capi.mpd.seek (configlua.mpd.seek) end },
             { 'b', 'left',     handler = function () capi.mpd.seek (configlua.mpd.seek * -1) end },
             { 'b', 'up',       once = true, handler = function () capi.mpd.next_playlist () end },

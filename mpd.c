@@ -109,6 +109,15 @@ bool f_error = false;
     } \
 } while (0)
 
+#define f_try_rnull(expr, msg) do { \
+    bool rc = (expr); \
+    if (!rc || !f_mpd_ok()) { \
+        g.failures++; \
+        f_mpd_error(msg); \
+        return NULL; \
+    } \
+} while (0)
+
 static bool check_reinit() {
     if (g.failures >= NUM_FAILURES_REINIT || g.force_reinit) {
         _();
@@ -634,12 +643,8 @@ bool f_mpd_cleanup() {
 
 static struct mpd_status *get_status() {
 if (TEST_FORCE_REINIT) g.force_reinit = true;
-    struct mpd_status* s = mpd_run_status(g.connection);
-    if (s == NULL) {
-        _();
-        R(mpd_connection_get_error_message(g.connection));
-        warn("Couldn't get status: %s", _s);
-    }
+    struct mpd_status* s;
+    f_try_rnull(s = mpd_run_status(g.connection), "get status");
     return s;
 }
 
