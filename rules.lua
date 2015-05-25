@@ -2,13 +2,9 @@ needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua')
 
 local me, _, i, k, v
 
-local function test () 
-    util.fork_wait ('ls -l', {
-        verbose_ok = true,
-    })
-end
-
 local function update_playlists () 
+    info 'Starting mpd update and playlist rebuild …' 
+
     local cmd = configlua.cmds.make_playlist_all
 
     led.flash_start ('update', 1000)
@@ -47,7 +43,7 @@ local function update_playlists ()
         func = function ()
             pool:once ()
             if pool:isdone () then
-                info 'Done with playlist update and database update.'
+                info '… done!'
                 led.flash_stop 'update'
                 return false
             end
@@ -55,10 +51,6 @@ local function update_playlists ()
             return true
         end
     }
-end
-
-local function test1 () 
-    update_playlists ()
 end
 
 --[[ 

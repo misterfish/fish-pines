@@ -29,7 +29,7 @@ local function down (args)
     go (args)
 end
 
--- vol up on all left channels (and front center)
+-- vol up on all left channels
 local function up_left (args)
     args = args or {}
     for _, v in pairs { 'front left', 'rear left', 'side left' } do
@@ -38,7 +38,7 @@ local function up_left (args)
     end
 end
 
--- vol up on all left channels (and front center)
+-- vol down on all left channels
 local function down_left (args)
     args = args or {}
     for _, v in pairs { 'front left', 'rear left', 'side left' } do
@@ -47,7 +47,7 @@ local function down_left (args)
     end
 end
 
--- vol up on all left channels (and front center)
+-- vol up on all right channels
 local function up_right (args)
     args = args or {}
     for _, v in pairs { 'front right', 'rear right', 'side right' } do
@@ -56,7 +56,7 @@ local function up_right (args)
     end
 end
 
--- vol up on all left channels (and front center)
+-- vol down on all right channels
 local function down_right (args)
     args = args or {}
     for _, v in pairs { 'front right', 'rear right', 'side right' } do
@@ -64,30 +64,6 @@ local function down_right (args)
         down (args)
     end
 end
-
-
---[[ fish vol version
-local function vol (str)
-    local response = capi.util.socket_unix_message (configlua.vol.sock, str)
-    if response then
-        if configlua.verbose.sockets then
-            sayf ("Got response: «%s»", G (response))
-        end
-    else
-        warn "Couldn't send message to socket"
-    end
-end
-
-local function up (amount) 
-    if not amount then amount = configlua.vol.upamount end
-    return vol ('rel all all ' .. amount) -- .. ok with num
-end
-
-local function down (amount) 
-    if not amount then amount = configlua.vol.downamount end
-    return vol ('rel all all ' .. (-1 * amount)) -- .. ok with num
-end
-]]
 
 return {
     up = configlua.anton_mode and down or up,
