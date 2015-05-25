@@ -1038,8 +1038,8 @@ void main_remove_timeout(guint id) {
 }
 
 /* Can't (usefully) fail */
-guint main_add_timeout(int ms, gpointer timeout_lua_func, gpointer data) {
-    guint id = g_timeout_add(ms, (GSourceFunc) timeout_lua_func, data);
+guint main_add_timeout(int ms, gpointer timeout_func, gpointer data) {
+    guint id = g_timeout_add(ms, (GSourceFunc) timeout_func, data);
     return id;
 }
 

@@ -29,6 +29,11 @@
 #define CONF_DEFAULT_TIMEOUT_PLAYLIST_MS 3000
 
 #define NUM_FAILURES_REINIT 5
+#define NUM_SECS_RETRY_RETRY 5
+
+#define ERR_INVALID_ERR     0x01
+#define ERR_CONNECTION      0x02
+#define ERR_OTHER           0x03
 
 #define TEST_FORCE_REINIT false
 
@@ -82,52 +87,94 @@ static struct {
 
     short failures;
     bool force_reinit;
+
+    bool reinit_timeout_running;
 } g;
 
-bool f_error = false;
+static int f_mpd_error(char *msg) {
+    if (g.connection) {
+        enum mpd_error err = mpd_connection_get_error(g.connection);
+        if (err == MPD_ERROR_SUCCESS) { 
+            piep;
+            warn("f_mpd_error called (%s) but mpd says success", msg);
+            return ERR_INVALID_ERR;
+        }
+        /* err codes which mean, reinit g.connection */
+        else if (
+                err == MPD_ERROR_TIMEOUT ||
+                err == MPD_ERROR_SYSTEM ||
+                err == MPD_ERROR_CLOSED ||
+                err == MPD_ERROR_SERVER
+                ) {
+            return ERR_CONNECTION;
+        }
+        else 
+            return ERR_OTHER;
+    }
+    else {
+        iwarn("No connection.");
+        return ERR_INVALID_ERR;
+    }
+}
 
-#define f_mpd_error(s) do { \
-    if (g.connection) { \
-        _();                    \
-        if (mpd_connection_get_error(g.connection) == MPD_ERROR_SUCCESS) { \
-            piep; \
-            warn("f_mpd_error called (%s) but mpd says success", s); \
+#define f_try(expr, msg, retn) do { \
+    bool rc = (expr); \
+    if (! rc || ! f_mpd_ok()) { \
+        if (f_mpd_error(msg) == ERR_CONNECTION) { \
+            if (! reinit(true, true)) \
+                piep; \
+        } \
+        else if (++g.failures > NUM_FAILURES_REINIT) { \
+            if (! reinit(true, false)) \
+                piep; \
         } \
         else { \
-            BR(mpd_connection_get_error_message(g.connection));   \
-            warn("Error on %s: %s.", s, _s);      \
+            _(); \
+            BR(mpd_connection_get_error_message(g.connection)); \
+            warn("Error on %s: %s.", msg, _s); \
         } \
+        return retn; \
     } \
 } while (0)
 
 #define f_try_rf(expr, msg) do { \
-    bool rc = (expr); \
-    if (!rc || !f_mpd_ok()) { \
-        g.failures++; \
-        f_mpd_error(msg); \
-        return false; \
-    } \
+    f_try(expr, msg, false); \
 } while (0)
 
 #define f_try_rnull(expr, msg) do { \
-    bool rc = (expr); \
-    if (!rc || !f_mpd_ok()) { \
-        g.failures++; \
-        f_mpd_error(msg); \
-        return NULL; \
-    } \
+    f_try(expr, msg, NULL); \
 } while (0)
 
-static bool check_reinit() {
-    if (g.failures >= NUM_FAILURES_REINIT || g.force_reinit) {
-        _();
-        spr("%d", NUM_FAILURES_REINIT);
-        BR(_s);
-        warn("Too many mpd failures ( >= %s ), reestablishing connection.", _t);
-        if (! f_mpd_init_f(F_MPD_FORCE_INIT))
-            pieprf;
-        else
-            g.failures = 0;
+/* Glib timeout version. */
+static bool reinit_gt(gpointer data) {
+    int num_secs = GPOINTER_TO_INT(data);
+    if (! f_mpd_init_f(F_MPD_FORCE_INIT)) {
+        warn("Still couldn't reinit. Scheduling retry in %d secs", num_secs);
+        return true;
+    }
+    else {
+        g.failures = 0;
+        g.reinit_timeout_running = false;
+        return false;
+    }
+}
+
+static bool reinit(bool force, bool conn_error) {
+    if (force || g.force_reinit) {
+        char s[ERROR_BUF_SIZE];
+        if (conn_error) 
+            snprintf(s, ERROR_BUF_SIZE, "Error with connection");
+        else {
+            _();
+            spr("%d", NUM_FAILURES_REINIT);
+            BR(_s);
+            snprintf(s, ERROR_BUF_SIZE, "Too many mpd failures ( >= %s )", _t);
+        }
+        warn("%s, reestablishing connection in %d seconds.", s, NUM_SECS_RETRY_RETRY);
+        if (! g.reinit_timeout_running) {
+            main_add_timeout(NUM_SECS_RETRY_RETRY * 1000, reinit_gt, GINT_TO_POINTER(NUM_SECS_RETRY_RETRY));
+            g.reinit_timeout_running = true;
+        }
     }
     return true;
 }
@@ -141,7 +188,11 @@ bool f_mpd_ok() {
         enum mpd_error e = mpd_connection_get_error(g.connection);
         if (e == MPD_ERROR_SUCCESS) 
             return true;
-        else 
+        else if (e == MPD_ERROR_OOM) {
+            fprintf(stderr, "Out of memory!");
+            _exit(1);
+        }
+        else
             return false;
     }
     else {
@@ -240,12 +291,10 @@ bool f_mpd_get_random(bool *r) {
         warn("f_mpd_get_random: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     struct mpd_status *s = get_status();
     if (!s) 
-        pieprf;
+        return false; // let get_status do the whining
     /* can't fail */
     *r = mpd_status_get_random(s); 
     free_status(s);
@@ -258,12 +307,10 @@ bool f_mpd_toggle_random(bool *r) {
         warn("f_mpd_toggle_random: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     bool random;
     if (! f_mpd_get_random(&random))
-        pieprf;
+        return false; // let them do the whining
     bool ok = random ? f_mpd_random_off() : f_mpd_random_on();
     if (ok && r) 
         *r = !random;
@@ -275,8 +322,6 @@ bool f_mpd_random_off() {
         warn("f_mpd_random_off: mpd not initted.");
         return false;
     }
-    if (! check_reinit()) 
-        pieprf;
 
     f_try_rf(mpd_run_random(g.connection, false), "random off");
     return true;
@@ -287,8 +332,6 @@ bool f_mpd_random_on() {
         warn("f_mpd_random_on: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     f_try_rf(mpd_run_random(g.connection, true), "random on");
     return true;
@@ -300,8 +343,6 @@ bool f_mpd_toggle_play() {
         return false;
     }
 if (TEST_FORCE_REINIT) g.force_reinit = true;
-    if (! check_reinit()) 
-        pieprf;
 
     int status = get_state();
     switch(status) {
@@ -325,8 +366,7 @@ bool f_mpd_seek(int secs) {
         warn("f_mpd_seek: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
+    
 
     int pos = get_queue_pos();
 
@@ -352,8 +392,6 @@ bool f_mpd_prev() {
         warn("f_mpd_prev: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 if (TEST_FORCE_REINIT) g.force_reinit = true;
 
     f_try_rf( mpd_run_previous(g.connection), "run previous song" );
@@ -365,8 +403,6 @@ bool f_mpd_next() {
         warn("f_mpd_next: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 if (TEST_FORCE_REINIT) g.force_reinit = true;
 
     f_try_rf( mpd_run_next(g.connection), "run next song" );
@@ -384,8 +420,6 @@ bool f_mpd_update() {
         warn("f_mpd_update: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     bool disable_timeout = true; // blocks forever on recv
 
@@ -423,7 +457,7 @@ bool f_mpd_update() {
             bool random;
             bool fire = false;
             if (! f_mpd_get_random(&random))
-                pieprf;
+                return false; // let them do the whining
             if (first) {
                 first = false;
                 fire = true;
@@ -528,8 +562,6 @@ bool f_mpd_database_update() {
         warn("f_mpd_database_update: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
     const char *path = NULL;
     f_try_rf(mpd_run_update(g.connection, path), "send database update");
     return true;
@@ -540,8 +572,6 @@ bool f_mpd_is_updating(bool *u) {
         warn("f_mpd_is_updating: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     /*
         MPD_IDLE_UPDATE     
@@ -551,8 +581,8 @@ bool f_mpd_is_updating(bool *u) {
     */
 
     struct mpd_status *st = get_status();
-    if (!st) // let get_status do the whining
-        return false;
+    if (!st) 
+        return false; // let get_status do the whining
     if (u)
         *u = mpd_status_get_update_id(st);
 
@@ -564,8 +594,6 @@ bool f_mpd_next_playlist() {
         warn("f_mpd_next_playlist: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     if (!g.playlist_n) 
         return true;
@@ -580,8 +608,6 @@ bool f_mpd_prev_playlist() {
         warn("f_mpd_prev_playlist: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     if (!g.playlist_n) 
         return true;
@@ -596,8 +622,6 @@ bool f_mpd_load_playlist_by_name(char *name) {
         warn("f_mpd_load_playlist: mpd not initted.");
         return false;
     }
-    if (! check_reinit())
-        pieprf;
 
     gpointer ptr = g_hash_table_lookup(g.playlist_by_name, (gpointer) name);
     if (!ptr) {
@@ -657,7 +681,7 @@ static void free_status(struct mpd_status* s) {
 static int get_state() {
     struct mpd_status *s = get_status();
     if (!s)
-        piepr0;
+        return 0; // let get_status do the whining
     enum mpd_state st = mpd_status_get_state(s);
     free_status(s);
     return st;
@@ -666,7 +690,7 @@ static int get_state() {
 static int get_queue_pos() {
     struct mpd_status *s = get_status();
     if (!s)
-        pieprneg1;
+        return -1; // let get_status do the whining
     int ret = mpd_status_get_song_pos(s);
     free_status(s);
     return ret;
@@ -676,7 +700,7 @@ static int get_queue_pos() {
 static int get_elapsed_time() {
     struct mpd_status *s = get_status();
     if (!s)
-        pieprneg1;
+        return -1; // let get_status do the whining
     int ret = mpd_status_get_elapsed_time(s);
     free_status(s);
     return ret;
