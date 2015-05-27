@@ -7,7 +7,7 @@
 #define ARG_STATUS_HELP             0x01
 #define ARG_STATUS_INVALID_USAGE    0x02
 
-#define opt_full(typename, nameval, requiredval, shortval, longval, stringval, flagsval, docstrval, groupval) { \
+#define opt_full(typename, nameval, requiredval, shortval, longval, stringval, flagsval, docstrval, groupval, has_defaultval, dfltval ) { \
     .type = #typename, \
     .name = nameval, \
     .required = requiredval, \
@@ -17,26 +17,18 @@
     .flags = flagsval, \
     .docstr = docstrval, \
     .group = groupval, \
+    .has_default = has_defaultval, \
+    .dflt.typename = dfltval,  \
 },
 
 #define opt_required(typename, nameval, shortval, longval, stringval, flagsval, docstrval, groupval) \
-    opt_full(typename, nameval, true, shortval, longval, stringval, flagsval, docstrval, groupval) 
+    opt_full(typename, nameval, true, shortval, longval, stringval, flagsval, docstrval, groupval, false, 0) 
 
-/*
-#define opt_optional(typename, name) { \
-    .key = name, \
-    .required = false, \
-    .type = #typename, \
-},
+#define opt_optional(typename, nameval, shortval, longval, stringval, flagsval, docstrval, groupval) \
+    opt_full(typename, nameval, false, shortval, longval, stringval, flagsval, docstrval, groupval, false, 0) 
 
-#define opt_default(typename, name, dflt_val) { \
-    .key = name, \
-    .required = false, \
-    .type = #typename, \
-    .has_default = true, \
-    .dflt.typename = dflt_val \
-},
-*/
+#define opt_default(typename, nameval, shortval, longval, stringval, flagsval, docstrval, groupval, dfltval) \
+    opt_full(typename, nameval, false, shortval, longval, stringval, flagsval, docstrval, groupval, true, dfltval) 
 
 #define opt_last {0}
 

@@ -27,11 +27,10 @@ struct opt_decl_t opts_decl[] = {
      *    -d, --lua-dir=DIR     Path to directory ...
      */
     opt_required(string, "lua_dir", 'd', "lua-dir", "DIR", 0 /* ARG_ flags */, 
-        "Path to directory containing .lua files (required)",
-    0 /* group */)
+        "Path to directory containing .lua files (required)", 0 /* group */)
 
         /* test
-    opt_required(real, "repetitions", 'r', "repetitions", "repetitions", 0, "Something called repetitions", 0)
+    opt_default(real, "repetitions", 'r', "repetitions", "repetitions", 0, "Something called repetitions", 0, 42.4)
     opt_required(integer, "times", 't', "times", "times", 0, "Something called times", 0)
     */
 

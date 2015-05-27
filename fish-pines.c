@@ -94,8 +94,6 @@ static void debug_read(unsigned int read_canonical, char *ret);
 
 static int config_l(lua_State *L);
 
-//static union arg_union_t args[ARG_last];
-
 static struct {
     struct flua_config_conf_t *conf;
     bool lua_initted;
@@ -105,18 +103,15 @@ static struct {
 
     int joystick;
 
-    /* Structs have named fields 'a', 'start', 'down', etc.
-     */
+    /* Structs have named fields 'a', 'start', 'down', etc. */
     struct button_name_s button_names;
 
-    /* Std order.
-     */
+    /* Std order. */
     char **button_name_iter[8];
 
     char *button_print;
 
-    /* Elements are struct main_loop_event_t *.
-     */
+    /* Elements are struct main_loop_event_t *. */
     vec *loop_events;
     int num_loop_events;
 
@@ -521,7 +516,6 @@ static bool process_read(short read, char *button_print) {
 
     if (l == 0) 
         print_hold_indicator(1);
-    // 'else'
 
     for (; j < l; j++) {
         struct button_rule_t *rule_press = (struct button_rule_t *) vec_get(rules_press, j);
@@ -879,7 +873,6 @@ static void events_destroy_val(gpointer ptr) {
 }
 
 static bool init_main(int argc, char **argv, int *way_out) {
-    //if (! arg_args(argc, argv, args)) {
     if (! arg_args(argc, argv)) {
         int status = arg_status();
         if (status == ARG_STATUS_HELP) 
@@ -892,10 +885,6 @@ static bool init_main(int argc, char **argv, int *way_out) {
         }
         return false;
     }
-
-    info("LUA %s", opts[ARG_lua_dir].string);
-    info("times %i", opts[ARG_times].integer);
-    info("reps %f", opts[ARG_repetitions].real);
 
     g.loop_events = vec_new();
 
