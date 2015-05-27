@@ -6,7 +6,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
-
 #include <signal.h>
 
 #include <glib.h>
@@ -20,6 +19,7 @@
 
 #include "const.h"
 #include "global.h"
+#include "arg.h"
 #include "buttons.h"
 #include "gpio.h"
 #include "mpd.h"
@@ -80,7 +80,7 @@ static int add_timeout_l(lua_State *L);
 static int remove_timeout_l(lua_State *L);
 
 static bool init_globals();
-static bool init_main();
+static bool init_main(int argc, char **argv, int *way_out);
 
 static bool lua_init();
 static bool lua_start();
@@ -93,6 +93,8 @@ static void debug_read(unsigned int read_canonical, char *ret);
 #endif
 
 static int config_l(lua_State *L);
+
+//static union arg_union_t args[ARG_last];
 
 static struct {
     struct flua_config_conf_t *conf;
@@ -227,7 +229,9 @@ void main_register_loop_event(char *desc, int ms, bool (*cb)(void *data)) {
 
 /* Try not to be verbose until after lua_int */
 
-int main() {
+int main(int argc, char **argv) {
+    (void) argc;
+
     fish_utils_init();
 
     f_autoflush();
@@ -243,8 +247,15 @@ int main() {
     if (! main_init_config())
         ierr("Couldn't init main config");
 
-    if (! init_main()) 
-        ierr("Couldn't init main.");
+    int way_out;
+    if (! init_main(argc, argv, &way_out)) {
+        if (way_out == 0)
+            exit(0);
+        if (way_out == 1)
+            exit(1);
+        else 
+            ierr("Couldn't init main.");
+    }
 
 #ifndef NO_NES
     if (! nes_init_config())
@@ -261,7 +272,7 @@ int main() {
 
     flua_config_set_verbose(true);
 
-    if (! lua_init()) 
+    if (! lua_init())
         err("Can't init lua.");
 
     if (! g.lua_initted) 
@@ -823,16 +834,27 @@ static bool lua_init() {
 
     lua_setglobal(L, "capi");
 
+    char *lua_dir = opts[ARG_lua_dir].string;
+    if (chdir(lua_dir)) {
+        _();
+        BR(lua_dir);
+        warn("Couldn't cd to %s", _s);
+        return false;
+    }
 
-    if (luaL_loadfile(L, "init.lua")) {
+    char *buf = f_malloc(sizeof(char) * strlen(LUA_RC) + 2 + 1);
+    sprintf(buf, "./%s", LUA_RC);
+
+    if (luaL_loadfile(L, buf)) {
         warn("Couldn't load lua init script: %s", lua_tostring(L, -1));
         return false;
     }
+    free(buf);
 
     int rc;
     if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
         const char *err = luaL_checkstring(L, -1);
-        check_lua_err(rc, "Failed to run init.lua: %s", err);
+        check_lua_err(rc, "Failed to run '%s'", lua_dir, err);
         return false;
     }
 
@@ -841,11 +863,11 @@ static bool lua_init() {
 
 static bool lua_start() {
     lua_State *L = global.L;
-    lua_getglobal(L, "start");
+    lua_getglobal(L, LUA_RC_BOOTSTRAP);
     int rc;
     if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
         const char *err = luaL_checkstring(L, -1);
-        check_lua_err(rc, "Failed to run start: %s", err);
+        check_lua_err(rc, "Failed to run lua function '%s': %s", LUA_RC_BOOTSTRAP, err);
         return false;
     }
     return true;
@@ -856,7 +878,25 @@ static void events_destroy_val(gpointer ptr) {
         piep;
 }
 
-static bool init_main() {
+static bool init_main(int argc, char **argv, int *way_out) {
+    //if (! arg_args(argc, argv, args)) {
+    if (! arg_args(argc, argv)) {
+        int status = arg_status();
+        if (status == ARG_STATUS_HELP) 
+            *way_out = 0;
+        else if (status == ARG_STATUS_INVALID_USAGE) 
+            *way_out = 1;
+        else {
+            iwarn("Couldn't init args.");
+            *way_out = 1;
+        }
+        return false;
+    }
+
+    info("LUA %s", opts[ARG_lua_dir].string);
+    info("times %i", opts[ARG_times].integer);
+    info("reps %f", opts[ARG_repetitions].real);
+
     g.loop_events = vec_new();
 
     g.events = g_hash_table_new_full(

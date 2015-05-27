@@ -121,10 +121,11 @@ inline short BCM2WIRINGPI(short b) {
 #define POLL_TENTHS_OF_A_SECOND 1
 #endif
 
+#define BUF_SIZE        500 // for various buffers
 #define ERROR_BUF_SIZE  500 // used for various buffers
 
-#define VOLD_SOCK           "/tmp/.vold-simple-socket"
-#define FISH_VOL_SOCK       "%s/.local/share/fish-vol/socket"
+#define LUA_RC              "init.lua"
+#define LUA_RC_BOOTSTRAP    "start"
 
 /* Mapping from our standard order to their N_ order.
  */
