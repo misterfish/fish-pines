@@ -4,8 +4,14 @@
 
 #include "arg.h"
 
-/* Your args in 2 places: here, and arg.h ARG_xxx vals.
+/* Your args in 3 places: here, 
+ * arg.h (ARG_xxx vals),
+ * and options[].
+ *
+ * Attempts to supply options[] dynamically (since all the info is already
+ * there in opts_decl[]) ended in corruption.
  */
+
 
 /* Num required args (not opts) */
 const int NUM_ARGS = 0;
@@ -24,10 +30,11 @@ struct opt_decl_t opts_decl[] = {
         "Path to directory containing .lua files (required)",
     0 /* group */)
 
+        /* test
     opt_required(real, "repetitions", 'r', "repetitions", "repetitions", 0, "Something called repetitions", 0)
     opt_required(integer, "times", 't', "times", "times", 0, "Something called times", 0)
+    */
 
-    //opt_default(integer, "times", 10)
 
     opt_last
 };
@@ -99,22 +106,9 @@ static struct argp_option options[] = {
         0, // text
         0
     }, 
-
-    /*  --help: 
-     *    -c, --config-rc=<path to init.lua>      Path to init.lua
-     *  --usage (disabled)
-     */
     {
         "lua_dir",
         'd',
-        "DIR",
-        0, // flags
-        "Path to directory containing .lua files (required)",
-        0
-    }, 
-    {
-        "repetitions",
-        'r',
         "DIR",
         0, // flags
         "Path to directory containing .lua files (required)",
@@ -143,12 +137,6 @@ bool arg_args(int argc, char **argv) {
         struct opt_decl_t opt = opts_decl[i];
         struct argp_option *ao = f_malloct(struct argp_option);
         memset(ao, 0, sizeof(*ao));
-
-info("name: %s", opt.longopt);
-info("key: %c", opt.shortopt);
-info("flgas: %d", opt.flags);
-info("string: %s", opt.string);
-info("doc: %s", opt.docstr);
         ao->name = opt.longopt;
         ao->key = opt.shortopt;
         ao->arg = opt.string;
@@ -213,16 +201,9 @@ int arg_status() {
     return g.status;
 }
 
-//bool try_key(int key, char *arg, struct argp_state *state, union opt_t opts[]) {
 static bool try_key(int key, char *arg, struct argp_state *state) {
     if (key == 'd') {
         opt_set(lua_dir, key, arg)
-    }
-    else if (key == 'r') {
-        opt_set(repetitions, key, arg)
-    }
-    else if (key == 't') {
-        opt_set(times, key, arg)
     }
     else if (key == 'h') {
         arg_state_help(state);
