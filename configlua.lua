@@ -4,7 +4,7 @@ return {
     },
     shutdown = {
         secs = 1.3,
-        cmd = 'sudo shutdown',
+        cmd = 'sudo shutdown now',
 
         --secs = 4,
         --cmd = 'sudo ls',
