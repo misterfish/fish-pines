@@ -28,8 +28,8 @@ return {
         },
     },
     vol = {
-        upamount = 4, 
-        downamount = 4, 
+        upamount = 2,
+        downamount = 2,
     },
     verbose = {
         sockets = false,
