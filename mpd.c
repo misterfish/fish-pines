@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include <string.h> //tmp
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,6 +18,7 @@
 #include "const.h"
 #include "flua_config.h"
 #include "util.h"
+#include "vec-sort.h"
 
 #include "mpd.h"
 
@@ -70,6 +71,14 @@ struct pl {
     char *name;
     char *path;
 };
+
+// --- sort pl entries by name.
+static int cmp_pl(const void *a, const void *b) {
+    return strcmp(
+        (* (struct pl **) a)->name,
+        (* (struct pl **) b)->name
+    );
+}
 
 static struct {
     bool verbose;
@@ -263,7 +272,6 @@ bool f_mpd_init_f(short flags) {
             main_register_loop_event("mpd update", i, f_mpd_update);
     }
 
-    g.playlist_vec = vec_new();
     g.playlist_by_name = g_hash_table_new_full(
         g_str_hash,
         g_str_equal,
@@ -654,8 +662,8 @@ bool f_mpd_cleanup() {
             if (p->path) free(p->path);
             free(p);
         }
+        vec_destroy(g.playlist_vec);
     }
-    vec_destroy(g.playlist_vec);
 
     g_hash_table_destroy(g.playlist_by_name);
 
@@ -735,6 +743,39 @@ static bool load_playlist(int idx) {
     return true;
 }
 
+static void print_playlists() {
+    vec *v = g.playlist_vec;
+    if (!v)
+        return;
+    size_t n = vec_size(v);
+    static short line = 0;
+
+    say("");
+    info("Got playlists:");
+
+    for (size_t idx = 0; idx < n; idx++) {
+        struct pl *_pl = (struct pl *) vec_get(v, idx);
+        _();
+        is_even(line) ? Y(_pl->name) : CY(_pl->name);
+        if (is_even(idx)) {
+            BB(get_bullet());
+            printf("%s    %s", _t, _s);
+        }
+        else {
+            say(", %s", _s);
+            line++;
+        }
+    }
+}
+
+static bool clear_playlist_vec(vec *v, bool deep) {
+    int s = vec_size(v);
+    short flags = deep ? VEC_CLEAR_DEEP : 0;
+    if (s && ! vec_clear_f(v, flags))
+        pieprf;
+    return true;
+}
+
 static bool have_playlists() {
     return conf_s(playlist_path) ? true : false;
 }
@@ -742,15 +783,11 @@ static bool have_playlists() {
 /* Check have_playlists() before calling this.
  */
 static bool reload_playlists() {
-    vec *plvec = g.playlist_vec;
-    {
-        int s = vec_size(plvec);
-        if (s == -1) 
-            pieprf;
-        else if (s) 
-            if (! vec_clear_f(plvec, VEC_CLEAR_DEEP))
-                pieprf;
-    }
+    vec *curplvec = g.playlist_vec;
+    if (curplvec && !clear_playlist_vec(curplvec, true))
+        pieprf;
+
+    vec *plvec = vec_new();
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
@@ -803,25 +840,6 @@ static bool reload_playlists() {
                 goto ERR;
             }
 
-            static short line = 0;
-
-            if (g.verbose) {
-                _();
-                if (idx == -1) {
-                    say("");
-                    info("Got playlists:");
-                }
-                is_even(line) ? Y(matches[1]) : CY(matches[1]);
-                if (! is_even(idx)) {
-                    BB(get_bullet());
-                    printf("%s    %s ", _t, _s);
-                }
-                else {
-                    say("«» %s", _s);
-                    line++;
-                }
-            }
-
             struct pl *_pl = f_mallocv(*_pl);
             memset(_pl, 0, sizeof(*_pl));
 
@@ -851,10 +869,16 @@ static bool reload_playlists() {
         if (_break) break;
     }
 
+    g.playlist_vec = vec_sort(plvec, struct pl *, cmp_pl);
+
+    if (g.verbose) print_playlists();
+
     /* No playlists added. */
     int s = vec_size(plvec);
     if (s == -1) 
         pieprf;
+
+    clear_playlist_vec(plvec, false);
 
     g.playlist_n = s;
 
