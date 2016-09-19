@@ -33,7 +33,9 @@ local rules_replace = nil
 local rules_enhance = {
     music = {
         press = {
-            { 'start',         once = true, handler = function () print 'extra' end },
+            { 'start',         once = true, handler = function ()
+                sys 'killerr ka mplayer'
+            end },
         },
         release = {
         },
