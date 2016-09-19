@@ -59,7 +59,7 @@ LDFLAGS		+= $(foreach i,$(modules_pkgconfig),$(shell pkg-config "$i" --libs))
 
 src		= $(main).c vol.c arg.c buttons.c mpd.c gpio.c mode.c util.c flua_config.c
 
-hdr		= vol.h arg.h buttons.h mpd.h gpio.h mode.h util.h global.h const.h flua_config.h
+hdr		= vol.h arg.h buttons.h mpd.h gpio.h mode.h util.h global.h const.h flua_config.h vec-sort.h
 
 obj		= $(main).o vol.o arg.o buttons.o mpd.o gpio.o mode.o util.o flua_config.o
 
