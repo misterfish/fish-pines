@@ -1,6 +1,6 @@
 needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua') 
 
-local me, _, i, k, v
+local rules, _, i, k, v
 
 local function update_playlists () 
     info 'Starting mpd update and playlist rebuild …' 
@@ -97,7 +97,7 @@ hold_indicator:             <optional, true>
 
 ]]
 
-me = {
+rules = {
     -- mode = music
     music = {
         press = {
@@ -117,7 +117,6 @@ me = {
             { 'a',             once = true, handler = mpd.toggle_random },
             { 'select',        once = true, handler = mode.next_mode  },
             { 'start',         once = true, handler = function () capi.mpd.toggle_play () end },
- 
             { 'b', 'a',        once = true, handler = function () update_playlists () end },
         },
         release = {
@@ -128,8 +127,6 @@ me = {
         press = {
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      hold_indicator = false, handler = shutdown.start_pressed  },
-            { 'b',          once = true, handler = custom.switch_to_wired },
-            { 'a',          once = true, handler = custom.switch_to_wireless },
         },
         release = {
             { 'start',      handler = shutdown.start_released  },
@@ -137,4 +134,6 @@ me = {
     }
 }
 
-return me
+return {
+    rules = rules,
+}
