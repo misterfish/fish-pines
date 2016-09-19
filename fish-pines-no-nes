@@ -13,4 +13,4 @@ else
     /bin/true
 fi
 
-cmd s NO_NES=1 ./fish-pines
+cmd s NO_NES=1 ./fish-pines "$@"
