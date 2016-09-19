@@ -15,7 +15,7 @@
 
 #define DEFAULT_EXACT   true
 #define DEFAULT_ONCE    false
-#define DEFAULT_CHAIN   false
+#define DEFAULT_CHAIN   true
 #define DEFAULT_HOLD_INDICATOR   true
 
 /* vector of vector of vectors.
@@ -173,7 +173,7 @@ int buttons_add_rule_l(lua_State *L) {
 
     if (! rules) 
         piepr0;
-    else 
+    else
         vec_add(rules, rule);
 
     return 0;
