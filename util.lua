@@ -134,6 +134,12 @@ local function push (tbl, ...)
     return tbl
 end
 
+local function table_concat (tbl1, tbl2)
+    for _, v in ipairs (tbl2) do
+        push (tbl1, v)
+    end
+end
+
 -- takes itable as input, and map_fn (v, i)
 -- caller is free to mess with i.
 -- depending on that, the return is an itable or a table.
@@ -394,6 +400,7 @@ return {
     error3f = error3f,
     ipush = ipush,
     push = push,
+    table_concat = table_concat,
     imap = imap,
     map = map,
     color = color,
