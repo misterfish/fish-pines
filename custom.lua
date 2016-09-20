@@ -28,6 +28,11 @@ local function sndx ()
     kill_us ()
 end
 
+local function reload ()
+    sys 'mpc update'
+    sys 'make-playlist-all'
+end
+
 local rules_replace = nil
 
 local rules_enhance = {
@@ -47,6 +52,7 @@ local rules_enhance = {
             { 'down',       once = true, handler = kill_us },
             { 'left',       once = true, handler = sndi },
             { 'right',      once = true, handler = sndx },
+            { 'up',         once = true, handler = reload },
         },
         release = {
         },
