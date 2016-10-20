@@ -53,8 +53,8 @@ bool buttons_cleanup();
 
 int buttons_add_rule_l(lua_State *L);
 
-void buttons_add_block(short btns);
-void buttons_remove_block(short btns);
+void buttons_set_block(short btns);
+void buttons_remove_block();
 bool buttons_remove_block_timeout(gpointer data);
 bool buttons_is_blocked(short btns);
 

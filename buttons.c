@@ -124,7 +124,6 @@ int buttons_add_rule_l(lua_State *L) {
                             btn_name_to_bit(btn, rule->time_block_target);
                             lua_pop(L, 1);
                         }
-                        info("target is %d", rule->time_block_target);
                     }
                     else if (! strcmp(value, "timeout")) {
                         lua_Number numval = luaL_checknumber(L, -1);
@@ -274,17 +273,16 @@ bool buttons_get_rules_release(short mode, short read, vec *rules_ret) {
     return get_rules_for_read(mode, BUTTONS_RELEASE, read, rules_ret);
 }
 
-void buttons_add_block(short btns) {
+void buttons_set_block(short btns) {
     g.blocked_btns = btns;
 }
 
-void buttons_remove_block(short btns) {
+void buttons_remove_block() {
     g.blocked_btns = 0;
 }
 
 bool buttons_remove_block_timeout(gpointer data) {
-    short btns = (short) GPOINTER_TO_INT(data);
-    buttons_remove_block(btns);
+    buttons_remove_block();
     return false;
 }
 
