@@ -9,6 +9,7 @@ void main_register_loop_event(char *desc, int count, bool (*cb)(void *data));
 bool main_fire_event(char *event, gpointer data);
 
 void main_remove_timeout(guint id);
+bool main_timeout_is_active(guint id);
 guint main_add_timeout(int ms, gpointer timeout_func, gpointer data);
 guint main_add_fd_watch(int fd, GIOCondition cond, gpointer func, gpointer data);
 

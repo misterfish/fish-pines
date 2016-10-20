@@ -115,6 +115,8 @@ static struct {
     vec *loop_events;
     int num_loop_events;
 
+    guint timeout_block;
+
     GHashTable *events;
 
 #ifdef DEBUG
@@ -454,6 +456,8 @@ static bool process_read(short read, char *button_print) {
         printf("[ %s ] ", button_print);
     }
 
+    bool ok = true;
+
     /* Cycle through individual buttons, triggering their release events if
      * they have them. 
      *
@@ -464,7 +468,6 @@ static bool process_read(short read, char *button_print) {
      * Also, 'once', 'chain' and 'exact' only apply to press events.
      */
 
-    bool ok = true;
     for (int i = 0; i < 8; i++) {
         int button_flag = BUTTONS(i); // wiringPi system
 
@@ -511,6 +514,12 @@ static bool process_read(short read, char *button_print) {
     if (! read) 
         goto END;
 
+    /* Check for blocking, after processing individual release events */
+    if (buttons_is_blocked(read)) {
+        info("Blocked!");
+        goto END;
+    }
+
     /* Then do the event matching the combination. */
     int j = 0, l = vec_size(rules_press);
 
@@ -534,6 +543,23 @@ static bool process_read(short read, char *button_print) {
 
         if (prev_read == read && rule_press->hold_indicator)
             print_hold_indicator(1);
+
+        if (rule_press->has_time_block) {
+            double timeout = rule_press->time_block_timeout;
+            short btns = rule_press->time_block_target;
+            if (!timeout) {
+                warn("Time block timeout is 0 or missing, skipping");
+            }
+            else if (!btns) {
+                warn("Time block target is missing, skipping");
+            }
+            else {
+                if (g.timeout_block)
+                    main_remove_timeout(g.timeout_block);
+                buttons_add_block(btns);
+                g.timeout_block = main_add_timeout(timeout, buttons_remove_block_timeout, GINT_TO_POINTER(btns));
+            }
+        }
 
         if (rule_press->has_handler) {
             int reg_idx = rule_press->handler;
@@ -620,6 +646,8 @@ static bool lua_init() {
     // capi.buttons = {
     lua_pushstring(L, "buttons"); 
     lua_newtable(L); 
+
+    // XX not used
 
     //                  left = F_LEFT,
     lua_pushstring(L, "left");
@@ -1064,14 +1092,20 @@ bool main_fire_event(char *event, gpointer data) {
 
 /* Can't (usefully) fail */
 void main_remove_timeout(guint id) {
-    bool always_true = g_source_remove(id);
-    (void) always_true;
+    // No moment between check and removal because single threaded.
+    if (main_timeout_is_active(id))
+        g_source_remove(id);
 }
 
 /* Can't (usefully) fail */
 guint main_add_timeout(int ms, gpointer timeout_func, gpointer data) {
     guint id = g_timeout_add(ms, (GSourceFunc) timeout_func, data);
     return id;
+}
+
+bool main_timeout_is_active(guint id) {
+    GSource *source = g_main_context_find_source_by_id(g_main_context_default(), id);
+    return source != NULL;
 }
 
 guint main_add_fd_watch(int fd, GIOCondition cond, gpointer func, gpointer data) {
