@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include <glib.h>
+
 #include <lua.h>
 #include <lauxlib.h> // luaL_ functions..h>
 
@@ -18,11 +20,32 @@
 #define DEFAULT_CHAIN   true
 #define DEFAULT_HOLD_INDICATOR   true
 
+#define btn_name_to_bit(btn_name, bitmask) { \
+    if (! strcmp(btn_name, "a")) \
+        bitmask |= N_A; \
+    else if (! strcmp(btn_name, "b")) \
+        bitmask |= N_B; \
+    else if (! strcmp(btn_name, "select")) \
+        bitmask |= N_SELECT; \
+    else if (! strcmp(btn_name, "start")) \
+        bitmask |= N_START; \
+    else if (! strcmp(btn_name, "up")) \
+        bitmask |= N_UP; \
+    else if (! strcmp(btn_name, "down")) \
+        bitmask |= N_DOWN; \
+    else if (! strcmp(btn_name, "left")) \
+        bitmask |= N_LEFT; \
+    else if (! strcmp(btn_name, "right")) \
+        bitmask |= N_RIGHT; \
+}
+
 /* vector of vector of vectors.
  * [ mode => [ {_PRESS|_RELEASE} => [ button_rule_t *rule, ...] ] ]
  */
 static struct {
     vec *rules;
+    // simple implementation: one exact combinatino gets blocked.
+    short blocked_btns;
 } g;
 
 /* Return pointer to our global vector-in-a-vector. */
@@ -53,22 +76,8 @@ int buttons_add_rule_l(lua_State *L) {
         // plain table entry, i.e. button name.
         if (! strcmp(luatype, "number")) {
             const char *value = luaL_checkstring(L, -1);
-            if (! strcmp(value, "a")) 
-                buttons |= N_A;
-            else if (! strcmp(value, "b"))
-                buttons |= N_B;
-            else if (! strcmp(value, "select"))
-                buttons |= N_SELECT;
-            else if (! strcmp(value, "start"))
-                buttons |= N_START;
-            else if (! strcmp(value, "up"))
-                buttons |= N_UP;
-            else if (! strcmp(value, "down"))
-                buttons |= N_DOWN;
-            else if (! strcmp(value, "left"))
-                buttons |= N_LEFT;
-            else if (! strcmp(value, "right"))
-                buttons |= N_RIGHT;
+            btn_name_to_bit(value, buttons);
+
         }
         else {
             const char *key = luaL_checkstring(L, -2);
@@ -101,6 +110,27 @@ int buttons_add_rule_l(lua_State *L) {
                 else {
                     lua_pushstring(L, "Unknown event type");
                     lua_error(L);
+                }
+            }
+            else if (! strcmp(key, "time_block")) {
+                rule->has_time_block = true;
+                lua_pushnil(L); // init iter
+                while (lua_next(L, -2)) {
+                    const char *value = luaL_checkstring(L, -2);
+                    if (! strcmp(value, "target")) {
+                        lua_pushnil(L); // init iter
+                        while (lua_next(L, -2)) {
+                            const char *btn = luaL_checkstring(L, -1);
+                            btn_name_to_bit(btn, rule->time_block_target);
+                            lua_pop(L, 1);
+                        }
+                        info("target is %d", rule->time_block_target);
+                    }
+                    else if (! strcmp(value, "timeout")) {
+                        lua_Number numval = luaL_checknumber(L, -1);
+                        rule->time_block_timeout = (double) numval;
+                    }
+                    lua_pop(L, 1);
                 }
             }
             /* Note that a nil handler will never even show up here (can't
@@ -233,68 +263,6 @@ bool buttons_init() {
         }
     }
 
-#if 0
-    /* Put rules in order -- first matching rule wins.
- */
-
-    rules_music = vec_new();
-    rules_general = vec_new();
-
-    new_rule(rules_music, 
-        (N_A | N_B   ), true, ctl_custom_b_a       // make playlist all
-    )
-    new_rule(rules_music, 
-        (N_B | N_LEFT), false, ctl_custom_b_left    // seek left
-    )
-    new_rule(rules_music,
-        (N_B | N_RIGHT), false, ctl_custom_b_right  // seek right
-    )
-    new_rule(rules_music,
-        (N_B | N_UP), true, ctl_custom_b_up         // playlist up
-    )
-    new_rule(rules_music,
-        (N_B | N_DOWN), true, ctl_custom_b_down     // playlist down
-    )
-    new_rule(rules_music,
-        (      N_LEFT), true, ctl_custom_left       // prev song
-    )
-    new_rule(rules_music,
-        (      N_RIGHT), true, ctl_custom_right     // next song
-    )
-    new_rule(rules_music,
-        (      N_UP), false, ctl_custom_up           // vol up
-    )
-    new_rule(rules_music,
-        (      N_DOWN), false, ctl_custom_down       // vol down
-    )
-    new_rule(rules_music,
-        (      N_A), true, ctl_custom_a             // random
-    )
-    new_rule(rules_music,
-        (      N_START), true, ctl_custom_start     // play/pause
-    )
-
-    new_rule(rules_music,
-        (      N_SELECT), true, ctl_custom_select     // mode toggle
-    )
-
-    new_rule(rules_general,
-        (N_B         ), true, ctl_custom_b            // internet wired
-    )
-
-    new_rule(rules_general,
-        (N_A         ), true, ctl_custom_a            // internet wireless
-    )
-
-    new_rule(rules_general,
-        (      N_SELECT), true, ctl_custom_select                // mode toggle
-    )
-
-    new_rule(rules_general,
-        (      N_START), false, ctl_custom_start                // poweroff, with hold down
-    )
-
-#endif
     return true;
 }
 
@@ -304,6 +272,24 @@ bool buttons_get_rules_press(short mode, short read, vec *rules_ret) {
 
 bool buttons_get_rules_release(short mode, short read, vec *rules_ret) {
     return get_rules_for_read(mode, BUTTONS_RELEASE, read, rules_ret);
+}
+
+void buttons_add_block(short btns) {
+    g.blocked_btns = btns;
+}
+
+void buttons_remove_block(short btns) {
+    g.blocked_btns = 0;
+}
+
+bool buttons_remove_block_timeout(gpointer data) {
+    short btns = (short) GPOINTER_TO_INT(data);
+    buttons_remove_block(btns);
+    return false;
+}
+
+bool buttons_is_blocked(short btns) {
+    return g.blocked_btns == btns;
 }
 
 bool buttons_cleanup() {

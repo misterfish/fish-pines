@@ -27,6 +27,10 @@ struct button_rule_t {
      */
     int handler; // lua function, indexed at this value in the registry.
     bool has_handler;
+
+    bool has_time_block;
+    short time_block_target;
+    double time_block_timeout;
 };
 
 /* Std order.
@@ -48,6 +52,11 @@ bool buttons_init();
 bool buttons_cleanup();
 
 int buttons_add_rule_l(lua_State *L);
+
+void buttons_add_block(short btns);
+void buttons_remove_block(short btns);
+bool buttons_remove_block_timeout(gpointer data);
+bool buttons_is_blocked(short btns);
 
 bool buttons_get_rules_press(short mode, short read, vec *rules_ret);
 bool buttons_get_rules_release(short mode, short read, vec *rules_ret);
