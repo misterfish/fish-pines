@@ -556,8 +556,8 @@ static bool process_read(short read, char *button_print) {
             else {
                 if (g.timeout_block)
                     main_remove_timeout(g.timeout_block);
-                buttons_add_block(btns);
-                g.timeout_block = main_add_timeout(timeout, buttons_remove_block_timeout, GINT_TO_POINTER(btns));
+                buttons_set_block(btns);
+                g.timeout_block = main_add_timeout(timeout, buttons_remove_block_timeout, NULL);
             }
         }
 
