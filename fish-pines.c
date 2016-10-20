@@ -848,7 +848,9 @@ static bool lua_init() {
     int rc;
     if ((rc = lua_pcall(L, 0, LUA_MULTRET, 0))) {
         const char *err = luaL_checkstring(L, -1);
-        check_lua_err(rc, "Failed to run '%s'", lua_dir, err);
+        _();
+        BR(lua_dir);
+        check_lua_err(rc, "Failed to run in lua dir %s: %s", _s, err);
         return false;
     }
 
