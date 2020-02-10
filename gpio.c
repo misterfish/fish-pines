@@ -16,6 +16,7 @@
 #define MAX_GPIO 27 // maximum physical number (26) plus 1
 #define PHYS_PINS_USED 17
 #define PHYS_PINS_TOTAL 26
+#define NUM_PINS 40
 
 static char *DIR = "/sys/class/gpio";
 
@@ -45,6 +46,7 @@ static int phys2gpio(int pin) {
     if (pin == 26) return 7;
     else return -1;
 }
+/*
 static int gpio2phys(int pin) {
     if (pin == 2) return 3;
     else if (pin == 3) return 5;
@@ -65,6 +67,7 @@ static int gpio2phys(int pin) {
     else if (pin == 7) return 26;
     else return -1;
 };
+*/
 
 static struct {
     bool verbose;
@@ -72,9 +75,8 @@ static struct {
 
     /* Cache the states. Assume no one outside of us is setting pins; if
      * not, use the FORCE flag when turning a pin on or off.
-     * Lookup is phys pin num. [1-26]
      */
-    int state[MAX_GPIO]; 
+    int state[NUM_PINS]; 
 } g;
 
 static int phys_to_gpio(int pin_phys);
@@ -110,6 +112,7 @@ static int phys_to_gpio(int pin_phys) {
 
     return pin_gpio;
 }
+/*
 static int gpio_to_phys(int pin_gpio) {
     if (pin_gpio < 1 || pin_gpio > MAX_GPIO) {
         _();
@@ -129,6 +132,7 @@ static int gpio_to_phys(int pin_gpio) {
 
     return pin_phys;
 }
+*/
 
 /* Caller should free.
  */
@@ -282,7 +286,7 @@ static bool pin_read(int pin_gpio, int *state) {
 
 #else
     int pin_phys = gpio_to_phys(pin_gpio);
-    *state = g.state[pin_phys];
+    *state = g.state[pin_gpio];
 #endif
     if (fclose(f)) 
         pieprf;
@@ -334,8 +338,8 @@ static bool pin_write(int pin_gpio, int state) {
     free(file);
 #endif
 
-    int pin_phys = gpio_to_phys(pin_gpio);
-    g.state[pin_phys] = state;
+    // int pin_phys = gpio_to_phys(pin_gpio);
+    g.state[pin_gpio] = state;
 
     return true;
 }
@@ -359,7 +363,7 @@ bool gpio_init(bool verbose) {
         if (!gpio_pin_read(pin_gpio, &state)) {
             piepc;
         }
-        g.state[pin_phys] = state;
+        g.state[pin_gpio] = state;
     }
     return true;
 }
@@ -383,14 +387,14 @@ bool gpio_pin_read(int pin_gpio, int *state) {
 bool gpio_pin_on_f(int pin_gpio, int flags) {
     //int pin_gpio = phys_to_gpio(pin_phys);
 
-    int pin_phys = gpio_to_phys(pin_gpio);
+    // int pin_phys = gpio_to_phys(pin_gpio);
     if (pin_gpio == -1) 
         pieprf;
 
     if (flags & F_PIN_FORCE) {
         // Don't check state.
     }
-    else if (g.state[pin_phys])
+    else if (g.state[pin_gpio])
         return true;
 
     return pin_write(pin_gpio, 1);
@@ -403,12 +407,12 @@ bool gpio_pin_off_f(int pin_gpio, int flags) {
     if (pin_gpio == -1) 
         pieprf;
 
-    int pin_phys = gpio_to_phys(pin_gpio);
+    // int pin_phys = gpio_to_phys(pin_gpio);
 
     if (flags & F_PIN_FORCE) {
         // Don't check state.
     }
-    else if (!g.state[pin_phys])
+    else if (!g.state[pin_gpio])
         return true;
 
     return pin_write(pin_gpio, 0);
