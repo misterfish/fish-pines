@@ -18,9 +18,9 @@ return {
     },
     leds = {
         -- BCM numbering.
-        random = 15,
+        random = 6,
         update = 15,
-        mode = 18,
+        mode = 16,
         flash = {
             -- yield every <sleep> secs, flash every n times
             sleep = { secs = 0, msecs = 200 },
