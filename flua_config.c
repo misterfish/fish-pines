@@ -53,7 +53,7 @@ struct flua_config_conf_t *flua_config_new_f(lua_State *l, int flags) {
         /* keys are static strings: don't destroy. */
         NULL,
         /* vals are static structs: don't destroy. */
-        NULL 
+        NULL
     );
     conf->required_keys = g_hash_table_new_full(
         g_str_hash,
@@ -87,7 +87,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
 
     for (int i = 0; i < num_rules; i++) {
         struct flua_config_conf_item_t *confitem = &confary[i];
-        flua_config_insert(conf, (gpointer) confitem->key, (gpointer) confitem); 
+        flua_config_insert(conf, (gpointer) confitem->key, (gpointer) confitem);
         if (confitem->required)
             flua_config_add_required_key(conf, confitem->key);
     }
@@ -108,9 +108,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
     lua_pushnil(conf->L); // first key
     while (
         first ? (first = false) : lua_pop(conf->L, 1), // pop val, keep key for iter
-        lua_next(conf->L, -2)) 
+        lua_next(conf->L, -2))
     { // puts key -> -2, val -> -1
-        const char *key; 
+        const char *key;
         const char *keytype = lua_typename(conf->L, lua_type(conf->L, -2));
 
         if (strcmp(keytype, "string")) {
@@ -124,7 +124,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 as_str = _t;
             }
 
-            if (! conf->quiet && ! g.quiet) 
+            if (! conf->quiet && ! g.quiet)
                 warn("Non-string key val passed in config%s, ignoring.", as_str);
             continue;
         }
@@ -133,9 +133,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         gpointer lookup_ptr = g_hash_table_lookup(conf->conf, (gpointer) key);
         if (! lookup_ptr) {
             if (! conf->quiet && ! g.quiet) {
-                _(); 
-                BR(key); 
-                warn("Unknown config key: %s, ignoring.", _s); 
+                _();
+                BR(key);
+                warn("Unknown config key: %s, ignoring.", _s);
             }
             continue;
         }
@@ -151,7 +151,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
 
         if (!strcmp(type, "string")) {
             const char *val = luaL_checkstring(conf->L, -1);
-            if (!val) 
+            if (!val)
                 pieprf;
             char *dup = (char*) g_strdup(val); // -O- lua string
             lookup->value.string = dup;
@@ -231,7 +231,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 }
                 lua_pop(conf->L, 1);
             }
-            if (type) 
+            if (type)
                 free(type);
             if (! ok) {
                 _();
@@ -280,7 +280,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 }
                 lua_pop(conf->L, 1);
             }
-            if (type) 
+            if (type)
                 free(type);
             if (! ok) {
                 _();
@@ -329,7 +329,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 }
                 lua_pop(conf->L, 1);
             }
-            if (type) 
+            if (type)
                 free(type);
             if (! ok) {
                 _();
@@ -377,7 +377,7 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
                 }
                 lua_pop(conf->L, 1);
             }
-            if (type) 
+            if (type)
                 free(type);
             if (! ok) {
                 _();
@@ -396,8 +396,8 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         if (lookup->required)
             got_required_key(conf, (gpointer) key);
 
-        if (g.verbose || conf->verbose) 
-            info("flua_config: setting %s = %s (%s)", _s, _u, _v); 
+        if (g.verbose || conf->verbose)
+            info("flua_config: setting %s = %s (%s)", _s, _u, _v);
     }
 
     bool ok = true;
@@ -443,12 +443,12 @@ static GList *get_required_keys(struct flua_config_conf_t *conf) {
 
 static struct flua_config_conf_item_t *lookup_key(struct flua_config_conf_t *conf, gpointer key) {
     if (! conf) {
-        if (! g.quiet) 
+        if (! g.quiet)
             iwarn("Conf object is null");
         return NULL;
     }
     if (! conf->conf) {
-        if (! conf->quiet && ! g.quiet) 
+        if (! conf->quiet && ! g.quiet)
             iwarn("Conf->conf object is null (namespace %s)", conf->namespace);
         return NULL;
     }
@@ -527,5 +527,3 @@ void flua_config_set_verbose(bool v) {
 void flua_config_set_quiet(bool q) {
     g.quiet = q;
 }
-
-

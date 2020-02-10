@@ -50,7 +50,7 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
         // no check
     }
     else if (mode == F_UTIL_TERMINAL_MODE_POLLING) {
-        if (bytes) 
+        if (bytes)
             pieprf;
         if (poll_tenths_of_a_second)
             pieprf;
@@ -68,7 +68,7 @@ bool f_terminal_raw_input(int mode, int bytes, int poll_tenths_of_a_second) {
             pieprf;
     }
     else if (mode == F_UTIL_TERMINAL_MODE_READ_WITH_INTERBYTE_TIMEOUT) {
-        if (!bytes) 
+        if (!bytes)
             pieprf;
         if (!poll_tenths_of_a_second)
             pieprf;
@@ -94,11 +94,11 @@ bool f_terminal_normal() {
     /*
      * man tcsetattr:
      *
-     * raw means 
-     * termios_p->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON); 
-     * termios_p->c_oflag &= ~OPOST; 
-     * termios_p->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN); 
-     * termios_p->c_cflag &= ~(CSIZE | PARENB); 
+     * raw means
+     * termios_p->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+     * termios_p->c_oflag &= ~OPOST;
+     * termios_p->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+     * termios_p->c_cflag &= ~(CSIZE | PARENB);
      * termios_p->c_cflag |= CS8;
      *
      * But it's easier to just restore the saved state.
@@ -126,7 +126,7 @@ void check_lua_err(int rc, char *format, ...) {
     char buf[ERROR_BUF_SIZE];
     va_list arglist;
     va_start(arglist, format);
-    if (ERROR_BUF_SIZE <= vsnprintf(buf, ERROR_BUF_SIZE, format, arglist)) 
+    if (ERROR_BUF_SIZE <= vsnprintf(buf, ERROR_BUF_SIZE, format, arglist))
         fprintf(stderr, "(warning truncated)");
     va_end(arglist);
 

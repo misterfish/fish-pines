@@ -4,7 +4,7 @@
 
 #include "arg.h"
 
-/* Your args in 3 places: here, 
+/* Your args in 3 places: here,
  * arg.h (ARG_xxx vals),
  * and options[].
  *
@@ -23,10 +23,10 @@ const char *ARGS_DOC = "";
 const char *DOC = ""; // "Before options \v after options";
 
 struct opt_decl_t opts_decl[] = {
-    /* 
+    /*
      *    -d, --lua-dir=DIR     Path to directory ...
      */
-    opt_required(string, "lua_dir", 'd', "lua-dir", "DIR", 0 /* ARG_ flags */, 
+    opt_required(string, "lua_dir", 'd', "lua-dir", "DIR", 0 /* ARG_ flags */,
         "Path to directory containing .lua files (required)", 0 /* group */)
 
         /* test
@@ -91,9 +91,9 @@ static struct {
 } g;
 
 /* OPTION_ARG_OPTIONAL is poorly named. It means the value is 'optional' --
- * in other words, the opt is a flag, like -s in 'ln -s'. 
+ * in other words, the opt is a flag, like -s in 'ln -s'.
  *
- * And added something like --help=abc is an error, which is good. 
+ * And added something like --help=abc is an error, which is good.
  */
 
 static struct argp_option options[] = {
@@ -104,7 +104,7 @@ static struct argp_option options[] = {
         OPTION_ARG_OPTIONAL, // flags
         0, // text
         0
-    }, 
+    },
     {
         "lua_dir",
         'd',
@@ -112,7 +112,7 @@ static struct argp_option options[] = {
         0, // flags
         "Path to directory containing .lua files (required)",
         0
-    }, 
+    },
     {0}
 };
 
@@ -156,9 +156,9 @@ bool arg_args(int argc, char **argv) {
     int arg_index;
 
     if (
-        argp_parse(&argp, argc, argv, 
+        argp_parse(&argp, argc, argv,
             0,
-            &arg_index, 
+            &arg_index,
             0 // input = extra data for parsing function
             )
     ) {
@@ -183,7 +183,7 @@ bool arg_args(int argc, char **argv) {
                 usage = true;
             }
             else {
-                if (opt_decl.has_default) 
+                if (opt_decl.has_default)
                     opts[i] = opt_decl.dflt;
             }
         }
@@ -208,7 +208,7 @@ static bool try_key(int key, char *arg, struct argp_state *state) {
         arg_state_help(state);
         return true;
     }
-    else if (key == ARGP_KEY_ARG) { 
+    else if (key == ARGP_KEY_ARG) {
         char *the_arg = state->argv[state->next-1];
         (void) the_arg;
         g.num_args++;
@@ -219,7 +219,7 @@ static bool try_key(int key, char *arg, struct argp_state *state) {
 
 static error_t argp_parser(int key, char *arg, struct argp_state *state) {
 
-    if (! try_key(key, arg, state)) 
+    if (! try_key(key, arg, state))
         arg_state_usage(state);
 
     return 0;
