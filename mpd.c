@@ -103,7 +103,7 @@ static struct {
 static int f_mpd_error(char *msg) {
     if (g.connection) {
         enum mpd_error err = mpd_connection_get_error(g.connection);
-        if (err == MPD_ERROR_SUCCESS) { 
+        if (err == MPD_ERROR_SUCCESS) {
             piep;
             warn("f_mpd_error called (%s) but mpd says success", msg);
             return ERR_INVALID_ERR;
@@ -117,7 +117,7 @@ static int f_mpd_error(char *msg) {
                 ) {
             return ERR_CONNECTION;
         }
-        else 
+        else
             return ERR_OTHER;
     }
     else {
@@ -171,7 +171,7 @@ static bool reinit_gt(gpointer data) {
 static bool reinit(bool force, bool conn_error) {
     if (force || g.force_reinit) {
         char s[ERROR_BUF_SIZE];
-        if (conn_error) 
+        if (conn_error)
             snprintf(s, ERROR_BUF_SIZE, "Error with connection");
         else {
             _();
@@ -195,7 +195,7 @@ static bool reinit(bool force, bool conn_error) {
 bool f_mpd_ok() {
     if (g.connection) {
         enum mpd_error e = mpd_connection_get_error(g.connection);
-        if (e == MPD_ERROR_SUCCESS) 
+        if (e == MPD_ERROR_SUCCESS)
             return true;
         else if (e == MPD_ERROR_OOM) {
             fprintf(stderr, "Out of memory!");
@@ -208,7 +208,7 @@ bool f_mpd_ok() {
         warn("f_mpd_ok: no connection.");
         return false;
     }
-} 
+}
 
 bool f_mpd_init_config() {
     g.conf = flua_config_new(global.L);
@@ -221,7 +221,7 @@ bool f_mpd_init_config() {
 int f_mpd_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-    /* Throws. 
+    /* Throws.
      */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
@@ -283,10 +283,10 @@ bool f_mpd_init_f(short flags) {
     g.playlist_idx = -1;
     g.playlist_n = 0;
 
-    if (g.verbose) 
+    if (g.verbose)
         info("MPD connection opened successfully.");
 
-    if (have_playlists() && !reload_playlists()) 
+    if (have_playlists() && !reload_playlists())
         pieprf;
 
     g.init = true;
@@ -301,10 +301,10 @@ bool f_mpd_get_random(bool *r) {
     }
 
     struct mpd_status *s = get_status();
-    if (!s) 
+    if (!s)
         return false; // let get_status do the whining
     /* can't fail */
-    *r = mpd_status_get_random(s); 
+    *r = mpd_status_get_random(s);
     free_status(s);
     return true;
 }
@@ -320,7 +320,7 @@ bool f_mpd_toggle_random(bool *r) {
     if (! f_mpd_get_random(&random))
         return false; // let them do the whining
     bool ok = random ? f_mpd_random_off() : f_mpd_random_on();
-    if (ok && r) 
+    if (ok && r)
         *r = !random;
     return ok;
 }
@@ -361,7 +361,7 @@ if (TEST_FORCE_REINIT) g.force_reinit = true;
         case MPD_STATE_PAUSE:
             f_try_rf( mpd_run_toggle_pause(g.connection), "toggle pause" );
             break;
-        case MPD_STATE_UNKNOWN: 
+        case MPD_STATE_UNKNOWN:
             iwarn("unknown status, skipping.");
             return false;
             break;
@@ -374,21 +374,21 @@ bool f_mpd_seek(int secs) {
         warn("f_mpd_seek: mpd not initted.");
         return false;
     }
-    
+
 
     int pos = get_queue_pos();
 
     /* Not playing.
      */
-    if (pos == -1) 
+    if (pos == -1)
         return true;
 
     int time = get_elapsed_time();
-    if (pos == -1) 
+    if (pos == -1)
         pieprf;
     int seek_to = time + secs;
 
-    if (seek_to < 0) 
+    if (seek_to < 0)
         return true;
     f_try_rf( mpd_run_seek_pos(g.connection, pos, seek_to), "seek position" ); // ok if overshoot
 
@@ -451,16 +451,16 @@ bool f_mpd_update() {
     if (res) {
 
         vec *strvec;
-        if (g.verbose_events) 
+        if (g.verbose_events)
             strvec = vec_new();
 
-        /* Event names are hard-coded here. 
+        /* Event names are hard-coded here.
          * Should match EVENTS in main.
          */
         char *reload = NULL;
         if (res & MPD_IDLE_OPTIONS) {
             /* We swallow successive 'random' events if the final state is
-             * the same as it was at the last update. 
+             * the same as it was at the last update.
              */
             bool random;
             bool fire = false;
@@ -471,24 +471,24 @@ bool f_mpd_update() {
                 fire = true;
             }
             else {
-                if (random != prev_random) 
+                if (random != prev_random)
                     fire = true;
             }
             prev_random = random;
             if (fire && ! main_fire_event("random", GINT_TO_POINTER(random)))
                 pieprf;
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, Y_("random changed"));
         }
         if (res & MPD_IDLE_STORED_PLAYLIST) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, Y_("stored playlists have been altered / created"));
             reload = "playlist";
             if (! main_fire_event("playlists-changed", NULL))
                 pieprf;
         }
         if (res & MPD_IDLE_UPDATE) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, G_("update started or finished"));
             reload = "update";
             if (! main_fire_event("update-started-or-finished", NULL))
@@ -500,7 +500,7 @@ bool f_mpd_update() {
                 info("mpd_update: reloading playlists in response to %s event.", reload);
 
             /* Warn but don't return false. */
-            if (have_playlists() && ! reload_playlists()) 
+            if (have_playlists() && ! reload_playlists())
                 piep;
         }
 
@@ -509,13 +509,13 @@ bool f_mpd_update() {
         */
 
         if (res & MPD_IDLE_DATABASE) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, BB_("song database has been updated"));
             if (! main_fire_event("database-updated", NULL))
                 pieprf;
         }
         if (res & MPD_IDLE_PLAYER) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, M_("the player state has changed: play, stop, pause, seek, ..."));
             if (! main_fire_event("player-state-changed", NULL))
                 pieprf;
@@ -523,30 +523,30 @@ bool f_mpd_update() {
         if (res & MPD_IDLE_MIXER) {
             if (! main_fire_event("volume-altered", NULL))
                 pieprf;
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, CY_("the volume has been altered"));
         }
         if (res & MPD_IDLE_OUTPUT) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, CY_("an audio output device has been enabled or disabled"));
             if (! main_fire_event("device-state-changed", NULL))
                 pieprf;
         }
         /* Only in the newer version.
         else if (res & MPD_IDLE_STICKER) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, CY_("a sticker has been modified."));
             if (! main_fire_event("sticker-modified", NULL))
                 pieprf;
         }
         else if (res & MPD_IDLE_SUBSCRIPTION) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, CY_("a client has subscribed to or unsubscribed from a channel"));
             if (! main_fire_event("client-channel-subscription-altered", NULL))
                 pieprf;
         }
         else if (res & MPD_IDLE_MESSAGE) {
-            if (g.verbose_events) 
+            if (g.verbose_events)
                 vec_add(strvec, CY_("a message on a subscribed channel was received"));
             if (! main_fire_event("subscribed-channel-message-received", NULL))
                 pieprf;
@@ -582,14 +582,14 @@ bool f_mpd_is_updating(bool *u) {
     }
 
     /*
-        MPD_IDLE_UPDATE     
+        MPD_IDLE_UPDATE
             a database update has started or finished.
 
         So it will also return true when it's just finished.
     */
 
     struct mpd_status *st = get_status();
-    if (!st) 
+    if (!st)
         return false; // let get_status do the whining
     if (u)
         *u = mpd_status_get_update_id(st);
@@ -603,11 +603,11 @@ bool f_mpd_next_playlist() {
         return false;
     }
 
-    if (!g.playlist_n) 
+    if (!g.playlist_n)
         return true;
-    if (++g.playlist_idx > g.playlist_n - 1) 
+    if (++g.playlist_idx > g.playlist_n - 1)
         g.playlist_idx = 0;
-    
+
     return load_playlist(g.playlist_idx);
 }
 
@@ -617,11 +617,11 @@ bool f_mpd_prev_playlist() {
         return false;
     }
 
-    if (!g.playlist_n) 
+    if (!g.playlist_n)
         return true;
-    if (--g.playlist_idx < 0) 
-        g.playlist_idx = g.playlist_n - 1; 
-    
+    if (--g.playlist_idx < 0)
+        g.playlist_idx = g.playlist_n - 1;
+
     return load_playlist(g.playlist_idx);
 }
 
@@ -681,7 +681,7 @@ if (TEST_FORCE_REINIT) g.force_reinit = true;
 }
 
 static void free_status(struct mpd_status* s) {
-    if (s) 
+    if (s)
         /* void */
         mpd_status_free(s);
 }
@@ -736,7 +736,7 @@ static bool load_playlist(int idx) {
     f_try_rf(mpd_run_load(g.connection, path), "load playlist");
     mpd_connection_set_timeout(g.connection, conf_i(timeout_ms));
 
-    if (conf_b(play_on_load_playlist)) 
+    if (conf_b(play_on_load_playlist))
         f_try_rf(mpd_run_play(g.connection), "play");
 
 
@@ -795,13 +795,13 @@ static bool reload_playlists() {
 
     f_try_rf(mpd_send_list_meta(g.connection, playlist_path), "send list meta");
 
-    /* Can receive either pair or entity from mpd. 
+    /* Can receive either pair or entity from mpd.
      * Entity can give a playlist object, but you can't do too much with it
      * that's interesting. Just get a pair object and gets its ->value.
      */
 
     char **matches = calloc(2, sizeof(char*));
-    if (!matches) 
+    if (!matches)
         ierr_perr("");
 
     int idx = -1;
@@ -810,7 +810,7 @@ static bool reload_playlists() {
         struct mpd_pair *p = mpd_recv_pair_named(g.connection, "playlist");
 
         /* no more pairs. */
-        if (!p) 
+        if (!p)
             _break = true;
         else if (!f_mpd_ok()) {
             f_mpd_error("Couldn't receive named pair for playlist");
@@ -875,7 +875,7 @@ static bool reload_playlists() {
 
     /* No playlists added. */
     int s = vec_size(plvec);
-    if (s == -1) 
+    if (s == -1)
         pieprf;
 
     clear_playlist_vec(plvec, false);
@@ -891,7 +891,7 @@ static bool reload_playlists() {
     return true;
 }
 
-/* Lua versions. 
+/* Lua versions.
  * These all 'throw'.
  */
 int f_mpd_toggle_play_l(lua_State *L) {

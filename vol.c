@@ -58,7 +58,7 @@ bool vol_init_config() {
 int vol_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-    /* Throws. 
+    /* Throws.
      */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
@@ -103,7 +103,7 @@ void handle_event(GIOChannel *source, GIOCondition cond, gpointer data) {
         if (talk)
             info("Someone changed the volume on card %d, updating.", card);
     }
-    if (! fasound_handle_event(card)) 
+    if (! fasound_handle_event(card))
         warn("Couldn't handle event on card %d", card);
 
 }
@@ -123,11 +123,11 @@ bool vol_init() {
 
     for (int i = 0; i < FASOUND_MAX_SOUND_CARDS; i++) {
         const char *name = g.card_names_string[i];
-        if (!name) 
+        if (!name)
             continue;
         g.num_cards++;
         for (int j = 0; j < FASOUND_MAX_ELEMS; j++) {
-            if (! g.ctl_names[i][j]) 
+            if (! g.ctl_names[i][j])
                 continue;
             g.num_elems[i]++;
         }
@@ -137,7 +137,7 @@ bool vol_init() {
     for (int card = 0; card < g.num_cards; card++) {
         for (int j = 0; j < FASOUND_MAX_FDS; j++) {
             int fd = g.fds[card][j];
-            if (!fd) 
+            if (!fd)
                 continue;
 
             struct fd_event_t *fd_event = f_mallocv(*fd_event);
@@ -199,9 +199,9 @@ bool vol_rel(int card, int ctl, int chan, int delta_perc) {
     if (g.verbose) {
         time_t secs;
         suseconds_t usecs;
-        if (! util_get_clock(&secs, &usecs)) 
+        if (! util_get_clock(&secs, &usecs))
             warn("Can't set timestamp on vol event.");
-        else 
+        else
             g.timestamp_vol_update = (long) secs * 1e3 + usecs * 1.0 * 1e-3;
     }
 
@@ -216,7 +216,7 @@ int vol_rel_l(lua_State *L) {
     const char *errs = NULL;
     if (! strcmp(lua_typename(L, lua_type(L, -2)), "string")) {
         const char *str = luaL_checkstring(L, -2);
-        if (! strcmp(str, "all")) 
+        if (! strcmp(str, "all"))
             chan_idx = VOL_ALL;
         else if (-1 != (chan_idx = get_chan_idx_for_name(str))) {
             // ok
@@ -226,31 +226,31 @@ int vol_rel_l(lua_State *L) {
             goto ERR;
         }
     }
-    else 
+    else
         chan_idx = (int) luaL_checknumber(L, -2);
 
     if (! strcmp(lua_typename(L, lua_type(L, -3)), "string")) {
         const char *str = luaL_checkstring(L, -3);
-        if (! strcmp(str, "all")) 
+        if (! strcmp(str, "all"))
             ctl_idx = VOL_ALL;
         else {
             errs = str;
             goto ERR;
         }
     }
-    else 
+    else
         ctl_idx = (int) luaL_checknumber(L, -3);
 
     if (! strcmp(lua_typename(L, lua_type(L, -4)), "string")) {
         const char *str = luaL_checkstring(L, -4);
-        if (! strcmp(str, "all")) 
+        if (! strcmp(str, "all"))
             card_idx = VOL_ALL;
         else {
             errs = str;
             goto ERR;
         }
     }
-    else 
+    else
         card_idx = (int) luaL_checknumber(L, -4);
 
     if (! vol_rel(card_idx, ctl_idx, chan_idx, delta_perc)) {

@@ -151,9 +151,9 @@ static bool timeout_lua_func(gpointer ptr) {
         check_lua_err(rc, "Lua error on user-defined timeout: %s", err);
     }
     bool l_return;
-    if (! strcmp(lua_typename(L, lua_type(L, -1)), "nil")) 
+    if (! strcmp(lua_typename(L, lua_type(L, -1)), "nil"))
         l_return = false;
-    else 
+    else
         l_return = lua_toboolean(L, -1);
 
     return l_return && data->repeat;
@@ -168,7 +168,7 @@ static bool add_timeout_lua_func(int ms, lua_State *L, int reg_index, bool repea
 
     // can't fail
     guint tid = main_add_timeout(ms, timeout_lua_func, data);
-    if (id) 
+    if (id)
         *id = tid;
     return true;
 }
@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
 
     f_autoflush();
 
-    if (! init_globals()) 
+    if (! init_globals())
         ierr("Can't init globals.");
 
     /* For testing.
@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
             exit(0);
         if (way_out == 1)
             exit(1);
-        else 
+        else
             ierr("Couldn't init main.");
     }
 
@@ -272,15 +272,15 @@ int main(int argc, char **argv) {
     if (! lua_init())
         err("Can't init lua.");
 
-    if (! g.lua_initted) 
+    if (! g.lua_initted)
         err("%s: forgot lua init?", CONF_NAMESPACE);
 
     g.verbose = conf_b(verbose);
 
-    if (! gpio_init(g.verbose)) 
+    if (! gpio_init(g.verbose))
         ierr("Couldn't init gpio");
 
-    if (g.verbose) 
+    if (g.verbose)
         say("");
 #ifndef NO_NES
     if (g.verbose)
@@ -296,15 +296,15 @@ int main(int argc, char **argv) {
     /* Not interbyte timeout, because 'nothing' should also be a valid
      * response.
      */
-    if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND)) 
+    if (!f_terminal_raw_input(F_UTIL_TERMINAL_MODE_READ_WITH_TIMEOUT, 0, POLL_TENTHS_OF_A_SECOND))
         err("Couldn't set terminal raw.");
 #endif
 
     /* Before buttons_init, which needs to know about the modes. */
-    if (! mode_init()) 
+    if (! mode_init())
         ierr("Couldn't init mode");
 
-    if (! buttons_init()) 
+    if (! buttons_init())
         ierr("Couldn't init buttons");
 
     if (g.verbose){
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
         say("");
     }
 
-    if (! vol_init()) 
+    if (! vol_init())
         ierr("Couldn't init vol");
 
     if (g.verbose) {
@@ -320,10 +320,10 @@ int main(int argc, char **argv) {
         info("Setting up mpd.");
     }
 
-    if (! f_mpd_init()) 
+    if (! f_mpd_init())
         err("Couldn't init mpd.");
 
-    if (! lua_start()) 
+    if (! lua_start())
         err("Can't call lua start().");
 
 #ifdef DEBUG
@@ -340,7 +340,7 @@ int main(int argc, char **argv) {
      * I/O -- we still poll the pins using wiringPi each time around.
      * But it does help in easily adding timeout functions.
      */
-  
+
     GMainLoop *loop;
     {
         GMainContext *ctxt = NULL;
@@ -369,7 +369,7 @@ static unsigned int read_buttons_testing() {
         ret = 0;
     }
     else {
-        ret = 
+        ret =
             *buf == 'a' ? N_A :
             *buf == 'b' ? N_B :
             *buf == 'h' ? N_LEFT :
@@ -411,17 +411,17 @@ static bool do_read(short cur_read) {
         button_name_ptr = g.button_name_iter[i];
         bool on = cur_read & BUTTONS(i);
         if (on) {
-            if (first) 
+            if (first)
                 first = false;
-            else 
+            else
                 strcat(button_print, " + ");
             found_one = true;
             strcat(button_print, *button_name_ptr); // -O- only 8
         }
     }
 
-    if (!process_read(cur_read, 
-        found_one ? button_print : NULL )) 
+    if (!process_read(cur_read,
+        found_one ? button_print : NULL ))
         pieprf;
 
     return true;
@@ -432,12 +432,12 @@ static bool process_read(short read, char *button_print) {
 
     static vec *rules_press = NULL;
     static vec *rules_release = NULL;
-    if (!rules_press) 
+    if (!rules_press)
         rules_press = vec_new();
     else if (! vec_clear(rules_press))
         pieprf;
 
-    if (!rules_release) 
+    if (!rules_release)
         rules_release = vec_new();
     else if (! vec_clear(rules_release))
         pieprf;
@@ -452,14 +452,14 @@ static bool process_read(short read, char *button_print) {
 
     if ((prev_read != read) && button_print) {
         /* reset it */
-        print_hold_indicator(0); 
+        print_hold_indicator(0);
         printf("[ %s ] ", button_print);
     }
 
     bool ok = true;
 
     /* Cycle through individual buttons, triggering their release events if
-     * they have them. 
+     * they have them.
      *
      * Note that an n-button combination followed by releasing one of
      * the buttons will generate a release event for that button (followed
@@ -511,7 +511,7 @@ static bool process_read(short read, char *button_print) {
         }
     }
 
-    if (! read) 
+    if (! read)
         goto END;
 
     /* Check for blocking, after processing individual release events */
@@ -523,7 +523,7 @@ static bool process_read(short read, char *button_print) {
     /* Then do the event matching the combination. */
     int j = 0, l = vec_size(rules_press);
 
-    if (l == 0) 
+    if (l == 0)
         print_hold_indicator(1);
 
     for (; j < l; j++) {
@@ -535,7 +535,7 @@ static bool process_read(short read, char *button_print) {
 #ifdef DEBUG
             info("Ignoring read %d (->once is true)", read);
 #endif
-            if (! rule_press->chain) 
+            if (! rule_press->chain)
                 break;
             else
                 continue;
@@ -572,7 +572,7 @@ static bool process_read(short read, char *button_print) {
                 check_lua_err(rc, "Lua error on press event: %s", err);
             }
         }
-        if (! rule_press->chain) 
+        if (! rule_press->chain)
             break;
     }
 END:
@@ -583,7 +583,7 @@ END:
 static void cleanup() {
 #ifdef NO_NES
     info("setting terminal normal.");
-    if (!f_terminal_normal()) 
+    if (!f_terminal_normal())
         piep;
 #endif
     fish_util_cleanup();
@@ -591,12 +591,12 @@ static void cleanup() {
 
     if (! f_mpd_cleanup())
         piep;
-    if (! buttons_cleanup()) 
+    if (! buttons_cleanup())
         piep;
 
     if (! vec_destroy(g.loop_events))
         piep;
-            
+
     g_hash_table_destroy(g.events);
 
     char **button_name_ptr = (char**) (&g.button_names);
@@ -635,7 +635,7 @@ void creak() {
 
 static bool lua_init() {
     lua_State *L = global.L;
-    /* Was set in luaL but overwrite it. 
+    /* Was set in luaL but overwrite it.
      * Returns old panic function.
      */
     lua_atpanic(L, panic);
@@ -644,8 +644,8 @@ static bool lua_init() {
     lua_newtable(L); // capi
 
     // capi.buttons = {
-    lua_pushstring(L, "buttons"); 
-    lua_newtable(L); 
+    lua_pushstring(L, "buttons");
+    lua_newtable(L);
 
     // XX not used
 
@@ -687,7 +687,7 @@ static bool lua_init() {
 
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) config_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "add_listener");
     lua_pushcfunction(L, (lua_CFunction) add_listener_l);
@@ -702,7 +702,7 @@ static bool lua_init() {
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
     // capi.mpd = {
     lua_pushstring(L, "mpd");
@@ -710,7 +710,7 @@ static bool lua_init() {
 
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_config_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "toggle_play");
     lua_pushcfunction(L, (lua_CFunction) f_mpd_toggle_play_l);
@@ -765,7 +765,7 @@ static bool lua_init() {
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
     // capi.vol = {
     lua_pushstring(L, "vol");
@@ -773,14 +773,14 @@ static bool lua_init() {
 
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) vol_config_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "set_rel");
     lua_pushcfunction(L, (lua_CFunction) vol_rel_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
     // capi.gpio = {
     lua_pushstring(L, "gpio");
@@ -788,18 +788,18 @@ static bool lua_init() {
 
     lua_pushstring(L, "read");
     lua_pushcfunction(L, (lua_CFunction) gpio_pin_read_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "on");
     lua_pushcfunction(L, (lua_CFunction) gpio_pin_on_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "off");
     lua_pushcfunction(L, (lua_CFunction) gpio_pin_off_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
     // capi.mode = {
     lua_pushstring(L, "mode");
@@ -807,16 +807,16 @@ static bool lua_init() {
 
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) mode_config_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
     lua_pushstring(L, "next_mode");
     lua_pushcfunction(L, (lua_CFunction) mode_next_mode_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
     lua_pushstring(L, "get_mode_name");
     lua_pushcfunction(L, (lua_CFunction) mode_get_mode_name_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
     // capi.util = {
     lua_pushstring(L, "util");
@@ -824,22 +824,22 @@ static bool lua_init() {
 
     lua_pushstring(L, "get_clock");
     lua_pushcfunction(L, (lua_CFunction) util_get_clock_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "close_fd");
     lua_pushcfunction(L, (lua_CFunction) util_close_fd_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "redirect_write_to_dev_null");
     lua_pushcfunction(L, (lua_CFunction) util_write_fd_to_dev_null_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_pushstring(L, "socket_unix_message");
     lua_pushcfunction(L, (lua_CFunction) util_socket_unix_message_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
 
     lua_rawset(L, -3);
-    // } 
+    // }
 
 
 
@@ -849,7 +849,7 @@ static bool lua_init() {
     lua_newtable(L);
     lua_pushstring(L, "config");
     lua_pushcfunction(L, (lua_CFunction) nes_config_l);
-    lua_rawset(L, -3);  
+    lua_rawset(L, -3);
     lua_rawset(L, -3);
     // }
 #endif
@@ -905,9 +905,9 @@ static void events_destroy_val(gpointer ptr) {
 static bool init_main(int argc, char **argv, int *way_out) {
     if (! arg_args(argc, argv)) {
         int status = arg_status();
-        if (status == ARG_STATUS_HELP) 
+        if (status == ARG_STATUS_HELP)
             *way_out = 0;
-        else if (status == ARG_STATUS_INVALID_USAGE) 
+        else if (status == ARG_STATUS_INVALID_USAGE)
             *way_out = 1;
         else {
             iwarn("Couldn't init args.");
@@ -954,7 +954,7 @@ static bool init_main(int argc, char **argv, int *way_out) {
 
 #ifdef DEBUG
 static int make_canonical(unsigned int read) {
-    return 
+    return
         ((read & N_LEFT)    ? 1<<7 : 0) |
         ((read & N_RIGHT)   ? 1<<6 : 0) |
         ((read & N_UP)      ? 1<<5 : 0) |
@@ -985,7 +985,7 @@ static void debug_read(unsigned int read_canonical, char *ret) {
 static int get_max_button_print_size() {
     int n=0;
     for (int i = 0; i < 8; i++) {
-        n += strlen(*g.button_name_iter[i]) 
+        n += strlen(*g.button_name_iter[i])
             + 3; // ' + '
     }
     return n+1;
@@ -1017,7 +1017,7 @@ static void print_hold_indicator(short s) {
             printf("\n");
         }
         delay_cur = (delay_cur + 1) % (DELAY + 1);
-        if (delay_cur == DELAY) 
+        if (delay_cur == DELAY)
             t = (t + 1) % (2*NUM - 2);
         if (t < NUM) {
             printf("\r[ ");

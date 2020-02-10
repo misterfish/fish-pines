@@ -21,9 +21,9 @@
 static char *DIR = "/sys/class/gpio";
 
 static int PHYS_PINS[] = {
-    3, 5, 7, 8, 
-    10, 11, 12, 13, 15, 16, 
-    18, 19, 21, 22, 23, 24, 
+    3, 5, 7, 8,
+    10, 11, 12, 13, 15, 16,
+    18, 19, 21, 22, 23, 24,
     26
 };
 static int phys2gpio(int pin) {
@@ -76,7 +76,7 @@ static struct {
     /* Cache the states. Assume no one outside of us is setting pins; if
      * not, use the FORCE flag when turning a pin on or off.
      */
-    int state[NUM_PINS]; 
+    int state[NUM_PINS];
 } g;
 
 static int phys_to_gpio(int pin_phys);
@@ -167,10 +167,10 @@ static bool isexported(int pin_gpio) {
 static bool export(int pin_gpio) {
     char *file = g.fileexport;
     FILE *f = safeopen_f(file, F_WRITE | F_NODIE);
-    if (!f) 
+    if (!f)
         pieprf;
     fprintf(f, "%d", pin_gpio);
-    if (fclose(f)) 
+    if (fclose(f))
         pieprf;
     return true;
 }
@@ -188,7 +188,7 @@ static char *get_file_direction(int pin_gpio) {
 static bool get_dir(int pin_gpio, int *store) {
     char *file = get_file_direction(pin_gpio);
     FILE *f = safeopen_f(file, F_READ | F_NODIE);
-    if (!f) 
+    if (!f)
         pieprf;
     char *line = str(4);
     if (!fgets(line, 4, f))  // reads at most one less than 4, then adds \0
@@ -215,7 +215,7 @@ static bool get_dir(int pin_gpio, int *store) {
 static bool is_dir_out(int pin_gpio) {
 #ifndef TESTING_OFF_PI
     int dir;
-    if (!get_dir(pin_gpio, &dir)) 
+    if (!get_dir(pin_gpio, &dir))
         pieprf;
 
     if (dir == DIR_OUT) {
@@ -232,7 +232,7 @@ static bool set_dir(int pin_gpio, int dir) {
     char *file = get_file_direction(pin_gpio);
 
     FILE *f = safeopen_f(file, F_WRITE | F_NODIE);
-    if (!f) 
+    if (!f)
         pieprf;
     char* s;
     if (dir == DIR_OUT) {
@@ -246,7 +246,7 @@ static bool set_dir(int pin_gpio, int dir) {
     }
 
     fprintf(f, "%s", s);
-    if (fclose(f)) 
+    if (fclose(f))
         pieprf;
 
     free(file);
@@ -255,12 +255,12 @@ static bool set_dir(int pin_gpio, int dir) {
 
 static bool pin_read(int pin_gpio, int *state) {
     if (! isexported(pin_gpio)) {
-        if (! export(pin_gpio)) 
+        if (! export(pin_gpio))
             pieprf;
     }
 
     if (! is_dir_out(pin_gpio)) {
-        if (! set_dir(pin_gpio, DIR_OUT)) 
+        if (! set_dir(pin_gpio, DIR_OUT))
             pieprf;
     }
 
@@ -268,16 +268,16 @@ static bool pin_read(int pin_gpio, int *state) {
     char *file = get_state_file(pin_gpio);
     FILE *f = safeopen_f(file, F_NODIE);
 
-    if (!f) 
+    if (!f)
         pieprf;
 
     char c;
     int rc = fread(&c, sizeof(char), 1, f);
-    if (rc != 1) 
+    if (rc != 1)
         pieprf;
-    if (c == '0') 
+    if (c == '0')
         *state = 0;
-    else if (c == '1') 
+    else if (c == '1')
         *state = 1;
     else {
         piep;
@@ -288,7 +288,7 @@ static bool pin_read(int pin_gpio, int *state) {
     int pin_phys = gpio_to_phys(pin_gpio);
     *state = g.state[pin_gpio];
 #endif
-    if (fclose(f)) 
+    if (fclose(f))
         pieprf;
     free(file);
     return true;
@@ -299,12 +299,12 @@ static bool pin_write(int pin_gpio, int state) {
         pieprf;
 
     if (! isexported(pin_gpio)) {
-        if (! export(pin_gpio)) 
+        if (! export(pin_gpio))
             pieprf;
     }
 
     if (! is_dir_out(pin_gpio)) {
-        if (! set_dir(pin_gpio, DIR_OUT)) 
+        if (! set_dir(pin_gpio, DIR_OUT))
             piep;
     }
 
@@ -333,7 +333,7 @@ static bool pin_write(int pin_gpio, int state) {
         piep;
 
     fprintf(f, "%d", state);
-    if (fclose(f)) 
+    if (fclose(f))
         pieprf;
     free(file);
 #endif
@@ -377,7 +377,7 @@ bool gpio_cleanup() {
 bool gpio_pin_read(int pin_gpio, int *state) {
     //int pin_gpio = phys_to_gpio(pin_phys);
 
-    if (pin_gpio == -1) 
+    if (pin_gpio == -1)
         pieprf;
 
     return pin_read(pin_gpio, state);
@@ -388,7 +388,7 @@ bool gpio_pin_on_f(int pin_gpio, int flags) {
     //int pin_gpio = phys_to_gpio(pin_phys);
 
     // int pin_phys = gpio_to_phys(pin_gpio);
-    if (pin_gpio == -1) 
+    if (pin_gpio == -1)
         pieprf;
 
     if (flags & F_PIN_FORCE) {
@@ -404,7 +404,7 @@ bool gpio_pin_on_f(int pin_gpio, int flags) {
 bool gpio_pin_off_f(int pin_gpio, int flags) {
     //int pin_gpio = phys_to_gpio(pin_phys);
 
-    if (pin_gpio == -1) 
+    if (pin_gpio == -1)
         pieprf;
 
     // int pin_phys = gpio_to_phys(pin_gpio);
@@ -467,7 +467,7 @@ int gpio_pin_on_l(lua_State *L) {
 
     pin_gpio = (int) luaL_checknumber(L, -1);
     lua_pop(L, 1);
-    if (! gpio_pin_on_f(pin_gpio, flags)) 
+    if (! gpio_pin_on_f(pin_gpio, flags))
         piep;
     return 0;
 }
@@ -486,7 +486,7 @@ int gpio_pin_off_l(lua_State *L) {
     }
     pin_gpio = (int) luaL_checknumber(L, -1);
     lua_pop(L, 1);
-    if (! gpio_pin_off_f(pin_gpio, flags)) 
+    if (! gpio_pin_off_f(pin_gpio, flags))
         piep;
     return 0;
 }

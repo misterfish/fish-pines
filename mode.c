@@ -44,7 +44,7 @@ bool mode_init_config() {
 int mode_config_l(lua_State *L) {
     int num_rules = (sizeof CONF) / (sizeof CONF[0]) - 1;
 
-    /* Throws. 
+    /* Throws.
      */
     if (! flua_config_load_config(g.conf, CONF, num_rules)) {
         _();
@@ -68,7 +68,7 @@ bool mode_init() {
     bool ok = false;
     if (mode_names) {
         num_modes = (short) vec_size(mode_names);
-        if (num_modes) 
+        if (num_modes)
             ok = true;
     }
 

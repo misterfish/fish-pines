@@ -118,7 +118,7 @@ int nes_init() {
         warn("%s: forgot lua init?", CONF_NAMESPACE);
         return -1;
     }
-    if (! init_wiringPi()) 
+    if (! init_wiringPi())
         return -1;
     return init_joystick();
 }

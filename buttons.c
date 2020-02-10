@@ -200,7 +200,7 @@ int buttons_add_rule_l(lua_State *L) {
 
     vec *rules = get_rules_for_event(mode, event);
 
-    if (! rules) 
+    if (! rules)
         piepr0;
     else
         vec_add(rules, rule);
@@ -210,10 +210,10 @@ int buttons_add_rule_l(lua_State *L) {
 
 static vec *get_rules_for_event(short mode, short event) {
     vec *rules_for_mode = vec_get(g.rules, mode);
-    if (!rules_for_mode) 
+    if (!rules_for_mode)
         pieprnull;
     vec *rules_for_event = vec_get(rules_for_mode, event);
-    if (!rules_for_event) 
+    if (!rules_for_event)
         pieprnull;
     return rules_for_event;
 }
@@ -226,21 +226,21 @@ static bool get_rules_for_read(short mode, short event, short read, vec *rules_r
     for (i = 0, l = vec_size(rules_for_event); i < l; i++) {
         // ok to cast NULL
         struct button_rule_t *rule = (struct button_rule_t *) vec_get(rules_for_event, i);
-        if (! rule) 
+        if (! rule)
             pieprf;
 
         bool exact = rule->exact;
         short rule_buttons = rule->buttons;
         bool trigger = false;
-        if (exact) 
+        if (exact)
             /* Has to be exactly this. */
             trigger = read == rule_buttons;
-        else 
+        else
             /* Can be a combination containing us. */
             trigger = (read & rule_buttons) == rule_buttons;
         if (trigger) {
             /* Got it. */
-            if ( !vec_add(rules_ret, rule)) 
+            if ( !vec_add(rules_ret, rule))
                 pieprf;
         }
     }
