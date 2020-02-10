@@ -1,4 +1,4 @@
-#define _BSD_SOURCE // cfmakeraw
+#define _DEFAULT_SOURCE // cfmakeraw
 //#define _POSIX_C_SOURCE 199309L // time stuff
 
 #include <unistd.h> // _exit

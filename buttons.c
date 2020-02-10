@@ -282,6 +282,7 @@ void buttons_remove_block() {
 }
 
 bool buttons_remove_block_timeout(gpointer data) {
+    (void) data;
     buttons_remove_block();
     return false;
 }

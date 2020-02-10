@@ -5,7 +5,7 @@
 #include <lua.h>
 
 void main_set_mode(int mode);
-void main_register_loop_event(char *desc, int count, bool (*cb)(void *data));
+void main_register_loop_event(char *desc, int count, gboolean (*cb)(void *data));
 bool main_fire_event(char *event, gpointer data);
 
 void main_remove_timeout(guint id);

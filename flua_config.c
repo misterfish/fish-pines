@@ -100,8 +100,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
 
     bool first = true;
     if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
-        char buf[ERROR_BUF_SIZE];
-        snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1", errprefix);
+        int size = ERROR_BUF_SIZE;
+        char buf[size];
+        snprintf(buf, size, "%s expected table at -1", errprefix);
         lua_pushstring(conf->L, buf);
         lua_error(conf->L);
     }
@@ -197,8 +198,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         else if (!strcmp(type, "stringlist")) {
             char *type = NULL;
             if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
-                char buf[ERROR_BUF_SIZE];
-                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for stringlist", errprefix);
+                int size = ERROR_BUF_SIZE;
+                char buf[size];
+                snprintf(buf, size, "%s expected table at -1 for stringlist", errprefix);
                 lua_pushstring(conf->L, buf);
                 lua_error(conf->L);
             }
@@ -245,8 +247,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         else if (!strcmp(type, "integerlist")) {
             char *type = NULL;
             if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
-                char buf[ERROR_BUF_SIZE];
-                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for integerlist", errprefix);
+                int size = ERROR_BUF_SIZE;
+                char buf[size];
+                snprintf(buf, size, "%s expected table at -1 for integerlist", errprefix);
                 lua_pushstring(conf->L, buf);
                 lua_error(conf->L);
             }
@@ -294,8 +297,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         else if (!strcmp(type, "booleanlist")) {
             char *type = NULL;
             if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
-                char buf[ERROR_BUF_SIZE];
-                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for booleanlist", errprefix);
+                int size = ERROR_BUF_SIZE;
+                char buf[size];
+                snprintf(buf, size, "%s expected table at -1 for booleanlist", errprefix);
                 lua_pushstring(conf->L, buf);
                 lua_error(conf->L);
             }
@@ -343,8 +347,9 @@ bool flua_config_load_config(struct flua_config_conf_t *conf, struct flua_config
         else if (!strcmp(type, "reallist")) {
             char *type = NULL;
             if (strcmp("table", lua_typename(conf->L, lua_type(conf->L, -1)))) {
-                char buf[ERROR_BUF_SIZE];
-                snprintf(buf, ERROR_BUF_SIZE, "%s expected table at -1 for reallist", errprefix);
+                int size = ERROR_BUF_SIZE;
+                char buf[size];
+                snprintf(buf, size, "%s expected table at -1 for reallist", errprefix);
                 lua_pushstring(conf->L, buf);
                 lua_error(conf->L);
             }

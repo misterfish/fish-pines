@@ -188,6 +188,10 @@ static bool reinit(bool force, bool conn_error) {
     return true;
 }
 
+static gboolean wrap_f_mpd_update() {
+    return f_mpd_update();
+}
+
 /* Use xxx_run_yyy to send and recv.
  * Go into idle to receive updates (e.g. random).
  */
@@ -269,7 +273,7 @@ bool f_mpd_init_f(short flags) {
             /* This used to be update_wrapper; maybe htat's the cause of
              * the crash when mpd is restarted? XX
              */
-            main_register_loop_event("mpd update", i, f_mpd_update);
+            main_register_loop_event("mpd update", i, wrap_f_mpd_update);
     }
 
     g.playlist_by_name = g_hash_table_new_full(
@@ -420,8 +424,8 @@ if (TEST_FORCE_REINIT) g.force_reinit = true;
 /* This is *not* the update metadata function of mpd, but our own function
  * for updating the status of mpd.
  *
- * We die with memory corruption if mpd is restarted. My hunch is that it's
- * here. XX
+ * We can die with memory corruption if mpd is restarted. My hunch is that
+ * it's here. @todo
  */
 bool f_mpd_update() {
     if (!g.init) {

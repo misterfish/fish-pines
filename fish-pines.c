@@ -178,7 +178,7 @@ static void sighandler_term() {
     info("Ctl c");
 }
 
-static void poll_nes(gpointer data) {
+static gboolean poll_nes(gpointer data) {
     (void) data;
     unsigned int cur_read = 0;
 
@@ -191,6 +191,8 @@ static void poll_nes(gpointer data) {
 
     /* Do it also if cur_read is 0 (so we can get release events). */
     do_read(cur_read);
+
+    return true;
 }
 
 /* For testing timeouts.
@@ -206,12 +208,14 @@ bool ping_fail(void *data) {
     return false;
 }
 
-void main_register_loop_event(char *desc, int ms, bool (*cb)(void *data)) {
+gboolean xxx(bool (*cb)()) {
+    return (gboolean) (*cb)();
+}
+
+void main_register_loop_event(char *desc, int ms, gboolean (*cb)()) {
     /* Not doing anything with the desc actually. */
-    /* Or with the timeout id. */
-    guint id = g_timeout_add(ms, (GSourceFunc) cb, NULL);
+    g_timeout_add(ms, (GSourceFunc) cb, NULL);
     (void) desc;
-    (void) id;
 }
 
 /* Lua functions have a _l suffix throughout the app.
