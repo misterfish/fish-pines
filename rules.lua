@@ -1,9 +1,9 @@
-needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua') 
+needs ({ me = 'rules' }, 'util', '__imported_util', 'capi', 'configlua')
 
 local rules, _, i, k, v
 
-local function update_playlists () 
-    info 'Starting mpd update and playlist rebuild …' 
+local function update_playlists ()
+    info 'Starting mpd update and playlist rebuild …'
 
     local cmd = configlua.cmds.make_playlist_all
 
@@ -20,7 +20,7 @@ local function update_playlists ()
         while true do
             if capi.mpd.is_updating () then
                 coroutine.yield {}
-            else 
+            else
                 break
             end
         end
@@ -53,7 +53,7 @@ local function update_playlists ()
     }
 end
 
---[[ 
+--[[
 
 Rules passed to capi.buttons.add_rule () look like this:
 
@@ -61,29 +61,29 @@ Rules passed to capi.buttons.add_rule () look like this:
 
 Button names: <required> 'b', 'a', 'select', 'up', etc.
 
-mode                        <required>.           
+mode                        <required>.
                             Integer starting at 0, corresponding to the
                             order modes were given in the lua config.
 
 event                       <required>
                             "press" or "release"
 
-handler                     <optional>         
+handler                     <optional>
                             The lua function to call. It's actually
                             optional. You could have a rule with no handler,
                             whose only purpose is to block subsequent rules.
                             If the handler is nil, it will silently fail.
 
-once:                       <optional, false>            
+once:                       <optional, false>
                             Debounce press events, so a long hold only
-                            counts as a single press. 
+                            counts as a single press.
                             Only applies to press events.
                             Also it only cancels the rule in which it
                             appears; other combinations will still trigger
                             on hold events unless they each have once set to
                             true.
 
-chain:                      <optional, false>    
+chain:                      <optional, false>
                             Keep looking for more rules after this one matched.
 
 exact:                      <optional, true>
