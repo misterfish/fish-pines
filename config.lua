@@ -7,9 +7,9 @@ return {
     },
     nes = {
         -- Using Broadcom gpio numbering.
-        dpin = 25, --yellow
-        cpin = 24, --red
-        lpin = 23, --orange
+        dpin = 22, --yellow, old = 25
+        cpin = 27, --red, old = 24
+        lpin = 23, --orange, old = 23
     },
     mpd = {
         host = 'localhost',
