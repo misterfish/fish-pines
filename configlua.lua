@@ -10,8 +10,8 @@ return {
         --cmd = 'sudo ls',
     },
     cmds = {
-        switch_to_wireless = 'switch-to-internet-wireless',
-        switch_to_wired    = 'switch-to-internet-wired',
+        switch_to_wireless_client_mode = 'switch-to-wifi-client',
+        switch_to_ap_mode    = 'switch-to-ap-mode',
         make_playlist_all = 'make-playlist-all',
 
         silence_out     = false,
