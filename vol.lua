@@ -15,14 +15,14 @@ local function go (args)
     capi.vol.set_rel (card, elem, chan, amount)
 end
 
-local function up (args) 
+local function up (args)
     args = args or {}
     if not args.amount then args.amount = configlua.vol.upamount end
     args.dir = 'up'
     go (args)
 end
 
-local function down (args) 
+local function down (args)
     args = args or {}
     if not args.amount then args.amount = configlua.vol.downamount end
     args.dir = 'down'
