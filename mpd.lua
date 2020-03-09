@@ -5,15 +5,37 @@ local RAND = {[true] = {col = G, hoe = "on"}, [false] = {col = CY, hoe = "off"}}
 local _, k, v
 
 local function random ()
-    return capi.mpd.get_random () 
+    return capi.mpd.get_random ()
 end
 
-local function toggle_random () 
-    local rand = capi.mpd.toggle_random () 
+local function toggle_random ()
+    local rand = capi.mpd.toggle_random ()
     local r = RAND [rand]
     local col, hoe = r.col, r.hoe
     led [hoe] 'random'
     infof ("Setting random to %s", col (hoe))
+end
+
+local function _vol_do (dir, amount)
+    local col
+    if dir == 'down' then
+        amount = -1 * amount
+        col = BR
+    else
+        col = G
+    end
+    capi.mpd.vol_set_rel (amount)
+    infof ("Adjust mpd volume by %s", col (amount))
+end
+
+local function vol_up ()
+    local amount = configlua.mpd.volupamount
+    _vol_do ('up', amount)
+end
+
+local function vol_down ()
+    local amount = configlua.mpd.voldownamount
+    _vol_do ('down', amount)
 end
 
 local function listen_xxx (msg, col)
@@ -21,7 +43,7 @@ local function listen_xxx (msg, col)
 end
 
 -- our listener will also harmlessly trigger if we set random via a button, with a
--- delay which depends on the update/ticks settings for mpd_update. 
+-- delay which depends on the update/ticks settings for mpd_update.
 local function listen_random (rand)
     local r = RAND [rand]
     local col, hoe = r.col, r.hoe
@@ -57,7 +79,7 @@ local function listen_message ()
     listen_xxx ('subscribed-channel-message-received', CY)
 end
 
-local function init () 
+local function init ()
     for k, v in pairs {
         ['random'] = listen_random,
         ['playlists-changed'] = listen_playlists,
@@ -69,7 +91,7 @@ local function init ()
         ['sticker-modified'] = listen_sticker,
         ['client-channel-subscription-altered'] = listen_subscription,
         ['subscribed-channel-message-received'] = listen_message,
-    } 
+    }
     do
         capi.main.add_listener(k, v)
     end
@@ -79,4 +101,6 @@ return {
     init = init,
     random = random,
     toggle_random = toggle_random,
+    vol_up = vol_up,
+    vol_down = vol_down,
 }

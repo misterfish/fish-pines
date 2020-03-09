@@ -2,8 +2,7 @@ needs ({ me = 'vol' }, '__imported_util', 'capi', 'configlua')
 
 local _, k, v
 
--- private
-local function go (args)
+local function _alsa_do (args)
     args = args or {}
     local amount = args.amount or error3 'need amount'
     if args.dir == 'down' then
@@ -12,23 +11,24 @@ local function go (args)
     local card = args.card or 'all'
     local elem = args.elem or 'all'
     local chan = args.chan or 'all'
-    capi.vol.set_rel (card, elem, chan, amount)
+    capi.vol.alsa_set_rel (card, elem, chan, amount)
 end
 
-local function up (args)
+local function alsa_up (args)
     args = args or {}
     if not args.amount then args.amount = configlua.vol.upamount end
     args.dir = 'up'
-    go (args)
+    _alsa_do (args)
 end
 
-local function down (args)
+local function alsa_down (args)
     args = args or {}
     if not args.amount then args.amount = configlua.vol.downamount end
     args.dir = 'down'
-    go (args)
+    _alsa_do (args)
 end
 
+--[[
 -- vol up on all left channels
 local function up_left (args)
     args = args or {}
@@ -64,12 +64,16 @@ local function down_right (args)
         down (args)
     end
 end
+]]
 
 return {
-    up = configlua.anton_mode and down or up,
-    down = configlua.anton_mode and up or down,
-    up_left = configlua.anton_mode and down_left or up_left,
-    down_left = configlua.anton_mode and up_left or down_left,
-    up_right = configlua.anton_mode and down_right or up_right,
-    down_right = configlua.anton_mode and up_right or down_right,
+    alsa_up = configlua.anton_mode and alsa_down or alsa_up,
+    alsa_down = configlua.anton_mode and alsa_up or alsa_down,
+    alsa_up = configlua.anton_mode and alsa_down or alsa_up,
+    alsa_down = configlua.anton_mode and alsa_up or alsa_down,
+
+    -- up_left = configlua.anton_mode and down_left or up_left,
+    -- down_left = configlua.anton_mode and up_left or down_left,
+    -- up_right = configlua.anton_mode and down_right or up_right,
+    -- down_right = configlua.anton_mode and up_right or down_right,
 }

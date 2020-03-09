@@ -373,12 +373,32 @@ if (TEST_FORCE_REINIT) g.force_reinit = true;
     return true;
 }
 
+bool f_mpd_vol_set_rel(int amount) {
+    if (!g.init) {
+        warn("f_mpd_vol_set_rel: mpd not initted.");
+        return false;
+    }
+
+    struct mpd_status *status = get_status();
+    int cur = mpd_status_get_volume(status);
+    free_status(status);
+
+    if (cur == -1) {
+        warn("f_mpd_vol_set_rel: can't get current volume, aborting");
+        return false;
+    }
+    int new = cur + amount;
+    if (new < 0) new = 0;
+    if (new > 100) new = 100;
+    f_try_rf(mpd_run_set_volume(g.connection, new), "set volume");
+    return true;
+}
+
 bool f_mpd_seek(int secs) {
     if (!g.init) {
         warn("f_mpd_seek: mpd not initted.");
         return false;
     }
-
 
     int pos = get_queue_pos();
 
@@ -996,6 +1016,17 @@ int f_mpd_seek_l(lua_State *L /* int secs */) {
     lua_Number seek = luaL_checknumber(L, -1);
     if (! f_mpd_seek((int) seek)) {
         lua_pushstring(L, "Couldn't seek.");
+        lua_error(L);
+    }
+    return 0;
+}
+int f_mpd_vol_set_rel_l(lua_State *L) {
+    lua_Number amount = luaL_checknumber(L, -1);
+    if (! f_mpd_vol_set_rel((int) amount)) {
+        char *msg = malloc(28 + f_int_length(amount) + 1);
+        sprintf(msg, "Couldn't adjust mpd vol by %d.", (int) amount);
+        lua_pushstring(L, msg);
+        free(msg);
         lua_error(L);
     }
     return 0;

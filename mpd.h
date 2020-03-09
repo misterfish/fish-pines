@@ -45,5 +45,6 @@ int f_mpd_prev_playlist_l(lua_State *L);
 int f_mpd_load_playlist_by_name_l(lua_State *L);
 int f_mpd_seek_l(lua_State *L /* int secs */);
 int f_mpd_is_updating_l(lua_State *L);
+int f_mpd_vol_set_rel_l(lua_State *L);
 
 #endif

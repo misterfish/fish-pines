@@ -380,6 +380,10 @@ static unsigned int read_buttons_testing() {
             *buf == 'l' ? N_RIGHT :
             *buf == 'j' ? N_DOWN :
             *buf == 'k' ? N_UP :
+            *buf == 'i' ? N_UP | N_RIGHT :
+            *buf == 'm' ? N_DOWN | N_RIGHT :
+            *buf == 'u' ? N_UP | N_LEFT :
+            *buf == 'n' ? N_DOWN | N_LEFT :
             *buf == 'H' ? N_B | N_LEFT :
             *buf == 'L' ? N_B | N_RIGHT :
             *buf == 'J' ? N_B | N_DOWN :
@@ -768,6 +772,10 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) f_mpd_seek_l);
     lua_rawset(L, -3);
 
+    lua_pushstring(L, "vol_set_rel");
+    lua_pushcfunction(L, (lua_CFunction) f_mpd_vol_set_rel_l);
+    lua_rawset(L, -3);
+
     lua_rawset(L, -3);
     // }
 
@@ -779,8 +787,8 @@ static bool lua_init() {
     lua_pushcfunction(L, (lua_CFunction) vol_config_l);
     lua_rawset(L, -3);
 
-    lua_pushstring(L, "set_rel");
-    lua_pushcfunction(L, (lua_CFunction) vol_rel_l);
+    lua_pushstring(L, "alsa_set_rel");
+    lua_pushcfunction(L, (lua_CFunction) vol_alsa_rel_l);
     lua_rawset(L, -3);
 
     lua_rawset(L, -3);

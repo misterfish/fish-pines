@@ -8,6 +8,6 @@ bool vol_init();
 bool vol_rel(int card, int ctl, int chan, int delta_perc);
 
 int vol_config_l(lua_State *L);
-int vol_rel_l(lua_State *L);
+int vol_alsa_rel_l(lua_State *L);
 
 #endif

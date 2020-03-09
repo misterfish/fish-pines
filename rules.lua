@@ -101,29 +101,27 @@ rules = {
     -- mode = music
     music = {
         press = {
-            { 'up', 'right',   handler = vol.up_right },
-            { 'up', 'left',    handler = vol.up_left },
-            { 'down', 'right', handler = vol.down_right },
-            { 'down', 'left',  handler = vol.down_left },
+            { 'up', 'right',    handler = function () mpd.vol_down () end },
+            { 'down', 'left',   handler = function () mpd.vol_up () end },
 
-            {      'left',     once = true, handler = function () capi.mpd.prev_song () end },
-            {      'right',    once = true, handler = function () capi.mpd.next_song () end },
-            { 'b', 'right',    time_block = {
+            {      'left',      once = true, handler = function () capi.mpd.prev_song () end },
+            {      'right',     once = true, handler = function () capi.mpd.next_song () end },
+            { 'b', 'right',     time_block = {
                 target = { 'right' },
                 timeout = 1000,
-            },                 handler = function () capi.mpd.seek (configlua.mpd.seek) end },
-            { 'b', 'left',     time_block = {
+            },                  handler = function () capi.mpd.seek (configlua.mpd.seek) end },
+            { 'b', 'left',      time_block = {
                 target = { 'left' },
                 timeout = 1000,
-            },                 handler = function () capi.mpd.seek (configlua.mpd.seek * -1) end },
-            { 'b', 'down',     once = true, handler = function () capi.mpd.next_playlist () end },
-            { 'b', 'up',       once = true, handler = function () capi.mpd.prev_playlist () end },
-            {      'down',     handler = function () vol.down () end },
-            { 'up',            handler = function () vol.up () end },
-            { 'a',             once = true, handler = mpd.toggle_random },
-            { 'select',        once = true, handler = mode.next_mode  },
-            { 'start',         once = true, handler = function () capi.mpd.toggle_play () end },
-            { 'b', 'a',        once = true, handler = function () update_playlists () end },
+            },                  handler = function () capi.mpd.seek (configlua.mpd.seek * -1) end },
+            { 'b', 'down',      once = true, handler = function () capi.mpd.next_playlist () end },
+            { 'b', 'up',        once = true, handler = function () capi.mpd.prev_playlist () end },
+            { 'down',           handler = function () vol.alsa_down () end },
+            { 'up',             handler = function () vol.alsa_up () end },
+            { 'a',              once = true, handler = mpd.toggle_random },
+            { 'select',         once = true, handler = mode.next_mode  },
+            { 'start',          once = true, handler = function () capi.mpd.toggle_play () end },
+            { 'b', 'a',         once = true, handler = function () update_playlists () end },
         },
         release = {
         }
@@ -133,6 +131,8 @@ rules = {
         press = {
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      hold_indicator = false, handler = shutdown.start_pressed  },
+            { 'down',       handler = function () vol.alsa_down () end },
+            { 'up',         handler = function () vol.alsa_up () end },
         },
         release = {
             { 'start',      handler = shutdown.start_released  },

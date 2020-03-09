@@ -210,7 +210,7 @@ bool vol_rel(int card, int ctl, int chan, int delta_perc) {
 
 static int get_chan_idx_for_name(const char *name);
 
-int vol_rel_l(lua_State *L) {
+int vol_alsa_rel_l(lua_State *L) {
     int delta_perc = (int) luaL_checknumber(L, -1);
     int chan_idx, ctl_idx, card_idx;
     const char *errs = NULL;
@@ -262,7 +262,7 @@ int vol_rel_l(lua_State *L) {
     if (errs) {
         _();
         BR(errs);
-        spr("vol_rel_l: invalid string: %s", _s);
+        spr("vol_alsa_rel_l: invalid string: %s", _s);
         lua_pushstring(L, _t);
         lua_error(L);
     }

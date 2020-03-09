@@ -1,6 +1,8 @@
 return {
     mpd = {
         seek = 5, -- secs
+        volupamount = 2,
+        voldownamount = 2,
     },
     shutdown = {
         secs = 1.3,
