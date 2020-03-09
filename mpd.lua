@@ -13,7 +13,7 @@ local function toggle_random ()
     local r = RAND [rand]
     local col, hoe = r.col, r.hoe
     led [hoe] 'random'
-    infof ("Setting random to %s", col (hoe))
+    -- infof ("Setting random to %s", col (hoe))
 end
 
 local function _vol_do (dir, amount)
@@ -25,7 +25,7 @@ local function _vol_do (dir, amount)
         col = G
     end
     capi.mpd.vol_set_rel (amount)
-    infof ("Adjust mpd volume by %s", col (amount))
+    -- infof ("Adjust mpd volume by %s", col (amount))
 end
 
 local function vol_up ()
@@ -101,6 +101,6 @@ return {
     init = init,
     random = random,
     toggle_random = toggle_random,
-    vol_up = vol_up,
-    vol_down = vol_down,
+    vol_up = vol_down,
+    vol_down = vol_up,
 }
