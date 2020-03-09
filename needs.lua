@@ -3,7 +3,7 @@
 -- needs( [args], 'module1', 'module2', ... )
 -- args ::= { [ me = '<string>' ], [ check = [_G] ] }
 
-return function (args, ...) 
+return function (args, ...)
     local module = '<unknown>'
     local check = _G
     local needs_list

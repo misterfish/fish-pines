@@ -3,22 +3,22 @@ needs ({ me = 'shutdown' }, '__imported_util', 'capi', 'configlua')
 local clock
 clock = (function ()
     local function recalc (self, base)
-        -- secs from the clock call is about 30 bits. 
+        -- secs from the clock call is about 30 bits.
         -- this calculation won't overflow double.
         if base == 'sus' then
             self.combined = self.secs + self.usecs * 1e-6
         elseif base == 'comb' then
             self.secs = math.floor (self.combined)
             self.usecs = (self.combined - self.secs) * 1e6
-        else 
+        else
             warn 'abc' --XX
         end
     end
-    local function set_secs (self, s) 
+    local function set_secs (self, s)
         self.secs = s
         recalc (self, 'sus')
     end
-    local function set_usecs (self, us) 
+    local function set_usecs (self, us)
         if us >= 1e6 then
             warn 'us too big'
             us = 1e6
@@ -26,11 +26,11 @@ clock = (function ()
         self.usecs = us
         recalc (self, 'sus')
     end
-    local function set_combined (self, com) 
+    local function set_combined (self, com)
         self.combined = com
         recalc (self, 'comb')
     end
-    local function new (args) 
+    local function new (args)
         args = args or {}
         local self = {
             secs = nil,
@@ -74,7 +74,7 @@ local function reset ()
     chars_printed = 0
 end
 
-local function go () 
+local function go ()
     info "Shutting down!"
     if sys (configlua.shutdown.cmd) then
         disabled = true
@@ -82,9 +82,9 @@ local function go ()
     reset()
 end
 
-local function start_pressed () 
-    if disabled then 
-        return 
+local function start_pressed ()
+    if disabled then
+        return
     end
 
     if not toen then

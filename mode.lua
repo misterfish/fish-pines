@@ -1,10 +1,10 @@
 needs ({ me = 'mode' }, '__imported_util', 'capi')
 
-local mode_names = imap (function (v, i) 
+local mode_names = imap (function (v, i)
     return v, i
 end, config.mode.modes)
 
-local function idx_for_name (name) 
+local function idx_for_name (name)
     local idx = mode_names[name]
     if not idx then
         warn ("XXX") -- XX
@@ -12,7 +12,7 @@ local function idx_for_name (name)
     return idx
 end
 
-local function next_mode () 
+local function next_mode ()
     capi.mode.next_mode ()
     local mode_name = capi.mode.get_mode_name ()
     local mode_idx = idx_for_name (mode_name)

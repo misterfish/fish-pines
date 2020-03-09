@@ -71,9 +71,4 @@ return {
     alsa_down = configlua.anton_mode and alsa_up or alsa_down,
     alsa_up = configlua.anton_mode and alsa_down or alsa_up,
     alsa_down = configlua.anton_mode and alsa_up or alsa_down,
-
-    -- up_left = configlua.anton_mode and down_left or up_left,
-    -- down_left = configlua.anton_mode and up_left or down_left,
-    -- up_right = configlua.anton_mode and down_right or up_right,
-    -- down_right = configlua.anton_mode and up_right or down_right,
 }
