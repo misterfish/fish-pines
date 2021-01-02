@@ -112,27 +112,6 @@ static int phys_to_gpio(int pin_phys) {
 
     return pin_gpio;
 }
-/*
-static int gpio_to_phys(int pin_gpio) {
-    if (pin_gpio < 1 || pin_gpio > MAX_GPIO) {
-        _();
-        spr("%d", pin_gpio);
-        R(_s);
-        warn("-p not between 1 and %d (%s)", MAX_GPIO, _t);
-        return -1;
-    }
-    int pin_phys = gpio2phys(pin_gpio);
-    if (pin_phys == -1) {
-        _();
-        spr("%d", pin_gpio);
-        R(_s);
-        warn("GPIO pin %s not recognised.", _t);
-        return -1;
-    }
-
-    return pin_phys;
-}
-*/
 
 /* Caller should free.
  */
@@ -383,50 +362,41 @@ bool gpio_pin_read(int pin_gpio, int *state) {
     return pin_read(pin_gpio, state);
 }
 
-//bool gpio_pin_on_f(int pin_phys, int flags) {
-bool gpio_pin_on_f(int pin_gpio, int flags) {
-    //int pin_gpio = phys_to_gpio(pin_phys);
-
-    // int pin_phys = gpio_to_phys(pin_gpio);
+bool gpio_pin_on_f(int pin_gpio, int flags __attribute__ ((unused))) {
     if (pin_gpio == -1)
         pieprf;
 
+    /*
     if (flags & F_PIN_FORCE) {
         // Don't check state.
     }
     else if (g.state[pin_gpio])
         return true;
+    */
 
     return pin_write(pin_gpio, 1);
 }
 
-//bool gpio_pin_off_f(int pin_phys, int flags) {
-bool gpio_pin_off_f(int pin_gpio, int flags) {
-    //int pin_gpio = phys_to_gpio(pin_phys);
-
+bool gpio_pin_off_f(int pin_gpio, int flags __attribute__ ((unused))) {
     if (pin_gpio == -1)
         pieprf;
 
-    // int pin_phys = gpio_to_phys(pin_gpio);
-
+    /*
     if (flags & F_PIN_FORCE) {
         // Don't check state.
     }
     else if (!g.state[pin_gpio])
         return true;
+    */
 
     return pin_write(pin_gpio, 0);
 }
 
-//bool gpio_pin_off(int pin_phys) {
 bool gpio_pin_off(int pin_gpio) {
-    //return gpio_pin_off_f(pin_phys, 0);
     return gpio_pin_off_f(pin_gpio, 0);
 }
 
-//bool gpio_pin_on(int pin_phys) {
 bool gpio_pin_on(int pin_gpio) {
-    //return gpio_pin_on_f(pin_phys, 0);
     return gpio_pin_on_f(pin_gpio, 0);
 }
 
@@ -459,7 +429,8 @@ int gpio_pin_on_l(lua_State *L) {
         const char *flag = luaL_checkstring(L, -1);
         lua_pop(L, 1);
         if (! strcmp(flag, "force"))
-            flags |= F_PIN_FORCE;
+            // flags |= F_PIN_FORCE;
+            {}
         else
             piepr0;
         lua_pop(L, 1);
@@ -479,7 +450,8 @@ int gpio_pin_off_l(lua_State *L) {
         const char *flag = luaL_checkstring(L, -1);
         lua_pop(L, 1);
         if (! strcmp(flag, "force"))
-            flags |= F_PIN_FORCE;
+            // flags |= F_PIN_FORCE;
+            {}
         else
             piepr0;
         lua_pop(L, 1);

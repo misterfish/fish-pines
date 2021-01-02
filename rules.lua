@@ -117,10 +117,10 @@ rules = {
             { 'up', 'right',    handler = function () vol.alsa_up () end },
             { 'up',             handler = function () mpd.vol_up () end },
             { 'down',           handler = function () mpd.vol_down () end },
+            { 'b', 'a',         once = true, handler = function () update_playlists () end },
             { 'a',              once = true, handler = mpd.toggle_random },
             { 'select',         once = true, handler = mode.next_mode  },
             { 'start',          once = true, handler = function () capi.mpd.toggle_play () end },
-            { 'b', 'a',         once = true, handler = function () update_playlists () end },
         },
         release = {
         }
@@ -130,8 +130,6 @@ rules = {
         press = {
             { 'select',     once = true, handler = mode.next_mode  },
             { 'start',      hold_indicator = false, handler = shutdown.start_pressed  },
-            { 'down',       handler = function () vol.alsa_down () end },
-            { 'up',         handler = function () vol.alsa_up () end },
         },
         release = {
             { 'start',      handler = shutdown.start_released  },

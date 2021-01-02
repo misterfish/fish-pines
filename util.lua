@@ -62,11 +62,8 @@ local function printf (format, ...)
     io.write (string.format (format, ...))
 end
 
---local BULLETS = { '꣐', '⩕', '٭', '᳅', '𝇚', '𝄢', '𝄓', '𝄋', '𝁐' }
-local BULLETS = {'꣐', '⩕', '٭', '᳅'}
-
 local function bullet ()
-    return BULLETS[1 + math.floor (math.random () * #BULLETS)]
+    return '٭'
 end
 
 local function warnf (format, ...)

@@ -38,7 +38,7 @@ local rules_main, rules_enhance
 
 function load_rules ()
     for modename, t in pairs (rules_main) do
-        local mode_idx = mode.idx_for_name (modename) 
+        local mode_idx = mode.idx_for_name (modename)
         if not mode_idx then
             warn "XX" -- XX
             break
@@ -66,10 +66,9 @@ end
 
 -- called by C after init.
 function start ()
-
     mpd.init ()
     led.init ()
-
+    if custom.init ~= nil then custom.init () end
     load_rules ()
 end
 

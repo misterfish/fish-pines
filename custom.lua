@@ -30,6 +30,7 @@ end
 
 local function reload ()
     sys 'mpc update'
+    sys 'music-init'
     sys 'make-playlist-all'
 end
 
